@@ -7,9 +7,11 @@ import kotlin.reflect.KFunction
 import kotlin.reflect.KType
 import kotlin.reflect.KVisibility
 import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.full.isSuperclassOf
 import kotlin.reflect.jvm.isAccessible
 import kotlin.reflect.jvm.javaMethod
+import kotlin.reflect.jvm.reflect
 
 /**
  * The main class for the event system.
@@ -23,26 +25,24 @@ object EventBus {
 
     fun initialize() {
         try {
-            val clazz = Class.forName("github.businessdirt.generated.EventsHandleEventRegistry")
+            val clazz = Class.forName("github.businessdirt.events.generated.EventsHandleEventRegistry")
             val methodsField = clazz.getDeclaredField("methods")
             methodsField.isAccessible = true
-            val modules = methodsField.get(null) as Map<KClass<out Any>, List<KFunction<out Any>>>
+            val methods = methodsField.get(null) as List<KFunction<*>>
 
-            modules.forEach { (cls, functions) ->
-                functions.forEach { function ->
-                    function.isAccessible = true
-                    if (function.visibility == KVisibility.PUBLIC) throw MethodNotPublicException(function)
+            methods.forEach { function ->
+                function.isAccessible = true
+                if (function.visibility != KVisibility.PUBLIC) throw MethodNotPublicException(function)
 
-                    val name: String = ReflectionUtils.getFunctionString(function)
-                    val instance: Any = this.getInstance(function) // throws ClassNotInstantiableException
-                    val eventData = this.getEventData(function) // throws ParameterException
-                    val eventConsumer = this.getEventConsumer(function, instance) // throws ParameterException
-                    listeners.computeIfAbsent(eventData.second) { `_`: KClass<out Event> -> ArrayList() }
-                        .add(EventListener(name, eventConsumer, eventData.first))
-                }
+                val name: String = ReflectionUtils.getFunctionString(function)
+                val instance: Any = this.getInstance(function) // throws ClassNotInstantiableException
+                val eventData = this.getEventData(function) // throws ParameterException
+                val eventConsumer = this.getEventConsumer(function, instance) // throws ParameterException
+                listeners.computeIfAbsent(eventData.second) { `_`: KClass<out Event> -> ArrayList() }
+                    .add(EventListener(name, eventConsumer, eventData.first))
             }
-        } catch (_: Exception) {
-
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -50,12 +50,12 @@ object EventBus {
     private fun getInstance(
         function: KFunction<*>
     ): Any {
-        return try {
-            function.javaMethod?.declaringClass?.getField("INSTANCE")?.get(null)
-                ?: throw ClassNotInstantiableException(function)
-        } catch (_: Exception) {
-            throw ClassNotInstantiableException(function)
-        }
+        val declaringClass = function.javaMethod?.declaringClass?.kotlin
+            ?: throw ClassNotInstantiableException(function)
+
+        // objectInstance returns the singleton instance if the class is a Kotlin 'object'
+        return declaringClass.objectInstance
+            ?: throw ClassNotInstantiableException(function)
     }
 
     @Throws(ParameterException::class)
@@ -104,19 +104,11 @@ object EventBus {
      */
     fun getEventHandler(
         event: KClass<out Event>
-    ): EventHandler {
-        return handlers.computeIfAbsent(event) { e: KClass<out Event> ->
-            EventHandler(e,
-                getEventClasses(e).stream()
-                    .map<MutableList<EventListener>> { cls: KClass<out Event> ->
-                        listeners.getOrDefault(
-                            cls,
-                            mutableListOf()
-                        )
-                    }
-                    .flatMap<EventListener> { obj: MutableList<EventListener> -> obj.stream() }
-                    .collect(Collectors.toList()))
-        }
+    ): EventHandler = handlers.getOrPut(event) {
+        EventHandler(
+            event,
+            getEventClasses(event).mapNotNull { listeners[it] }.flatten().toMutableList()
+        )
     }
 
     private fun getEventClasses(

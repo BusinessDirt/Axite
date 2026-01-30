@@ -1,5 +1,6 @@
 package github.businessdirt.axite.events
 
+import org.junit.jupiter.api.BeforeAll
 import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -10,14 +11,15 @@ class EventBusTest {
     // Helper classes and objects for testing
     open class TestEvent1 : Event()
     class TestEvent2 : TestEvent1()
-    class TestCancelableEvent : CancelableEvent() {
-        // Overriding to make it visible for tests
-        public override fun cancel() {
-            super.cancel()
-        }
-    }
+    class TestCancelableEvent : CancelableEvent() {}
 
     companion object TestListeners {
+        @JvmStatic
+        @BeforeAll
+        fun beforeAll(): Unit {
+            EventBus.initialize()
+        }
+
         val eventLog = mutableListOf<String>()
 
         @HandleEvent(priority = 1) // LOW
@@ -57,26 +59,9 @@ class EventBusTest {
         }
     }
 
-    private fun clearEventBusState() {
-        val listenersField = EventBus::class.java.getDeclaredField("listeners")
-        listenersField.isAccessible = true
-        @Suppress("UNCHECKED_CAST")
-        (listenersField.get(EventBus) as HashMap<KClass<out Event>, MutableList<EventListener>>).clear()
-
-        val handlersField = EventBus::class.java.getDeclaredField("handlers")
-        handlersField.isAccessible = true
-        @Suppress("UNCHECKED_CAST")
-        (handlersField.get(EventBus) as MutableMap<KClass<out Event>, EventHandler>).clear()
-    }
-    
     @Test
     fun `posting a simple event calls listeners in correct priority order`() {
-        clearEventBusState()
         eventLog.clear()
-        
-        // This relies on the KSP processor to find the methods in TestListeners
-        // and for initialize() to register them.
-        EventBus.initialize()
         
         TestEvent1().post()
         
@@ -89,9 +74,7 @@ class EventBusTest {
 
     @Test
     fun `posting a subclass event calls listeners for both subclass and superclass`() {
-        clearEventBusState()
         eventLog.clear()
-        EventBus.initialize()
 
         TestEvent2().post()
 
@@ -102,9 +85,7 @@ class EventBusTest {
 
     @Test
     fun `cancelled events are not propagated to listeners unless receiveCancelled is true`() {
-        clearEventBusState()
         eventLog.clear()
-        EventBus.initialize()
 
         val event = TestCancelableEvent()
         event.post()

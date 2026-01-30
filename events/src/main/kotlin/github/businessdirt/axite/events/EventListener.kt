@@ -22,7 +22,7 @@ class EventListener(
     val predicates: MutableList<Predicate<Event>> = ArrayList()
 
     init {
-        if (!options.receiveCancelled) predicates.add(Predicate { event: Event -> event.isCancelled })
+        if (!options.receiveCancelled) predicates.add(Predicate { event: Event -> !event.isCancelled })
     }
 
     /**

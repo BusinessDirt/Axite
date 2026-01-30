@@ -6,6 +6,7 @@ import java.lang.invoke.MethodType
 import java.util.function.Consumer
 import kotlin.reflect.KFunction
 import kotlin.reflect.jvm.javaMethod
+import kotlin.reflect.jvm.javaType
 
 object ReflectionUtils {
 
@@ -28,24 +29,22 @@ object ReflectionUtils {
         function: KFunction<*>
     ): Consumer<Event> {
         try {
+            val method = function.javaMethod ?: throw InvalidConsumerException(function, null)
             val lookup = MethodHandles.lookup()
-            val handle = lookup.unreflect(function.javaMethod)
+            val handle = lookup.unreflect(method)
 
-            // The specific type the method expects (e.g., ApplicationStartEvent)
-            val specificEventType = function.parameters[0].type.javaClass
-
-            // Create a Consumer via LambdaMetafactory
+            val eventClass = function.parameters.last().type.javaType as Class<*>
             val site = LambdaMetafactory.metafactory(
                 lookup,
                 "accept",
-                MethodType.methodType(Consumer::class.java, instance.javaClass),  // Factory signature
-                MethodType.methodType(Void.TYPE, Any::class.java),  // Interface type
+                MethodType.methodType(Consumer::class.java, instance.javaClass), // Factory: Consumer get(InstanceType)
+                MethodType.methodType(Void.TYPE, Any::class.java), // Interface: void accept(Object t)
                 handle,
-                MethodType.methodType(Void.TYPE, specificEventType) // Enforced type
+                MethodType.methodType(Void.TYPE, eventClass) // Instantiated: void accept(SpecificEvent t)
             )
 
             // Return the auto-casting Consumer
-            return site.getTarget().bindTo(instance).invokeExact() as Consumer<Event>
+            return site.target.invoke(instance) as Consumer<Event>
         } catch (e: Throwable) {
             throw InvalidConsumerException(function, e)
         }
@@ -66,8 +65,9 @@ object ReflectionUtils {
         function: KFunction<*>
     ): Consumer<Event> {
         try {
+            val method = function.javaMethod ?: throw InvalidConsumerException(function, null)
             val lookup = MethodHandles.lookup()
-            val handle = lookup.unreflect(function.javaMethod)
+            val handle = lookup.unreflect(method)
 
             // Create a high-performance Runnable via LambdaMetafactory
             val site = LambdaMetafactory.metafactory(
@@ -79,7 +79,7 @@ object ReflectionUtils {
                 MethodType.methodType(Void.TYPE) // Enforced type
             )
 
-            val fastRunnable = site.getTarget().bindTo(instance).invokeExact() as Runnable
+            val fastRunnable = site.target.invoke(instance) as Runnable
             return Consumer { `_`: Event -> fastRunnable.run() }
         } catch (e: Throwable) {
             throw InvalidRunnableException(function, e)

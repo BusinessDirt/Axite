@@ -19,7 +19,7 @@ class ParameterException(
 
 class InvalidConsumerException(
     function: KFunction<*>,
-    cause: Throwable
+    cause: Throwable?
 ) : RuntimeException(
     "Method ${ReflectionUtils.getFunctionString(function)} is not a valid consumer. " +
             getInternalExecutableCause(function, 1),

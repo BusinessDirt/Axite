@@ -56,7 +56,7 @@ class PacketRegistry {
     @Suppress("UNCHECKED_CAST")
     fun initialize() {
         try {
-            val clazz = Class.forName("github.businessdirt.generated.NetworkingRegisterPacketRegistry")
+            val clazz = Class.forName("github.businessdirt.network.generated.NetworkingRegisterPacketRegistry")
             val modulesField = clazz.getDeclaredField("modules")
             modulesField.isAccessible = true
             val modules = modulesField.get(null) as List<KClass<out Packet>>

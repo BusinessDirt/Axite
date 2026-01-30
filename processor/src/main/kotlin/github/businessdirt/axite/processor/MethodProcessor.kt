@@ -9,7 +9,6 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.writeTo
 import github.businessdirt.axite.processor.Utils.wildcardParameter
-import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 
 class MethodProcessor(
@@ -40,27 +39,15 @@ class MethodProcessor(
         val packageName = Utils.generatePackageName(config)
         val className = Utils.generateClassName(annotationName, config)
 
-        // Types
-        val kClassType = KClass::class.asClassName().wildcardParameter()
         val kFunctionType = KFunction::class.asClassName().wildcardParameter()
         val listType = List::class.asClassName().parameterizedBy(kFunctionType)
-        val mapType = Map::class.asClassName().parameterizedBy(kClassType, listType)
 
-        // Group methods by class
-        val methodsByClass = methods.groupBy { it.parentDeclaration as KSClassDeclaration }
-
-        val mapCodeBlock = CodeBlock.builder().apply {
-            add("mapOf(\n")
+        val listCodeBlock = CodeBlock.builder().apply {
+            add("listOf(\n")
             indent()
-            methodsByClass.forEach { (parentClass, classMethods) ->
-                val classType = parentClass.toClassName()
-                add("%T::class to listOf(\n", classType)
-                indent()
-                classMethods.forEach { method ->
-                    add("%T::%N,\n", classType, method.simpleName.asString())
-                }
-                unindent()
-                add("),\n")
+            methods.forEachIndexed { index, method ->
+                val classType = (method.parentDeclaration as KSClassDeclaration).toClassName()
+                add("%T::%N,\n", classType, method.simpleName.asString())
             }
             unindent()
             add(")")
@@ -68,9 +55,9 @@ class MethodProcessor(
 
         val registryObject = TypeSpec.objectBuilder(className)
             .addProperty(
-                PropertySpec.builder("methods", mapType)
+                PropertySpec.builder("methods", listType)
                     .addModifiers(KModifier.PUBLIC)
-                    .initializer(mapCodeBlock)
+                    .initializer(listCodeBlock)
                     .build()
             )
             .build()
