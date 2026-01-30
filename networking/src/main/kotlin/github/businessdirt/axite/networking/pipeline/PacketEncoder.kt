@@ -1,7 +1,7 @@
-package github.businessdirt.networking.pipeline
+package github.businessdirt.axite.networking.pipeline
 
-import github.businessdirt.networking.packet.Packet
-import github.businessdirt.networking.packet.PacketRegistry
+import github.businessdirt.axite.networking.packet.Packet
+import github.businessdirt.axite.networking.packet.PacketRegistry
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.MessageToByteEncoder

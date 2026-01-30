@@ -1,7 +1,7 @@
 package github.businessdirt.networking
 
-import github.businessdirt.networking.annotations.RegisterPacket
-import github.businessdirt.networking.packet.Packet
+import github.businessdirt.axite.networking.annotations.RegisterPacket
+import github.businessdirt.axite.networking.packet.Packet
 import io.netty.buffer.ByteBuf
 import io.netty.util.CharsetUtil
 

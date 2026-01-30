@@ -1,8 +1,8 @@
-package github.businessdirt.networking
+package github.businessdirt.axite.networking
 
-import github.businessdirt.networking.packet.PacketRegistry
-import github.businessdirt.networking.pipeline.PacketDecoder
-import github.businessdirt.networking.pipeline.PacketEncoder
+import github.businessdirt.axite.networking.packet.PacketRegistry
+import github.businessdirt.axite.networking.pipeline.PacketDecoder
+import github.businessdirt.axite.networking.pipeline.PacketEncoder
 import io.netty.channel.ChannelPipeline
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder
 import io.netty.handler.codec.LengthFieldPrepender

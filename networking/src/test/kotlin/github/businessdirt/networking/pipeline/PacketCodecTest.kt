@@ -1,7 +1,9 @@
 package github.businessdirt.networking.pipeline
 
 import github.businessdirt.networking.TestPacket
-import github.businessdirt.networking.packet.PacketRegistry
+import github.businessdirt.axite.networking.packet.PacketRegistry
+import github.businessdirt.axite.networking.pipeline.PacketDecoder
+import github.businessdirt.axite.networking.pipeline.PacketEncoder
 import io.netty.channel.embedded.EmbeddedChannel
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach

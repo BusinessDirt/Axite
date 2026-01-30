@@ -1,4 +1,4 @@
-package github.businessdirt.networking.packet
+package github.businessdirt.axite.networking.packet
 
 import io.netty.buffer.ByteBuf
 

@@ -1,15 +1,15 @@
-package github.businessdirt.networking.pipeline
+package github.businessdirt.axite.networking.pipeline
 
-import github.businessdirt.networking.packet.PacketRegistry
+import github.businessdirt.axite.networking.packet.PacketRegistry
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.ByteToMessageDecoder
 
 /**
- * Inbound handler that decodes incoming bytes into [github.businessdirt.networking.packet.Packet] objects.
+ * Inbound handler that decodes incoming bytes into [github.businessdirt.axite.networking.packet.Packet] objects.
  *
  * Reads an integer packet ID, looks up the corresponding class in [PacketRegistry],
- * instantiates it, and calls [github.businessdirt.networking.packet.Packet.decode].
+ * instantiates it, and calls [github.businessdirt.axite.networking.packet.Packet.decode].
  *
  * @param packetRegistry The registry used to resolve packet IDs.
  */

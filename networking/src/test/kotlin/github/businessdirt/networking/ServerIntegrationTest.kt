@@ -1,7 +1,9 @@
 package github.businessdirt.networking
 
-import github.businessdirt.networking.packet.Packet
-import github.businessdirt.networking.packet.PacketRegistry
+import github.businessdirt.axite.networking.AbstractNetworkClient
+import github.businessdirt.axite.networking.AbstractNetworkServer
+import github.businessdirt.axite.networking.packet.Packet
+import github.businessdirt.axite.networking.packet.PacketRegistry
 import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.channel.socket.SocketChannel

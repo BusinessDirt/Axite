@@ -1,7 +1,7 @@
-package github.businessdirt.networking
+package github.businessdirt.axite.networking
 
-import github.businessdirt.networking.packet.Packet
-import github.businessdirt.networking.packet.PacketRegistry
+import github.businessdirt.axite.networking.packet.Packet
+import github.businessdirt.axite.networking.packet.PacketRegistry
 import io.netty.bootstrap.Bootstrap
 import io.netty.channel.Channel
 import io.netty.channel.ChannelFuture
@@ -34,7 +34,7 @@ abstract class AbstractNetworkClient(
     private var channel: Channel? = null
 
     /**
-     * Configures the [io.netty.bootstrap.Bootstrap] options.
+     * Configures the [Bootstrap] options.
      *
      * @param bootstrap The Netty bootstrap instance.
      */

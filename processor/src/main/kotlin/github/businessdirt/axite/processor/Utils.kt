@@ -1,4 +1,4 @@
-package github.businessdirt.processor
+package github.businessdirt.axite.processor
 
 import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.ClassName

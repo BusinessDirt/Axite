@@ -1,4 +1,4 @@
-package github.businessdirt.networking.packet
+package github.businessdirt.axite.networking.packet
 
 import org.slf4j.LoggerFactory
 import kotlin.reflect.KClass
@@ -7,7 +7,7 @@ import kotlin.reflect.KClass
  * Registry for managing network packets.
  *
  * Handles the mapping between packet classes and their unique IDs.
- * Can automatically load packets registered via [github.businessdirt.networking.annotations.RegisterPacket]
+ * Can automatically load packets registered via [github.businessdirt.axite.networking.annotations.RegisterPacket]
  * if the annotation processor is used.
  */
 class PacketRegistry {

@@ -1,4 +1,4 @@
-package github.businessdirt.processor
+package github.businessdirt.axite.processor
 
 import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.symbol.KSAnnotated
@@ -7,7 +7,7 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.writeTo
-import github.businessdirt.processor.Utils.wildcardParameter
+import github.businessdirt.axite.processor.Utils.wildcardParameter
 import kotlin.reflect.KClass
 
 class ModuleProcessor(

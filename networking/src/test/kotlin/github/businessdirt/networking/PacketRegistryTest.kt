@@ -1,7 +1,7 @@
 package github.businessdirt.networking
 
-import github.businessdirt.networking.packet.Packet
-import github.businessdirt.networking.packet.PacketRegistry
+import github.businessdirt.axite.networking.packet.Packet
+import github.businessdirt.axite.networking.packet.PacketRegistry
 import io.netty.buffer.ByteBuf
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
