@@ -8,7 +8,15 @@ class ProcessorConfig(options: Map<String, String>) {
         .filterKeys { it.startsWith("processor.") }
         .mapKeys { it.key.removePrefix("processor.") }
 
+    val debug = options["processor.debug"]?.toBoolean() ?: false
+
     val moduleAnnotations: List<String> = options["processor.moduleAnnotations"]
+        ?.split(",")
+        ?.map { it.trim() }
+        ?.filter { it.isNotEmpty() }
+        ?: listOf()
+
+    val methodAnnotations: List<String> = options["processor.methodAnnotations"]
         ?.split(",")
         ?.map { it.trim() }
         ?.filter { it.isNotEmpty() }
@@ -19,6 +27,7 @@ class ProcessorConfig(options: Map<String, String>) {
     }
 
     fun debugLog(logger: KSPLogger) {
+        if (!debug) return
         if (settings.isNotEmpty()) {
             logger.warn("--- KSP Options Found ---")
             settings.forEach { (key, value) ->

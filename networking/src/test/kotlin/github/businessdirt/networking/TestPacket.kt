@@ -9,6 +9,9 @@ import io.netty.util.CharsetUtil
 class TestPacket : Packet {
     var message: String = ""
 
+    @Suppress("unused")
+    constructor()
+
     constructor(message: String) {
         this.message = message
     }

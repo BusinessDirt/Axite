@@ -28,8 +28,8 @@ kotlin {
 }
 
 ksp {
-    arg("processor.debug", "true")
+    arg("processor.debug", "false")
     arg("processor.prefix", "Networking")
-    arg("processor.rootPackage", "github.businessdirt")
+    arg("processor.rootPackage", "github.businessdirt.networking")
     arg("processor.moduleAnnotations", "github.businessdirt.networking.annotations.RegisterPacket")
 }

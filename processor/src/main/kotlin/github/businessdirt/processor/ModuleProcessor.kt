@@ -7,6 +7,7 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.writeTo
+import github.businessdirt.processor.Utils.wildcardParameter
 import kotlin.reflect.KClass
 
 class ModuleProcessor(
@@ -16,9 +17,7 @@ class ModuleProcessor(
 ) : SymbolProcessor {
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        val debug = config.getSetting("debug", "false").toBoolean()
-        if (debug) config.debugLog(logger)
-
+        config.debugLog(logger)
         config.moduleAnnotations.forEach { annotationName ->
             val symbols = resolver.getSymbolsWithAnnotation(annotationName)
             val classes = symbols.filterIsInstance<KSClassDeclaration>().toList()
@@ -33,13 +32,12 @@ class ModuleProcessor(
     }
 
     private fun generateRegistryForAnnotation(classes: List<KSClassDeclaration>, annotationName: String) {
-        logger.warn("Generating modules for $annotationName")
-        val simpleName = annotationName.substringAfterLast(".")
-        val packageName = config.getSetting("rootPackage", "com") + ".generated"
-        val className = "${config.getSetting("prefix")}${simpleName}Registry"
+        logger.warn("Axite: Generating modules for $annotationName")
+        val packageName = Utils.generatePackageName(config)
+        val className = Utils.generateClassName(annotationName, config)
 
         // List<KClass> type
-        val kClassType = KClass::class.asClassName().parameterizedBy(WildcardTypeName.producerOf(ANY))
+        val kClassType = KClass::class.asClassName().wildcardParameter()
         val listType = List::class.asClassName().parameterizedBy(kClassType)
 
         val listCodeBlock = CodeBlock.builder().apply {
