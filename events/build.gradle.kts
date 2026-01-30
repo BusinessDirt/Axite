@@ -30,5 +30,5 @@ ksp {
     arg("processor.debug", "true")
     arg("processor.prefix", "Events")
     arg("processor.rootPackage", "github.businessdirt.events")
-    arg("processor.methodAnnotations", "github.businessdirt.events.annotations.HandleEvent")
+    arg("processor.methodAnnotations", "github.businessdirt.axite.events.HandleEvent")
 }

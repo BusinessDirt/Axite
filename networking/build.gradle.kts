@@ -31,5 +31,5 @@ ksp {
     arg("processor.debug", "false")
     arg("processor.prefix", "Networking")
     arg("processor.rootPackage", "github.businessdirt.networking")
-    arg("processor.moduleAnnotations", "github.businessdirt.networking.annotations.RegisterPacket")
+    arg("processor.moduleAnnotations", "github.businessdirt.axite.networking.annotations.RegisterPacket")
 }
