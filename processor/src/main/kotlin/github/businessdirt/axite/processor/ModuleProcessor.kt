@@ -35,6 +35,7 @@ class ModuleProcessor(
         logger.warn("Axite: Generating modules for $annotationName")
         val packageName = Utils.generatePackageName(config)
         val className = Utils.generateClassName(annotationName, config)
+        val interfaceName = config.getInterface(annotationName)
 
         // List<KClass> type
         val kClassType = KClass::class.asClassName().wildcardParameter()
@@ -55,18 +56,35 @@ class ModuleProcessor(
             add(")")
         }.build()
 
-        val registryObject = TypeSpec.objectBuilder(className)
-            .addProperty(
-                PropertySpec.builder("modules", listType)
-                    .addModifiers(KModifier.PUBLIC)
-                    .initializer(listCodeBlock)
-                    .build()
-            )
+        val modulesProperty = PropertySpec.builder("modules", listType)
+            .addModifiers(KModifier.PUBLIC)
+            .apply { if (interfaceName != null) addModifiers(KModifier.OVERRIDE) }
+            .initializer(listCodeBlock)
             .build()
 
+        val registryType = if (interfaceName != null) {
+            TypeSpec.classBuilder(className)
+                .addSuperinterface(ClassName.bestGuess(interfaceName))
+        } else {
+            TypeSpec.objectBuilder(className)
+        }
+
+        registryType.addProperty(modulesProperty)
+
         FileSpec.builder(packageName, className)
-            .addType(registryObject)
+            .addType(registryType.build())
             .build()
             .writeTo(codeGenerator, Dependencies(false, *classes.mapNotNull { it.containingFile }.toTypedArray()))
+
+        if (interfaceName != null) {
+            val resourceFile = codeGenerator.createNewFile(
+                Dependencies(false, *classes.mapNotNull { it.containingFile }.toTypedArray()),
+                "META-INF.services",
+                interfaceName,
+                ""
+            )
+            resourceFile.write("$packageName.$className".toByteArray())
+            resourceFile.close()
+        }
     }
 }

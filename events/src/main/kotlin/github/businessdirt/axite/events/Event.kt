@@ -13,9 +13,8 @@ abstract class Event protected constructor() {
 
     fun post(onError: (Throwable) -> Unit = {}) = prePost(onError)
 
-    private fun prePost(onError: ((Throwable) -> Unit)?): Boolean {
-        return EventBus.getEventHandler(this::class).post(this, onError)
-    }
+    private fun prePost(onError: ((Throwable) -> Unit)?): Boolean =
+        EventBus.getEventHandler(this::class).post(this, onError)
 
     interface Cancelable {
         fun cancel() {

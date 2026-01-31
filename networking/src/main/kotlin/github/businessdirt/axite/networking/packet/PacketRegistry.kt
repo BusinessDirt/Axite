@@ -56,15 +56,19 @@ class PacketRegistry {
     @Suppress("UNCHECKED_CAST")
     fun initialize() {
         try {
-            val clazz = Class.forName("github.businessdirt.network.generated.NetworkingRegisterPacketRegistry")
-            val modulesField = clazz.getDeclaredField("modules")
-            modulesField.isAccessible = true
-            val modules = modulesField.get(null) as List<KClass<out Packet>>
-
-            modules.forEach { register(it) }
-            logger.info("Initialized PacketRegistry with {} packets", modules.size)
-        } catch (e: ClassNotFoundException) {
-            logger.warn("NetworkingRegisterPacketRegistry class not found. Make sure KSP has run and packets are annotated.", e)
+            val loader = java.util.ServiceLoader.load(PacketRegistryProvider::class.java)
+            var count = 0
+            loader.forEach { registry ->
+                registry.modules.forEach {
+                    register(it as KClass<out Packet>)
+                    count++
+                }
+            }
+            if (count > 0) {
+                logger.info("Initialized PacketRegistry with {} packets", count)
+            } else {
+                logger.warn("No packets found via ServiceLoader. Make sure KSP has run and packets are annotated.")
+            }
         } catch (e: Exception) {
             logger.error("Failed to load packet registry", e)
         }

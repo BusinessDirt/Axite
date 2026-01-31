@@ -4,14 +4,15 @@ import java.lang.invoke.LambdaMetafactory
 import java.lang.invoke.MethodHandles
 import java.lang.invoke.MethodType
 import java.util.function.Consumer
+import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.jvm.javaMethod
 import kotlin.reflect.jvm.javaType
 
 object ReflectionUtils {
 
-    fun getFunctionString(function: KFunction<*>): String =
-        "${function.name}(${function.parameters.joinToString(", ")})"
+    fun getFunctionString(func: KFunction<*>) =
+        "${func.name}(${func.parameters.joinToString { (it.type.classifier as? KClass<*>)?.simpleName ?: "Any" }})"
 
     /**
      * Creates a [Consumer] that invokes the given method on the provided owner.

@@ -29,6 +29,8 @@ kotlin {
 ksp {
     arg("processor.debug", "true")
     arg("processor.prefix", "Events")
+    // TODO: remove this to support global Annotations or support settings this from other projects too
     arg("processor.rootPackage", "github.businessdirt.events")
     arg("processor.methodAnnotations", "github.businessdirt.axite.events.HandleEvent")
+    arg("processor.HandleEvent.interface", "github.businessdirt.axite.events.EventRegistryProvider")
 }

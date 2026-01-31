@@ -1,17 +1,15 @@
 package github.businessdirt.axite.events
 
+import java.util.ServiceLoader
 import java.util.function.Consumer
-import java.util.stream.Collectors
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction
 import kotlin.reflect.KType
 import kotlin.reflect.KVisibility
 import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.instanceParameter
 import kotlin.reflect.full.isSuperclassOf
 import kotlin.reflect.jvm.isAccessible
 import kotlin.reflect.jvm.javaMethod
-import kotlin.reflect.jvm.reflect
 
 /**
  * The main class for the event system.
@@ -24,13 +22,9 @@ object EventBus {
     private val handlers: MutableMap<KClass<out Event>, EventHandler> = HashMap()
 
     fun initialize() {
-        try {
-            val clazz = Class.forName("github.businessdirt.events.generated.EventsHandleEventRegistry")
-            val methodsField = clazz.getDeclaredField("methods")
-            methodsField.isAccessible = true
-            val methods = methodsField.get(null) as List<KFunction<*>>
-
-            methods.forEach { function ->
+        val loader = ServiceLoader.load(EventRegistryProvider::class.java)
+        loader.forEach { registry ->
+            registry.methods.forEach { function ->
                 function.isAccessible = true
                 if (function.visibility != KVisibility.PUBLIC) throw MethodNotPublicException(function)
 
@@ -41,8 +35,6 @@ object EventBus {
                 listeners.computeIfAbsent(eventData.second) { `_`: KClass<out Event> -> ArrayList() }
                     .add(EventListener(name, eventConsumer, eventData.first))
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
 

@@ -38,6 +38,7 @@ class MethodProcessor(
         logger.warn("Axite: Generating methods for $annotationName")
         val packageName = Utils.generatePackageName(config)
         val className = Utils.generateClassName(annotationName, config)
+        val interfaceName = config.getInterface(annotationName)
 
         val kFunctionType = KFunction::class.asClassName().wildcardParameter()
         val listType = List::class.asClassName().parameterizedBy(kFunctionType)
@@ -53,18 +54,35 @@ class MethodProcessor(
             add(")")
         }.build()
 
-        val registryObject = TypeSpec.objectBuilder(className)
-            .addProperty(
-                PropertySpec.builder("methods", listType)
-                    .addModifiers(KModifier.PUBLIC)
-                    .initializer(listCodeBlock)
-                    .build()
-            )
+        val methodsProperty = PropertySpec.builder("methods", listType)
+            .addModifiers(KModifier.PUBLIC)
+            .apply { if (interfaceName != null) addModifiers(KModifier.OVERRIDE) }
+            .initializer(listCodeBlock)
             .build()
 
+        val registryType = if (interfaceName != null) {
+             TypeSpec.classBuilder(className)
+                 .addSuperinterface(ClassName.bestGuess(interfaceName))
+        } else {
+            TypeSpec.objectBuilder(className)
+        }
+
+        registryType.addProperty(methodsProperty)
+
         FileSpec.builder(packageName, className)
-            .addType(registryObject)
+            .addType(registryType.build())
             .build()
             .writeTo(codeGenerator, Dependencies(false, *methods.mapNotNull { it.containingFile }.toTypedArray()))
+
+        if (interfaceName != null) {
+            val resourceFile = codeGenerator.createNewFile(
+                Dependencies(false, *methods.mapNotNull { it.containingFile }.toTypedArray()),
+                "META-INF.services",
+                interfaceName,
+                ""
+            )
+            resourceFile.write("$packageName.$className".toByteArray())
+            resourceFile.close()
+        }
     }
 }

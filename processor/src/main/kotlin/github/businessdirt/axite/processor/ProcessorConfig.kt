@@ -26,6 +26,11 @@ class ProcessorConfig(options: Map<String, String>) {
         return settings[key] ?: default
     }
 
+    fun getInterface(annotationName: String): String? {
+        val simpleName = annotationName.substringAfterLast('.')
+        return settings["$simpleName.interface"] ?: settings["$annotationName.interface"]
+    }
+
     fun debugLog(logger: KSPLogger) {
         if (!debug) return
         if (settings.isNotEmpty()) {
