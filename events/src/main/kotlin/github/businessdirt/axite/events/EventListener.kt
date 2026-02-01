@@ -2,6 +2,8 @@ package github.businessdirt.axite.events
 
 import java.util.function.Consumer
 import java.util.function.Predicate
+import kotlin.reflect.KClass
+import kotlin.reflect.full.isSubclassOf
 
 /**
  * Creates a new [EventListener] from the given parameters.
@@ -15,6 +17,7 @@ class EventListener(
     val name: String,
     val invoker: Consumer<Event>,
     options: HandleEvent,
+    eventClass: KClass<out Event>,
 ) {
 
     val priority: Int = options.priority
@@ -22,7 +25,10 @@ class EventListener(
     val predicates: MutableList<Predicate<Event>> = ArrayList()
 
     init {
-        if (!options.receiveCancelled) predicates.add(Predicate { event: Event -> !event.isCancelled })
+        if (eventClass.isSubclassOf(CancelableEvent::class) &&
+            !options.receiveCancelled) predicates.add(Predicate { event: Event ->
+                !(event as CancelableEvent).isCancelled
+            })
     }
 
     /**

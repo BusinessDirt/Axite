@@ -1,7 +1,6 @@
 package github.businessdirt.axite.events
 
 import org.junit.jupiter.api.BeforeAll
-import kotlin.reflect.KClass
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -11,52 +10,50 @@ class EventBusTest {
     // Helper classes and objects for testing
     open class TestEvent1 : Event()
     class TestEvent2 : TestEvent1()
-    class TestCancelableEvent : CancelableEvent() {}
+    class TestCancelableEvent : CancelableEvent()
 
     companion object TestListeners {
         @JvmStatic
         @BeforeAll
-        fun beforeAll(): Unit {
+        fun beforeAll() {
             EventBus.initialize()
         }
 
         val eventLog = mutableListOf<String>()
 
-        @HandleEvent(priority = 1) // LOW
-        fun onTestEvent1Low(event: TestEvent1) {
+        @HandleEvent(eventType = TestEvent1::class, priority = HandleEvent.LOW)
+        fun onTestEvent1Low() {
             eventLog.add("TestEvent1Low")
         }
 
-        @HandleEvent(priority = -1) // HIGH
-        fun onTestEvent1High(event: TestEvent1) {
+        @HandleEvent(eventType = TestEvent1::class, priority = HandleEvent.HIGH)
+        fun onTestEvent1High() {
             eventLog.add("TestEvent1High")
         }
 
-        @HandleEvent(priority = 0) // MEDIUM
-        fun onTestEvent2(event: TestEvent2) {
+        @HandleEvent(eventType = TestEvent2::class, priority = HandleEvent.MEDIUM)
+        fun onTestEvent2() {
             eventLog.add("TestEvent2")
         }
 
-        @HandleEvent(priority = -2) // HIGHEST
+        @HandleEvent(priority = HandleEvent.HIGHEST)
         fun onCancellable(event: TestCancelableEvent) {
             eventLog.add("onCancellable")
             event.cancel()
         }
 
-        @HandleEvent(priority = 0, receiveCancelled = false) // MEDIUM
-        fun onCancellableNotCalled(event: TestCancelableEvent) {
+        @HandleEvent(eventType = TestCancelableEvent::class, priority = HandleEvent.MEDIUM, receiveCancelled = false)
+        fun onCancellableNotCalled() {
             eventLog.add("onCancellableNotCalled")
         }
 
-        @HandleEvent(priority = 2, receiveCancelled = true) // LOWEST
-        fun onCancellableCalled(event: TestCancelableEvent) {
+        @HandleEvent(eventType = TestCancelableEvent::class, priority = HandleEvent.LOWEST, receiveCancelled = true) // LOWEST
+        fun onCancellableCalled() {
             eventLog.add("onCancellableCalled")
         }
 
-        @HandleEvent
-        fun onTestEventNoParams(eventType: TestEvent1) {
-            // This is just to have another listener
-        }
+        @HandleEvent(eventType = TestEvent1::class)
+        fun onTestEventNoParams() { }
     }
 
     @Test

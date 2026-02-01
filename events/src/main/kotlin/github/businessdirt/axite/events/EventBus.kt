@@ -1,5 +1,7 @@
 package github.businessdirt.axite.events
 
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.util.ServiceLoader
 import java.util.function.Consumer
 import kotlin.reflect.KClass
@@ -20,9 +22,13 @@ import kotlin.reflect.jvm.javaMethod
 object EventBus {
     private val listeners: HashMap<KClass<out Event>, MutableList<EventListener>> = HashMap()
     private val handlers: MutableMap<KClass<out Event>, EventHandler> = HashMap()
+    private val logger: Logger = LoggerFactory.getLogger(EventBus::class.java)
 
     fun initialize() {
         val loader = ServiceLoader.load(EventRegistryProvider::class.java)
+
+        logger.info("Initializing with {} listeners", loader.sumOf { it.methods.size })
+
         loader.forEach { registry ->
             registry.methods.forEach { function ->
                 function.isAccessible = true
@@ -30,10 +36,10 @@ object EventBus {
 
                 val name: String = ReflectionUtils.getFunctionString(function)
                 val instance: Any = this.getInstance(function) // throws ClassNotInstantiableException
-                val eventData = this.getEventData(function) // throws ParameterException
+                val (options, eventClass) = this.getEventData(function) // throws ParameterException
                 val eventConsumer = this.getEventConsumer(function, instance) // throws ParameterException
-                listeners.computeIfAbsent(eventData.second) { `_`: KClass<out Event> -> ArrayList() }
-                    .add(EventListener(name, eventConsumer, eventData.first))
+                listeners.computeIfAbsent(eventClass) { `_`: KClass<out Event> -> ArrayList() }
+                    .add(EventListener(name, eventConsumer, options, eventClass))
             }
         }
     }
@@ -99,7 +105,7 @@ object EventBus {
     ): EventHandler = handlers.getOrPut(event) {
         EventHandler(
             event,
-            getEventClasses(event).mapNotNull { listeners[it] }.flatten().toMutableList()
+            getEventClasses(event).mapNotNull { listeners[it] }.flatten()
         )
     }
 
@@ -110,7 +116,6 @@ object EventBus {
         classes.add(clazz)
 
         var current: Class<*> = clazz.java
-        @Suppress("LoopWithTooManyJumpStatements")
         while (current.superclass != null) {
             val superClass = current.superclass
             if (superClass == Event::class.java) break

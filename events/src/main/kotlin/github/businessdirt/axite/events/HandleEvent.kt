@@ -22,10 +22,10 @@ annotation class HandleEvent(
 ) {
 
     companion object {
-        private const val HIGHEST = -2;
-        private const val HIGH = -1;
-        private const val MEDIUM = 0;
-        private const val LOW = 1;
-        private const val LOWEST = 2;
+        const val HIGHEST = -2
+        const val HIGH = -1
+        const val MEDIUM = 0
+        const val LOW = 1
+        const val LOWEST = 2
     }
 }

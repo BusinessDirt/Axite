@@ -1,5 +1,7 @@
 package github.businessdirt.axite.events
 
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.util.function.Consumer
 import java.util.function.ToIntFunction
 import kotlin.reflect.KClass
@@ -10,7 +12,7 @@ import kotlin.reflect.KClass
  */
 class EventHandler(
     event: KClass<out Event>,
-    listeners: MutableList<EventListener>
+    listeners: List<EventListener>
 ) {
     /**
      * @return the simple name of the event this handler is for.
@@ -18,6 +20,7 @@ class EventHandler(
     val name: String
     private val listeners: MutableList<EventListener>
     private val canReceiveCancelled: Boolean
+    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     /**
      * Constructs a new [EventHandler].
@@ -46,21 +49,27 @@ class EventHandler(
      */
     fun post(
         event: Event,
-        onError: Consumer<Throwable>?
+        onError: ((Throwable) -> Unit)
     ): Boolean {
         if (this.listeners.isEmpty()) return false
+
+        logger.debug("Posting '{}' to {} listeners", event::class.simpleName, this.listeners.size)
+
         for (listener in this.listeners) {
             if (!listener.shouldInvoke(event)) continue
 
             try {
                 listener.invoker.accept(event)
             } catch (throwable: Throwable) {
-                onError?.accept(throwable)
+                onError.invoke(throwable)
             }
 
-            if (event.isCancelled && !this.canReceiveCancelled) break
+            if (event is CancelableEvent && event.isCancelled && !this.canReceiveCancelled) break
         }
 
-        return event.isCancelled
+        if (event is CancelableEvent)
+            return event.isCancelled
+
+        return false
     }
 }

@@ -21,6 +21,7 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+    ksp.arg("processor.debug", "true")
 }
 
 kotlin {
@@ -28,10 +29,9 @@ kotlin {
 }
 
 ksp {
-    arg("processor.debug", "false")
     arg("processor.prefix", "Networking")
     // TODO: remove this to support global Annotations or support settings this from other projects too
-    arg("processor.rootPackage", "github.businessdirt.networking")
+    arg("processor.rootPackage", "github.businessdirt.axite.networking")
     arg("processor.moduleAnnotations", "github.businessdirt.axite.networking.annotations.RegisterPacket")
     arg("processor.RegisterPacket.interface", "github.businessdirt.axite.networking.packet.PacketRegistryProvider")
 }
