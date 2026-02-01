@@ -1,97 +1,76 @@
 package github.businessdirt.axite.events
 
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Test
 
+@DisplayName("Event Bus Tests")
 class EventBusTest {
 
-    // Helper classes and objects for testing
-    open class TestEvent1 : Event()
-    class TestEvent2 : TestEvent1()
-    class TestCancelableEvent : CancelableEvent()
-
-    companion object TestListeners {
+    companion object {
         @JvmStatic
         @BeforeAll
         fun beforeAll() {
             EventBus.initialize()
         }
+    }
 
-        val eventLog = mutableListOf<String>()
-
-        @HandleEvent(eventType = TestEvent1::class, priority = HandleEvent.LOW)
-        fun onTestEvent1Low() {
-            eventLog.add("TestEvent1Low")
-        }
-
-        @HandleEvent(eventType = TestEvent1::class, priority = HandleEvent.HIGH)
-        fun onTestEvent1High() {
-            eventLog.add("TestEvent1High")
-        }
-
-        @HandleEvent(eventType = TestEvent2::class, priority = HandleEvent.MEDIUM)
-        fun onTestEvent2() {
-            eventLog.add("TestEvent2")
-        }
-
-        @HandleEvent(priority = HandleEvent.HIGHEST)
-        fun onCancellable(event: TestCancelableEvent) {
-            eventLog.add("onCancellable")
-            event.cancel()
-        }
-
-        @HandleEvent(eventType = TestCancelableEvent::class, priority = HandleEvent.MEDIUM, receiveCancelled = false)
-        fun onCancellableNotCalled() {
-            eventLog.add("onCancellableNotCalled")
-        }
-
-        @HandleEvent(eventType = TestCancelableEvent::class, priority = HandleEvent.LOWEST, receiveCancelled = true) // LOWEST
-        fun onCancellableCalled() {
-            eventLog.add("onCancellableCalled")
-        }
-
-        @HandleEvent(eventType = TestEvent1::class)
-        fun onTestEventNoParams() { }
+    @BeforeEach
+    fun setup() {
+        TestListeners.eventLog.clear()
     }
 
     @Test
-    fun `posting a simple event calls listeners in correct priority order`() {
-        eventLog.clear()
-        
+    @DisplayName("Should call listeners in correct priority order")
+    fun testPriority() {
         TestEvent1().post()
         
         assertEquals(
             listOf("TestEvent1High", "TestEvent1Low"),
-            eventLog,
+            TestListeners.eventLog,
             "Listeners should be called in priority order (HIGH then LOW)"
         )
     }
 
     @Test
-    fun `posting a subclass event calls listeners for both subclass and superclass`() {
-        eventLog.clear()
-
+    @DisplayName("Should call listeners for both subclass and superclass")
+    fun testInheritance() {
         TestEvent2().post()
 
         // Order should be: TestEvent1High, TestEvent2, TestEvent1Low
+        // TestEvent1 listeners are called because TestEvent2 extends TestEvent1.
+        // Priority handles order. TestEvent1High (-1) < TestEvent2 (0) < TestEvent1Low (1)
         val expectedOrder = listOf("TestEvent1High", "TestEvent2", "TestEvent1Low")
-        assertEquals(expectedOrder, eventLog, "Listeners for superclass and subclass should be called in correct order")
+        assertEquals(expectedOrder, TestListeners.eventLog, "Listeners for superclass and subclass should be called in correct order")
     }
 
     @Test
-    fun `cancelled events are not propagated to listeners unless receiveCancelled is true`() {
-        eventLog.clear()
-
+    @DisplayName("Should handle cancelled events correctly")
+    fun testCancellation() {
         val event = TestCancelableEvent()
         event.post()
         
         assertTrue(event.isCancelled, "Event should be cancelled")
         assertEquals(
             listOf("onCancellable", "onCancellableCalled"), 
-            eventLog,
+            TestListeners.eventLog,
             "Only listeners with receiveCancelled=true or those before cancellation should be called"
         )
     }
+
+    @Test
+    @DisplayName("Should handle exceptions in listeners")
+    fun testExceptionHandling() {
+        var exceptionCaught: Throwable? = null
+        ExceptionEvent().post { error ->
+            exceptionCaught = error
+        }
+
+        assertNotNull(exceptionCaught, "Exception should be caught via onError callback")
+        assertTrue(exceptionCaught is RuntimeException, "Exception should be RuntimeException")
+        assertEquals("Intentional Exception", exceptionCaught?.message)
+    }
 }
+
