@@ -7,26 +7,18 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 
 @AutoService(SymbolProcessorProvider::class)
 class ModuleProcessorProvider : SymbolProcessorProvider {
-    override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
-        val config = ProcessorConfig(environment.options)
-
-        return ModuleProcessor(
-            codeGenerator = environment.codeGenerator,
-            logger = environment.logger,
-            config = config,
-        )
-    }
+    override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor = ModuleProcessor(
+        codeGenerator = environment.codeGenerator,
+        logger = environment.logger,
+        config = ProcessorConfig(environment.options),
+    )
 }
 
 @AutoService(SymbolProcessorProvider::class)
 class MethodProcessorProvider : SymbolProcessorProvider {
-    override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
-        val config = ProcessorConfig(environment.options)
-
-        return MethodProcessor(
-            codeGenerator = environment.codeGenerator,
-            logger = environment.logger,
-            config = config,
-        )
-    }
+    override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor = MethodProcessor(
+        codeGenerator = environment.codeGenerator,
+        logger = environment.logger,
+        config = ProcessorConfig(environment.options),
+    )
 }
