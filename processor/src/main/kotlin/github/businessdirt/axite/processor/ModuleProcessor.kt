@@ -1,20 +1,23 @@
 package github.businessdirt.axite.processor
 
-import com.google.devtools.ksp.processing.*
+import com.google.devtools.ksp.processing.CodeGenerator
+import com.google.devtools.ksp.processing.KSPLogger
+import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.ksp.toClassName
-import com.squareup.kotlinpoet.ksp.writeTo
-import github.businessdirt.axite.processor.Utils.wildcardParameter
 import kotlin.reflect.KClass
 
 class ModuleProcessor(
-    private val codeGenerator: CodeGenerator,
-    private val logger: KSPLogger,
-    private val config: ProcessorConfig
-) : SymbolProcessor {
+    codeGenerator: CodeGenerator,
+    logger: KSPLogger,
+    config: ProcessorConfig
+) : AbstractProcessor(codeGenerator, logger, config) {
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         config.debugLog(logger)
@@ -33,8 +36,8 @@ class ModuleProcessor(
 
     private fun generateRegistryForAnnotation(classes: List<KSClassDeclaration>, annotationName: String) {
         logger.warn("Axite: Generating modules for $annotationName")
-        val packageName = Utils.generatePackageName(config, classes)
-        val className = Utils.generateClassName(annotationName, config)
+        val packageName = this.generatePackageName(config, classes)
+        val className = this.generateClassName(annotationName, config)
         val interfaceName = config.getInterface(annotationName)
 
         // List<KClass> type
@@ -62,29 +65,10 @@ class ModuleProcessor(
             .initializer(listCodeBlock)
             .build()
 
-        val registryType = if (interfaceName != null) {
-            TypeSpec.classBuilder(className)
-                .addSuperinterface(ClassName.bestGuess(interfaceName))
-        } else {
-            TypeSpec.objectBuilder(className)
-        }
-
+        val registryType = this.getRegistryType(className, interfaceName)
         registryType.addProperty(modulesProperty)
 
-        FileSpec.builder(packageName, className)
-            .addType(registryType.build())
-            .build()
-            .writeTo(codeGenerator, Dependencies(false, *classes.mapNotNull { it.containingFile }.toTypedArray()))
-
-        if (interfaceName != null) {
-            val resourceFile = codeGenerator.createNewFile(
-                Dependencies(false, *classes.mapNotNull { it.containingFile }.toTypedArray()),
-                "META-INF.services",
-                interfaceName,
-                ""
-            )
-            resourceFile.write("$packageName.$className".toByteArray())
-            resourceFile.close()
-        }
+        this.generateRegistryCode(packageName, className, registryType, classes)
+        this.writeRegistryCodeToFile(interfaceName ?: return, packageName, className, classes)
     }
 }

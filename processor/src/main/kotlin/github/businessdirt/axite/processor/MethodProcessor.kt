@@ -1,21 +1,24 @@
 package github.businessdirt.axite.processor
 
-import com.google.devtools.ksp.processing.*
+import com.google.devtools.ksp.processing.CodeGenerator
+import com.google.devtools.ksp.processing.KSPLogger
+import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
-import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.CodeBlock
+import com.squareup.kotlinpoet.KModifier
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.PropertySpec
+import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.ksp.toClassName
-import com.squareup.kotlinpoet.ksp.writeTo
-import github.businessdirt.axite.processor.Utils.wildcardParameter
 import kotlin.reflect.KFunction
 
 class MethodProcessor(
-    private val codeGenerator: CodeGenerator,
-    private val logger: KSPLogger,
-    private val config: ProcessorConfig
-) : SymbolProcessor {
+    codeGenerator: CodeGenerator,
+    logger: KSPLogger,
+    config: ProcessorConfig
+) : AbstractProcessor(codeGenerator, logger, config) {
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         config.debugLog(logger)
@@ -36,8 +39,8 @@ class MethodProcessor(
 
     private fun generateRegistryForAnnotation(methods: List<KSFunctionDeclaration>, annotationName: String) {
         logger.warn("Axite: Generating methods for $annotationName")
-        val packageName = Utils.generatePackageName(config, methods)
-        val className = Utils.generateClassName(annotationName, config)
+        val packageName = this.generatePackageName(config, methods)
+        val className = this.generateClassName(annotationName, config)
         val interfaceName = config.getInterface(annotationName)
 
         val kFunctionType = KFunction::class.asClassName().wildcardParameter()
@@ -60,29 +63,10 @@ class MethodProcessor(
             .initializer(listCodeBlock)
             .build()
 
-        val registryType = if (interfaceName != null) {
-             TypeSpec.classBuilder(className)
-                 .addSuperinterface(ClassName.bestGuess(interfaceName))
-        } else {
-            TypeSpec.objectBuilder(className)
-        }
-
+        val registryType = this.getRegistryType(className, interfaceName)
         registryType.addProperty(methodsProperty)
 
-        FileSpec.builder(packageName, className)
-            .addType(registryType.build())
-            .build()
-            .writeTo(codeGenerator, Dependencies(false, *methods.mapNotNull { it.containingFile }.toTypedArray()))
-
-        if (interfaceName != null) {
-            val resourceFile = codeGenerator.createNewFile(
-                Dependencies(false, *methods.mapNotNull { it.containingFile }.toTypedArray()),
-                "META-INF.services",
-                interfaceName,
-                ""
-            )
-            resourceFile.write("$packageName.$className".toByteArray())
-            resourceFile.close()
-        }
+        this.generateRegistryCode(packageName, className, registryType, methods)
+        this.writeRegistryCodeToFile(interfaceName ?: return, packageName, className, methods)
     }
 }
