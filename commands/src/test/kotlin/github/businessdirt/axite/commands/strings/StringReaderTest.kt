@@ -3,15 +3,18 @@ package github.businessdirt.axite.commands.strings
 import github.businessdirt.axite.commands.exceptions.CommandError
 import github.businessdirt.axite.commands.exceptions.CommandSyntaxException
 import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.DynamicTest.dynamicTest
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.assertThrows
 import kotlin.reflect.KClass
 import kotlin.test.Test
 
+@DisplayName("String Reader Tests")
 class StringReaderTest {
 
     @Test
+    @DisplayName("Should return true if there is text remaining to read")
     fun canRead() {
         val reader = StringReader("abc")
         assertTrue { reader.canRead() }
@@ -24,6 +27,7 @@ class StringReaderTest {
     }
 
     @TestFactory
+    @DisplayName("Should return the correct remaining length")
     fun remainingLength() = listOf(
         0 to 3,
         1 to 2,
@@ -38,6 +42,7 @@ class StringReaderTest {
     }
 
     @TestFactory
+    @DisplayName("Should return true if there are at least 'length' characters remaining")
     fun `canRead with length`() = listOf(
         1 to true,
         2 to true,
@@ -52,6 +57,7 @@ class StringReaderTest {
     }
 
     @TestFactory
+    @DisplayName("Should peek the next character without advancing the cursor")
     fun peek() = listOf(
         0 to 'a',
         2 to 'c'
@@ -65,6 +71,7 @@ class StringReaderTest {
     }
 
     @TestFactory
+    @DisplayName("Should peek the character at the specified offset without advancing the cursor")
     fun `peek with length`() = listOf(
         Triple(0, 0, 'a'),
         Triple(0, 2, 'c'),
@@ -79,6 +86,7 @@ class StringReaderTest {
     }
 
     @Test
+    @DisplayName("Should read the next character and advance the cursor")
     fun read() {
         val reader = StringReader("abc")
         assertEquals('a', reader.read())
@@ -88,6 +96,7 @@ class StringReaderTest {
     }
 
     @Test
+    @DisplayName("Should skip the next character")
     fun skip() {
         val reader = StringReader("abc")
         reader.skip()
@@ -95,6 +104,7 @@ class StringReaderTest {
     }
 
     @TestFactory
+    @DisplayName("Should return the remaining string from the current cursor")
     fun remaining() = listOf(
         0 to "Hello!",
         3 to "lo!",
@@ -108,6 +118,7 @@ class StringReaderTest {
     }
 
     @TestFactory
+    @DisplayName("Should return the consumed string up to the current cursor")
     fun consumed() = listOf(
         0 to "",
         3 to "Hel",
@@ -121,6 +132,7 @@ class StringReaderTest {
     }
 
     @TestFactory
+    @DisplayName("Should skip whitespace characters")
     fun skipWhitespace() = listOf(
         "Hello!" to 0,
         " \t \t\nHello!" to 5,
@@ -134,6 +146,7 @@ class StringReaderTest {
     }
 
     @TestFactory
+    @DisplayName("Should read an unquoted string")
     fun readUnquotedString() = listOf(
         Triple("hello world", "hello", " world"),
         Triple("", "", ""),
@@ -148,6 +161,7 @@ class StringReaderTest {
     }
 
     @TestFactory
+    @DisplayName("Should read a quoted string")
     fun readQuotedString() = listOf(
         ReadStringCase("\"hello world\"", "hello world", "\"hello world\"", ""),
         ReadStringCase("'hello world'", "hello world", "'hello world'", ""),
@@ -170,6 +184,7 @@ class StringReaderTest {
     }
 
     @TestFactory
+    @DisplayName("Should throw exceptions for invalid quoted strings")
     fun `readQuotedString exceptions`() = listOf(
         Triple("hello world\"", CommandError.ExpectedStartOfQuote, 0),
         Triple("\"hello world", CommandError.ExpectedEndOfQuote, 12),
@@ -185,6 +200,7 @@ class StringReaderTest {
     }
 
     @TestFactory
+    @DisplayName("Should read a string (quoted or unquoted)")
     fun readString() = listOf(
         ReadStringCase("hello world", "hello", "hello", " world"),
         ReadStringCase("'hello world'", "hello world", "'hello world'", ""),
@@ -206,6 +222,7 @@ class StringReaderTest {
     )
 
     @TestFactory
+    @DisplayName("Should parse different number types correctly")
     fun generateNumberTests() = listOf(
         NumberTestCase(Int::class, "123", "-123", "12.3", 123, -123),
         NumberTestCase(Long::class, "123", "-123", "12.3", 123L, -123L),
@@ -262,6 +279,7 @@ class StringReaderTest {
     )
 
     @TestFactory
+    @DisplayName("Should expect and consume a specific character")
     fun expect() = listOf(
         Triple("abc", 'a', true),
         Triple("bcd", 'a', false),
@@ -281,6 +299,7 @@ class StringReaderTest {
     }
 
     @TestFactory
+    @DisplayName("Should read a boolean value")
     fun readBoolean() = listOf(
         Triple("true", true, null),
         Triple("tuesday", false, CommandError.InvalidValue(Boolean::class, "tuesday")),

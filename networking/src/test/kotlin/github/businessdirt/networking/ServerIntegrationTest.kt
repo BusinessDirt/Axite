@@ -44,7 +44,7 @@ class ServerIntegrationTest {
     }
 
     @Test
-    @DisplayName("Client should connect and exchange packets")
+    @DisplayName("Should connect and exchange packets")
     fun clientConnection() {
         val received = CountDownLatch(1)
         val serverReceived = CountDownLatch(1)
@@ -67,7 +67,7 @@ class ServerIntegrationTest {
     }
 
     @Test
-    @DisplayName("Server should track multiple clients")
+    @DisplayName("Should track multiple clients")
     fun multipleClients() {
         val clientCount = 3
         
@@ -102,7 +102,7 @@ class ServerIntegrationTest {
     }
 
     @Test
-    @DisplayName("Server should remove disconnected clients")
+    @DisplayName("Should remove disconnected clients")
     fun clientDisconnect() {
         val client = createClient()
         client.connect()
