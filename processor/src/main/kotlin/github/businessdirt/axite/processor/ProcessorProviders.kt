@@ -17,3 +17,16 @@ class ModuleProcessorProvider : SymbolProcessorProvider {
         )
     }
 }
+
+@AutoService(SymbolProcessorProvider::class)
+class MethodProcessorProvider : SymbolProcessorProvider {
+    override fun create(environment: SymbolProcessorEnvironment): SymbolProcessor {
+        val config = ProcessorConfig(environment.options)
+
+        return MethodProcessor(
+            codeGenerator = environment.codeGenerator,
+            logger = environment.logger,
+            config = config,
+        )
+    }
+}
