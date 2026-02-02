@@ -1,6 +1,7 @@
 package github.businessdirt.axite.networking.packet
 
 import org.slf4j.LoggerFactory
+import java.util.ServiceLoader
 import kotlin.reflect.KClass
 
 /**
@@ -53,24 +54,17 @@ class PacketRegistry {
      *
      * Looks for the generated `NetworkingRegisterPacketRegistry` class.
      */
-    @Suppress("UNCHECKED_CAST")
-    fun initialize() {
-        try {
-            val loader = java.util.ServiceLoader.load(PacketRegistryProvider::class.java)
-            var count = 0
-            loader.forEach { registry ->
-                registry.modules.forEach {
-                    register(it as KClass<out Packet>)
-                    count++
-                }
+    @Suppress("UNCHECKED_CAST", "unused")
+    fun initialize() = try {
+        val loader = ServiceLoader.load(PacketRegistryProvider::class.java)
+        loader.forEach { registry ->
+            registry.modules.forEach {
+                register(it as KClass<out Packet>)
             }
-            if (count > 0) {
-                logger.info("Initialized PacketRegistry with {} packets", count)
-            } else {
-                logger.warn("No packets found via ServiceLoader. Make sure KSP has run and packets are annotated.")
-            }
-        } catch (e: Exception) {
-            logger.error("Failed to load packet registry", e)
         }
+
+        logger.info("Initialized PacketRegistry with {} packets", loader.sumOf { it.modules.size })
+    } catch (e: Exception) {
+        logger.error("Failed to load packet registry", e)
     }
 }
