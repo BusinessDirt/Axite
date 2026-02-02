@@ -33,7 +33,7 @@ class ModuleProcessor(
 
     private fun generateRegistryForAnnotation(classes: List<KSClassDeclaration>, annotationName: String) {
         logger.warn("Axite: Generating modules for $annotationName")
-        val packageName = Utils.generatePackageName(config)
+        val packageName = Utils.generatePackageName(config, classes)
         val className = Utils.generateClassName(annotationName, config)
         val interfaceName = config.getInterface(annotationName)
 

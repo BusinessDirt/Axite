@@ -30,8 +30,6 @@ kotlin {
 
 ksp {
     arg("processor.prefix", "Commands")
-    // TODO: remove this to support global Annotations or support settings this from other projects too
-    arg("processor.rootPackage", "github.businessdirt.axite.commands")
     arg("processor.moduleAnnotations", "github.businessdirt.axite.commands.registry.RegisterCommand")
     arg("processor.RegisterCommand.interface", "github.businessdirt.axite.commands.registry.CommandRegistryProvider")
 }

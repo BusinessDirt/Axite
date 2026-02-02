@@ -36,7 +36,7 @@ class MethodProcessor(
 
     private fun generateRegistryForAnnotation(methods: List<KSFunctionDeclaration>, annotationName: String) {
         logger.warn("Axite: Generating methods for $annotationName")
-        val packageName = Utils.generatePackageName(config)
+        val packageName = Utils.generatePackageName(config, methods)
         val className = Utils.generateClassName(annotationName, config)
         val interfaceName = config.getInterface(annotationName)
 
@@ -46,7 +46,7 @@ class MethodProcessor(
         val listCodeBlock = CodeBlock.builder().apply {
             add("listOf(\n")
             indent()
-            methods.forEachIndexed { index, method ->
+            methods.forEachIndexed { _, method ->
                 val classType = (method.parentDeclaration as KSClassDeclaration).toClassName()
                 add("%T::%N,\n", classType, method.simpleName.asString())
             }
