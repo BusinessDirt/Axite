@@ -94,8 +94,8 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
             try {
                 try {
                     child.parse(reader, context)
-                } catch (ex: RuntimeException) {
-                    throw reader.error(CommandError.ParseException(ex.message ?: ""))
+                } catch (ex: CommandSyntaxException) {
+                    throw ex
                 }
 
                 if (reader.canRead() && reader.peek() != ARGUMENT_SEPARATOR_CHAR) {
@@ -141,7 +141,7 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
                     }
                 }
             }
-            return potentials!![0]
+            return potentials[0]
         }
 
         return ParseResults(contextSoFar, originalReader, errors ?: emptyMap())
@@ -159,7 +159,7 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
         if (node.command != null) result.add(prefix)
 
         if (node.redirect != null) {
-            val redirectMsg = if (node.redirect == root) "..." else "-> ${node.redirect!!.usageText}"
+            val redirectMsg = if (node.redirect == root) "..." else "-> ${node.redirect.usageText}"
             result.add(if (prefix.isEmpty()) "${node.usageText} $redirectMsg" else "$prefix $redirectMsg")
         } else if (node.allChildren.isNotEmpty()) {
             for (child in node.allChildren) {
@@ -190,7 +190,7 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
 
         if (!deep) {
             if (node.redirect != null) {
-                val redirectMsg = if (node.redirect == root) "..." else "-> ${node.redirect!!.usageText}"
+                val redirectMsg = if (node.redirect == root) "..." else "-> ${node.redirect.usageText}"
                 return "$self $redirectMsg"
             }
             val children = node.allChildren.filter { it.canUse(source) }
