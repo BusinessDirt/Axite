@@ -2,7 +2,7 @@ package github.businessdirt.axite.commands.nodes
 
 import github.businessdirt.axite.commands.Command
 import github.businessdirt.axite.commands.CommandDispatcher
-import github.businessdirt.axite.commands.IntegerArgumentType
+import github.businessdirt.axite.commands.arguments.IntegerArgumentType
 import github.businessdirt.axite.commands.builder.RequiredArgumentBuilder
 import github.businessdirt.axite.commands.context.CommandContextBuilder
 import github.businessdirt.axite.commands.strings.StringReader

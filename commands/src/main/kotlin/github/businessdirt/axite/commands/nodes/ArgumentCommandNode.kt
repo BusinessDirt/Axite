@@ -1,6 +1,6 @@
 package github.businessdirt.axite.commands.nodes
 
-import github.businessdirt.axite.commands.ArgumentType
+import github.businessdirt.axite.commands.arguments.ArgumentType
 import github.businessdirt.axite.commands.Command
 import github.businessdirt.axite.commands.context.CommandContext
 import github.businessdirt.axite.commands.RedirectModifier

@@ -1,6 +1,6 @@
 package github.businessdirt.axite.commands.builder
 
-import github.businessdirt.axite.commands.IntegerArgumentType
+import github.businessdirt.axite.commands.arguments.IntegerArgumentType
 import github.businessdirt.axite.commands.nodes.CommandNode
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
