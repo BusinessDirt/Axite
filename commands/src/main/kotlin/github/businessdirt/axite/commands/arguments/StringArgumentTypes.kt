@@ -2,61 +2,38 @@ package github.businessdirt.axite.commands.arguments
 
 import github.businessdirt.axite.commands.strings.StringReader
 
-/**
- * Parses a single word (no spaces allowed).
- */
-class WordArgumentType : ArgumentType<String> {
-    override fun parse(reader: StringReader): String = reader.readUnquotedString()
-    override val examples: Collection<String> = listOf("word", "foo_bar", "123")
+sealed class StringArgumentType : ArgumentType<String> {
 
-    override fun equals(other: Any?): Boolean = other is WordArgumentType
-    override fun hashCode(): Int = WordArgumentType::class.hashCode()
-}
-
-/**
- * Parses a string. If it contains spaces, it must be "quoted like this".
- */
-class StringArgumentType : ArgumentType<String> {
-    override fun parse(reader: StringReader): String = reader.readString()
-    override val examples: Collection<String> = listOf("\"quoted string\"", "word", "\"\"")
-
-    override fun equals(other: Any?): Boolean = other is StringArgumentType
-    override fun hashCode(): Int = StringArgumentType::class.hashCode()
-}
-
-/**
- * Consumes everything from the current cursor until the end of the input.
- */
-class GreedyStringArgumentType : ArgumentType<String> {
-    override fun parse(reader: StringReader): String {
-        val text = reader.remaining()
-        reader.cursor = reader.totalLength()
-        return text
+    data object Word : StringArgumentType() {
+        override val examples: Collection<String> = listOf("word", "foo_bar", "123")
+        override fun parse(reader: StringReader): String = reader.readUnquotedString()
     }
 
-    override val examples: Collection<String> = listOf("word", "words with spaces", "anything goes")
-
-    override fun equals(other: Any?): Boolean = other is GreedyStringArgumentType
-    override fun hashCode(): Int = GreedyStringArgumentType::class.hashCode()
-}
-
-fun String.escapeIfRequired(): String {
-    this.toCharArray().forEach {
-        if (!StringReader.isAllowedInUnquotedString(it)) return escape(this)
+    data object Greedy : StringArgumentType() {
+        override val examples: Collection<String> = listOf("word", "words with spaces", "anything goes")
+        override fun parse(reader: StringReader): String {
+            val text = reader.remaining()
+            reader.cursor = reader.totalLength()
+            return text
+        }
     }
 
-    return this
+    data object Quotable : StringArgumentType() {
+        override val examples: Collection<String> = listOf("\"quoted string\"", "word", "\"\"")
+        override fun parse(reader: StringReader): String = reader.readString()
+    }
 }
 
-private fun escape(input: String): String {
-    val result = StringBuilder("\"")
+fun String.escapeIfRequired(): String = when {
+    any { !StringReader.isAllowedInUnquotedString(it) } -> escape()
+    else -> this
+}
 
-    for (i in 0..<input.length) {
-        val c = input[i]
-        if (c == '\\' || c == '"') result.append('\\')
-        result.append(c)
+private fun String.escape(): String = buildString {
+    append('"')
+    for (char in this@escape) {
+        if (char == '\\' || char == '"') append('\\')
+        append(char)
     }
-
-    result.append("\"")
-    return result.toString()
+    append('"')
 }

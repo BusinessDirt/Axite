@@ -4,70 +4,79 @@ import github.businessdirt.axite.commands.strings.StringReader
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.mock
-import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
+import org.junit.jupiter.api.TestInstance
 
-@DisplayName("StringArgumentType logic tests")
-class StringArgumentTypeTest {
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+sealed class StringArgumentTypeTest(
+    protected val type: ArgumentType<String>
+) {
 
     @Test
-    @DisplayName("WordArgumentType should only read unquoted strings")
-    fun testParseWord() {
-        val reader: StringReader = mock()
-        whenever(reader.readUnquotedString()).thenReturn("hello")
-
-        assertEquals("hello", WordArgumentType().parse(reader))
-        verify(reader).readUnquotedString()
+    fun testEquals() {
+        assertEquals(type, type)
+        assertNotEquals(type, object : ArgumentType<String> {
+            override fun parse(reader: StringReader) = ""
+            override val examples = listOf<String>()
+        })
     }
 
     @Test
-    @DisplayName("StringArgumentType should delegate to readString (handles quotes)")
-    fun testParseString() {
-        val reader: StringReader = mock()
-        whenever(reader.readString()).thenReturn("hello world")
-
-        assertEquals("hello world", StringArgumentType().parse(reader))
-        verify(reader).readString()
+    fun testToString() {
+        val name = type::class.simpleName ?: "StringArgumentType"
+        assertTrue(type.toString().contains(name))
     }
 
-    @Test
-    @DisplayName("GreedyStringArgumentType should consume all remaining input")
-    fun testParseGreedyString() {
-        val reader = StringReader("Hello world! This is a test.")
-        assertEquals("Hello world! This is a test.", GreedyStringArgumentType().parse(reader))
-        assertFalse(reader.canRead(), "Reader should be fully exhausted")
+    class WordTest : StringArgumentTypeTest(StringArgumentType.Word) {
+        @Test
+        fun testParse() {
+            val reader = StringReader("hello world")
+            assertEquals("hello", type.parse(reader))
+            assertEquals(5, reader.cursor) // Stopped at the space
+        }
     }
 
+    class QuotableTest : StringArgumentTypeTest(StringArgumentType.Quotable) {
+        @Test
+        fun testParse() {
+            val reader = StringReader("\"quoted string\" remaining")
+            assertEquals("quoted string", type.parse(reader))
+            assertEquals(15, reader.cursor)
+        }
+    }
+
+    class GreedyTest : StringArgumentTypeTest(StringArgumentType.Greedy) {
+        @Test
+        fun testParse() {
+            val input = "Hello world! This is a test."
+            val reader = StringReader(input)
+            assertEquals(input, type.parse(reader))
+            assertFalse(reader.canRead(), "Reader should be fully exhausted")
+        }
+    }
+}
+
+@DisplayName("String Utility Tests")
+class StringEscapeTest {
+
     @Test
-    @DisplayName("Escape utility: no quotes needed for simple words")
-    fun testEscapeIfRequired_notRequired() {
+    @DisplayName("Should not escape simple words")
+    fun testNotRequired() {
         assertEquals("hello", "hello".escapeIfRequired())
         assertEquals("", "".escapeIfRequired())
     }
 
     @Test
-    @DisplayName("Escape utility: wrap spaces in quotes")
-    fun testEscapeIfRequired_multipleWords() {
+    @DisplayName("Should wrap spaces in quotes")
+    fun testMultipleWords() {
         assertEquals("\"hello world\"", "hello world".escapeIfRequired())
     }
 
     @Test
-    @DisplayName("Escape utility: handle internal quotes")
-    fun testEscapeIfRequired_quote() {
-        assertEquals("\"hello \\\"world\\\"!\"", "hello \"world\"!".escapeIfRequired())
-    }
-
-    @Test
-    @DisplayName("Escape utility: handle backslashes")
-    fun testEscapeIfRequired_escapes() {
-        assertEquals("\"\\\\\"", "\\".escapeIfRequired())
-    }
-
-    @Test
-    @DisplayName("toString() representation")
-    fun testToString() {
-        // Based on our previous data class refactor
-        assertTrue(StringArgumentType().toString().contains("StringArgumentType"))
+    @DisplayName("Should handle internal quotes and backslashes")
+    fun testComplexEscaping() {
+        assertAll(
+            { assertEquals("\"hello \\\"world\\\"!\"", "hello \"world\"!".escapeIfRequired()) },
+            { assertEquals("\"\\\\\"", "\\".escapeIfRequired()) }
+        )
     }
 }
