@@ -9,7 +9,7 @@ import java.util.concurrent.CompletableFuture
 /**
  * Parses "true" or "false".
  */
-class BooleanArgumentType : ArgumentType<Boolean> {
+data object BooleanArgumentType : ArgumentType<Boolean> {
     override fun parse(reader: StringReader): Boolean = reader.readBoolean()
 
     override fun <S> listSuggestions(
@@ -22,7 +22,4 @@ class BooleanArgumentType : ArgumentType<Boolean> {
     }
 
     override val examples: Collection<String> = listOf("true", "false")
-
-    override fun equals(other: Any?): Boolean = other is BooleanArgumentType
-    override fun hashCode(): Int = BooleanArgumentType::class.hashCode()
 }
