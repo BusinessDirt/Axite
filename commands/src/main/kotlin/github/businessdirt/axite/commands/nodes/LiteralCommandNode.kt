@@ -35,7 +35,7 @@ class LiteralCommandNode<S>(
         val start = reader.cursor
         val end = parse(reader)
         if (end > -1) {
-            contextBuilder.withNode(this, StringRange.between(start, end))
+            contextBuilder.addNode(this, StringRange.between(start, end))
             return
         }
 

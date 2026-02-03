@@ -108,15 +108,15 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
                 continue
             }
 
-            context.withCommand(child.command)
+            if (child.command != null) context.command(child.command!!)
 
             val skipLength = if (child.redirect == null) 2 else 1
             if (reader.canRead(skipLength)) {
                 reader.skip()
                 if (child.redirect != null) {
-                    val childContext = CommandContextBuilder(this, source, child.redirect!!, reader.cursor)
-                    val parse = parseNodes(child.redirect!!, reader, childContext)
-                    context.withChild(parse.context)
+                    val childContext = CommandContextBuilder(this, source, child.redirect, reader.cursor)
+                    val parse = parseNodes(child.redirect, reader, childContext)
+                    context.child = parse.context
                     return ParseResults(context, parse.reader, parse.exceptions)
                 } else {
                     val parse = parseNodes(child, reader, context)

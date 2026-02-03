@@ -15,16 +15,11 @@ class CommandContextBuilder<S>(
     val arguments = mutableMapOf<String, ParsedArgument<S, *>>()
     val nodes = mutableListOf<ParsedCommandNode<S>>()
 
-    // Public properties for direct assignment in DSL
     var command: Command<S>? = null
     var child: CommandContextBuilder<S>? = null
     var range: StringRange = StringRange.at(start)
     var modifier: RedirectModifier<S>? = null
     var isForked: Boolean = false
-
-    // Computed property
-    val lastChild: CommandContextBuilder<S>
-        get() = generateSequence(this) { it.child }.last()
 
     /**
      * DSL-style node addition.

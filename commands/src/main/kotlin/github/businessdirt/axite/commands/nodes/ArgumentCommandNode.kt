@@ -40,8 +40,8 @@ class ArgumentCommandNode<S, T>(
         val result = type.parse(reader, contextBuilder.source)
         val parsed = ParsedArgument<S, T>(start, reader.cursor, result)
 
-        contextBuilder.withArgument(name, parsed)
-        contextBuilder.withNode(this, parsed.range)
+        contextBuilder.argument(name, parsed)
+        contextBuilder.addNode(this, parsed.range)
     }
 
     override fun listSuggestions(
