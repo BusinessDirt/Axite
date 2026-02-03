@@ -22,7 +22,6 @@ class ArgumentCommandNodeTest : AbstractCommandNodeTest() {
 
     @BeforeEach
     fun setUp() {
-        // Using our previously defined IntegerArgumentType and Builder
         node = RequiredArgumentBuilder.argument<Any, Int>("foo", IntegerArgumentType()).build()
         contextBuilder = CommandContextBuilder(CommandDispatcher(), Any(), RootCommandNode(), 0)
     }

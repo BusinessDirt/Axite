@@ -15,20 +15,20 @@ import kotlin.test.assertNotEquals
 @DisplayName("Command Context Tests")
 class CommandContextTest {
 
-    private lateinit var builder: CommandContextBuilder<Any>
     private val source: Any = mock()
     private val dispatcher: CommandDispatcher<Any> = mock()
     private val rootNode: CommandNode<Any> = mock()
 
-    @BeforeEach
-    fun setUp() {
-        builder = CommandContextBuilder(dispatcher, source, rootNode, 0)
-    }
+    fun String.buildTestContext(
+        init: CommandContextBuilder<Any>.() -> Unit = {}
+    ): CommandContext<Any> = CommandContextBuilder(dispatcher, source, rootNode, 0)
+        .apply(init)
+        .build(this)
 
     @Test
     @DisplayName("getArgument should throw when argument name is missing")
     fun testGetArgument_nonexistent() {
-        val context = builder.build("")
+        val context = "".buildTestContext()
         assertThrows(IllegalArgumentException::class.java) {
             context.getArgument("foo", Any::class.java)
         }
@@ -37,9 +37,9 @@ class CommandContextTest {
     @Test
     @DisplayName("getArgument should throw when type requested doesn't match actual type")
     fun testGetArgument_wrongType() {
-        val context = builder
-            .withArgument("foo", ParsedArgument(0, 1, 123))
-            .build("123")
+        val context = "123".buildTestContext {
+            argument("foo", ParsedArgument(0, 1, 123))
+        }
 
         assertThrows(IllegalArgumentException::class.java) {
             context.getArgument("foo", String::class.java)
@@ -49,9 +49,9 @@ class CommandContextTest {
     @Test
     @DisplayName("getArgument should return correctly cast value")
     fun testGetArgument() {
-        val context = builder
-            .withArgument("foo", ParsedArgument(0, 1, 123))
-            .build("123")
+        val context = "123".buildTestContext {
+            argument("foo", ParsedArgument(0, 1, 123))
+        }
 
         assertEquals(123, context.getArgument("foo", Int::class.java))
     }
@@ -59,7 +59,7 @@ class CommandContextTest {
     @Test
     @DisplayName("Context should preserve the source and root node")
     fun testMetadata() {
-        val context = builder.build("")
+        val context = "".buildTestContext()
         assertAll(
             { assertEquals(source, context.source) },
             { assertEquals(rootNode, context.rootNode) }
@@ -77,25 +77,25 @@ class CommandContextTest {
         assertAll(
             {
                 assertEquals(
-                    builder.build(""),
-                    CommandContextBuilder(dispatcher, source, rootNode, 0).build("")
+                    "".buildTestContext(),
+                    "".buildTestContext()
                 )
             },
             {
                 assertNotEquals(
-                    builder.build(""),
-                    CommandContextBuilder(dispatcher, source, otherRootNode, 0).build("")
+                    "".buildTestContext(),
+                    "".buildContext(dispatcher, source, otherRootNode, 0) {}
                 )
             },
             {
                 assertNotEquals(
-                    builder.build(""),
-                    CommandContextBuilder(dispatcher, otherSource, rootNode, 0).build("")
+                    "".buildTestContext(),
+                    "".buildContext(dispatcher, otherSource, rootNode, 0) {}
                 )
             },
             {
-                val c1 = CommandContextBuilder(dispatcher, source, rootNode, 0).withCommand(command).build("")
-                val c2 = CommandContextBuilder(dispatcher, source, rootNode, 0).withCommand(otherCommand).build("")
+                val c1 = "".buildTestContext { command(command) }
+                val c2 = "".buildTestContext { command(otherCommand) }
                 assertNotEquals(c1, c2)
             }
         )
