@@ -17,11 +17,16 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation("org.slf4j:slf4j-simple:2.0.12")
+
+    testImplementation("org.mockito:mockito-core:5.21.0")
+    testImplementation("org.mockito:mockito-junit-jupiter:5.21.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:6.2.3")
 }
 
 tasks.test {
     useJUnitPlatform()
     ksp.arg("processor.debug", "true")
+    jvmArgs("-XX:+EnableDynamicAgentLoading", "-Djdk.instrument.traceUsage")
 }
 
 kotlin {
