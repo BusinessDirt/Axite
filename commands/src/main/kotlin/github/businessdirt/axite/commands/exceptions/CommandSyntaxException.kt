@@ -1,5 +1,6 @@
 package github.businessdirt.axite.commands.exceptions
 
+import github.businessdirt.axite.commands.strings.ImmutableStringReader
 import github.businessdirt.axite.commands.strings.StringReader
 
 class CommandSyntaxException(
@@ -9,12 +10,12 @@ class CommandSyntaxException(
 ) : RuntimeException(type.message)
 
 /** Create an exception at the current cursor */
-fun StringReader.error(error: CommandError, at: Int = this.cursor): CommandSyntaxException =
+fun ImmutableStringReader.error(error: CommandError, at: Int = this.cursor): CommandSyntaxException =
     CommandSyntaxException(error, this.string, at)
 
 /** Check a condition and throw if it fails */
 @Throws(CommandSyntaxException::class)
-fun StringReader.expect(error: CommandError, at: Int = this.cursor, conditionBlock: () -> Boolean) {
+fun ImmutableStringReader.expect(error: CommandError, at: Int = this.cursor, conditionBlock: () -> Boolean) {
     if (!conditionBlock()) throw this.error(error, at)
 }
 
@@ -23,7 +24,7 @@ fun StringReader.expect(error: CommandError, at: Int = this.cursor, conditionBlo
  * using the provided [error].
  */
 @Throws(CommandSyntaxException::class)
-inline fun <T> StringReader.tryOrError(error: CommandError, at: Int = this.cursor, block: () -> T): T {
+inline fun <T> ImmutableStringReader.tryOrError(error: CommandError, at: Int = this.cursor, block: () -> T): T {
     return try {
         block()
     } catch (_: Exception) {

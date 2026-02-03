@@ -4,27 +4,19 @@ import github.businessdirt.axite.commands.Command
 import github.businessdirt.axite.commands.builder.LiteralArgumentBuilder
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
-import org.mockito.Mock
-import org.mockito.MockitoAnnotations
+import org.mockito.Mockito.mock
 
 @DisplayName("Command Node Base Logic")
 abstract class AbstractCommandNodeTest {
 
-    @Mock
-    lateinit var command: Command<Any>
+    val command: Command<Any> = mock()
 
     /**
      * Factory method for subclasses to provide the specific node type being tested.
      */
     protected abstract fun createCommandNode(): CommandNode<Any>
-
-    @BeforeEach
-    open fun setUp() {
-        MockitoAnnotations.openMocks(this)
-    }
 
     @Test
     @DisplayName("addChild() should deduplicate nodes with the same name")

@@ -1,4 +1,92 @@
 package github.businessdirt.axite.commands.nodes
 
-class ArgumentCommandNodeTest {
+import github.businessdirt.axite.commands.Command
+import github.businessdirt.axite.commands.CommandDispatcher
+import github.businessdirt.axite.commands.IntegerArgumentType
+import github.businessdirt.axite.commands.builder.RequiredArgumentBuilder
+import github.businessdirt.axite.commands.context.CommandContextBuilder
+import github.businessdirt.axite.commands.strings.StringReader
+import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.Test
+import org.mockito.Mockito.mock
+
+@DisplayName("ArgumentCommandNode Implementation Tests")
+class ArgumentCommandNodeTest : AbstractCommandNodeTest() {
+    private lateinit var node: ArgumentCommandNode<Any, Int>
+    private lateinit var contextBuilder: CommandContextBuilder<Any>
+
+    override fun createCommandNode(): CommandNode<Any> = node
+
+    @BeforeEach
+    fun setUp() {
+        // Using our previously defined IntegerArgumentType and Builder
+        node = RequiredArgumentBuilder.argument<Any, Int>("foo", IntegerArgumentType()).build()
+        contextBuilder = CommandContextBuilder(CommandDispatcher(), Any(), RootCommandNode(), 0)
+    }
+
+    @Test
+    @DisplayName("parse() should extract the correct value and store it in the context")
+    fun testParse() {
+        val reader = StringReader("123 456")
+        node.parse(reader, contextBuilder)
+
+        val argument = contextBuilder.arguments["foo"]
+        assertNotNull(argument, "Argument 'foo' should be present in context")
+        assertEquals(123, argument!!.result, "Parsed result should be 123")
+    }
+
+    @Test
+    @DisplayName("usageText should be wrapped in angle brackets")
+    fun testUsage() {
+        assertEquals("<foo>", node.usageText)
+    }
+
+    @Test
+    @DisplayName("listSuggestions() should default to empty for integers")
+    fun testSuggestions() {
+        val context = contextBuilder.build("")
+        val result = node.listSuggestions(context, SuggestionsBuilder("", "", 0)).join()
+        assertTrue(result.isEmpty, "Suggestions should be empty by default for IntegerArgumentType")
+    }
+
+    @Test
+    @DisplayName("createBuilder() should preserve all node properties")
+    fun testCreateBuilder() {
+        val builder = node.createBuilder()
+
+        assertAll(
+            { assertEquals(node.name, builder.name) },
+            { assertEquals(node.type, builder.type) },
+            { assertEquals(node.requirement, builder.requirement) },
+            { assertEquals(node.command, builder.command) }
+        )
+    }
+
+    @Test
+    @DisplayName("Equality and Identity checks")
+    @Suppress("UNCHECKED_CAST")
+    fun testEquals() {
+        val command = mock(Command::class.java) as Command<Any>
+
+        // Group 1: Identical simple nodes
+        val nodeA = RequiredArgumentBuilder.argument<Any, Int>("foo", IntegerArgumentType()).build()
+        val nodeB = RequiredArgumentBuilder.argument<Any, Int>("foo", IntegerArgumentType()).build()
+
+        // Group 2: Nodes with same command
+        val nodeC = RequiredArgumentBuilder.argument<Any, Int>("foo", IntegerArgumentType()).executes(command).build()
+        val nodeD = RequiredArgumentBuilder.argument<Any, Int>("foo", IntegerArgumentType()).executes(command).build()
+
+        // Group 3: Different name/range
+        val nodeE = RequiredArgumentBuilder.argument<Any, Int>("bar", IntegerArgumentType(-100, 100)).build()
+
+        assertAll(
+            { assertEquals(nodeA, nodeB, "Simple nodes should be equal") },
+            { assertEquals(nodeC, nodeD, "Nodes with same command should be equal") },
+            { assertNotEquals(nodeA, nodeC, "Nodes with different commands should not be equal") },
+            { assertNotEquals(nodeA, nodeE, "Nodes with different names/types should not be equal") }
+        )
+    }
 }

@@ -1,6 +1,8 @@
 package github.businessdirt.axite.commands
 
+import github.businessdirt.axite.commands.context.CommandContext
 import github.businessdirt.axite.commands.exceptions.CommandSyntaxException
+import github.businessdirt.axite.commands.nodes.CommandNode
 import github.businessdirt.axite.commands.suggestions.Suggestions
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
 import java.util.concurrent.CompletableFuture
@@ -44,6 +46,6 @@ fun interface AmbiguityConsumer<S> {
         parent: CommandNode<S>,
         child: CommandNode<S>,
         sibling: CommandNode<S>,
-        inputs: MutableCollection<String>
+        inputs: Collection<String>
     )
 }
