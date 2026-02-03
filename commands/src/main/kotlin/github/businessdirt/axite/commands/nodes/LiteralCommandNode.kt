@@ -1,12 +1,11 @@
 package github.businessdirt.axite.commands.nodes
 
 import github.businessdirt.axite.commands.Command
-import github.businessdirt.axite.commands.context.CommandContext
 import github.businessdirt.axite.commands.RedirectModifier
 import github.businessdirt.axite.commands.builder.LiteralArgumentBuilder
+import github.businessdirt.axite.commands.context.CommandContext
 import github.businessdirt.axite.commands.context.CommandContextBuilder
 import github.businessdirt.axite.commands.exceptions.CommandError
-import github.businessdirt.axite.commands.exceptions.CommandSyntaxException
 import github.businessdirt.axite.commands.exceptions.error
 import github.businessdirt.axite.commands.strings.StringRange
 import github.businessdirt.axite.commands.strings.StringReader

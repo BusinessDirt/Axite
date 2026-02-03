@@ -1,7 +1,8 @@
 package github.businessdirt.axite.commands.suggestions
 
 import github.businessdirt.axite.commands.strings.StringRange
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.DynamicTest.dynamicTest

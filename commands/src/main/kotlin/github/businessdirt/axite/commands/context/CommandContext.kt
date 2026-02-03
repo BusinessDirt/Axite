@@ -4,7 +4,6 @@ import github.businessdirt.axite.commands.Command
 import github.businessdirt.axite.commands.RedirectModifier
 import github.businessdirt.axite.commands.nodes.CommandNode
 import github.businessdirt.axite.commands.strings.StringRange
-import java.util.*
 
 class CommandContext<S>(
     val source: S,

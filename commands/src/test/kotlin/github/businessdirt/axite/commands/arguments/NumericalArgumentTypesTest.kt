@@ -1,19 +1,12 @@
 package github.businessdirt.axite.commands.arguments
 
-import github.businessdirt.axite.commands.context.CommandContextBuilder
 import github.businessdirt.axite.commands.exceptions.CommandError
 import github.businessdirt.axite.commands.exceptions.CommandSyntaxException
 import github.businessdirt.axite.commands.strings.StringReader
-import org.junit.jupiter.api.Assertions.assertAll
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
-import org.mockito.kotlin.mock
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 sealed class NumericalArgumentTypeTest<T>(
@@ -73,28 +66,28 @@ sealed class NumericalArgumentTypeTest<T>(
         assertTrue(typeString.contains("minimum=$minValue"))
         assertTrue(typeString.contains("maximum=$maxValue"))
     }
+}
 
-    @DisplayName("Integer Argument Type Parsing Test")
-    class IntegerArgumentTypeTest : NumericalArgumentTypeTest<Int>(-100, 100) {
-        override fun createType(min: Int, max: Int) = IntegerArgumentType(min, max)
-        override fun createExpected(x: Int): Int = x
-    }
+@DisplayName("Integer Argument Type Parsing Test")
+class IntegerArgumentTypeTest : NumericalArgumentTypeTest<Int>(-100, 100) {
+    override fun createType(min: Int, max: Int) = IntegerArgumentType(min, max)
+    override fun createExpected(x: Int): Int = x
+}
 
-    @DisplayName("Long Argument Type Parsing Test")
-    class LongArgumentTypeTest : NumericalArgumentTypeTest<Long>(-100L, 100L) {
-        override fun createType(min: Long, max: Long) = LongArgumentType(min, max)
-        override fun createExpected(x: Int): Long = x.toLong()
-    }
+@DisplayName("Long Argument Type Parsing Test")
+class LongArgumentTypeTest : NumericalArgumentTypeTest<Long>(-100L, 100L) {
+    override fun createType(min: Long, max: Long) = LongArgumentType(min, max)
+    override fun createExpected(x: Int): Long = x.toLong()
+}
 
-    @DisplayName("Float Argument Type Parsing Test")
-    class FloatArgumentTypeTest : NumericalArgumentTypeTest<Float>(-100.0f, 100.0f) {
-        override fun createType(min: Float, max: Float) = FloatArgumentType(min, max)
-        override fun createExpected(x: Int): Float = x.toFloat()
-    }
+@DisplayName("Float Argument Type Parsing Test")
+class FloatArgumentTypeTest : NumericalArgumentTypeTest<Float>(-100.0f, 100.0f) {
+    override fun createType(min: Float, max: Float) = FloatArgumentType(min, max)
+    override fun createExpected(x: Int): Float = x.toFloat()
+}
 
-    @DisplayName("Double Argument Type Parsing Test")
-    class DoubleArgumentTypeTest : NumericalArgumentTypeTest<Double>(-100.0, 100.0) {
-        override fun createType(min: Double, max: Double) = DoubleArgumentType(min, max)
-        override fun createExpected(x: Int): Double = x.toDouble()
-    }
+@DisplayName("Double Argument Type Parsing Test")
+class DoubleArgumentTypeTest : NumericalArgumentTypeTest<Double>(-100.0, 100.0) {
+    override fun createType(min: Double, max: Double) = DoubleArgumentType(min, max)
+    override fun createExpected(x: Int): Double = x.toDouble()
 }

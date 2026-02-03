@@ -2,9 +2,9 @@ package github.businessdirt.axite.commands.nodes
 
 import github.businessdirt.axite.commands.AmbiguityConsumer
 import github.businessdirt.axite.commands.Command
-import github.businessdirt.axite.commands.context.CommandContext
 import github.businessdirt.axite.commands.RedirectModifier
 import github.businessdirt.axite.commands.builder.ArgumentBuilder
+import github.businessdirt.axite.commands.context.CommandContext
 import github.businessdirt.axite.commands.context.CommandContextBuilder
 import github.businessdirt.axite.commands.exceptions.CommandSyntaxException
 import github.businessdirt.axite.commands.strings.StringReader

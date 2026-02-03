@@ -1,7 +1,7 @@
 package github.businessdirt.axite.commands.builder
 
-import github.businessdirt.axite.commands.arguments.ArgumentType
 import github.businessdirt.axite.commands.SuggestionProvider
+import github.businessdirt.axite.commands.arguments.ArgumentType
 import github.businessdirt.axite.commands.nodes.ArgumentCommandNode
 
 class RequiredArgumentBuilder<S, T>(

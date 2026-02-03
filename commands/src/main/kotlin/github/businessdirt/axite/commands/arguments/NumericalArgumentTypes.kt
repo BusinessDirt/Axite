@@ -4,14 +4,11 @@ import github.businessdirt.axite.commands.exceptions.CommandError
 import github.businessdirt.axite.commands.exceptions.error
 import github.businessdirt.axite.commands.strings.StringReader
 
-
-/**
- * Parses numbers
- */
-abstract class NumericalArgumentType<T>(
-    val minimum: T,
-    val maximum: T,
-    val read: (StringReader) -> T
+sealed class NumericalArgumentType<T>(
+    open val minimum: T,
+    open val maximum: T,
+    val read: (StringReader) -> T,
+    override val examples: Collection<String>
 ) : ArgumentType<T> where T : Number, T : Comparable<T> {
 
     override fun parse(reader: StringReader): T {
@@ -27,58 +24,24 @@ abstract class NumericalArgumentType<T>(
         }
         return result
     }
-
-    override fun toString(): String = "${this::class.simpleName}(minimum=$minimum, maximum=$maximum)"
 }
 
-/**
- * Parses integers, with optional range bounds.
- */
-class IntegerArgumentType(
-    minimum: Int = Int.MIN_VALUE,
-    maximum: Int = Int.MAX_VALUE
-) : NumericalArgumentType<Int>(minimum, maximum, StringReader::readInt) {
-    override val examples: Collection<String> = listOf("0", "123", "-123")
+data class IntegerArgumentType(
+    override val minimum: Int = Int.MIN_VALUE,
+    override val maximum: Int = Int.MAX_VALUE
+) : NumericalArgumentType<Int>(minimum, maximum, StringReader::readInt, listOf("0", "123", "-123"))
 
-    override fun equals(other: Any?): Boolean = other is IntegerArgumentType
-    override fun hashCode(): Int = IntegerArgumentType::class.hashCode()
-}
+data class LongArgumentType(
+    override val minimum: Long = Long.MIN_VALUE,
+    override val maximum: Long = Long.MAX_VALUE
+) : NumericalArgumentType<Long>(minimum, maximum, StringReader::readLong, listOf("0", "123", "-123"))
 
-/**
- * Parses longs, with optional range bounds.
- */
-class LongArgumentType(
-    minimum: Long = Long.MIN_VALUE,
-    maximum: Long = Long.MAX_VALUE
-) : NumericalArgumentType<Long>(minimum, maximum, StringReader::readLong) {
-    override val examples: Collection<String> = listOf("0", "123", "-123")
+data class FloatArgumentType(
+    override val minimum: Float = -Float.MAX_VALUE,
+    override val maximum: Float = Float.MAX_VALUE
+) : NumericalArgumentType<Float>(minimum, maximum, StringReader::readFloat, listOf("0", "1.2", ".5", "-12.34"))
 
-    override fun equals(other: Any?): Boolean = other is LongArgumentType
-    override fun hashCode(): Int = LongArgumentType::class.hashCode()
-}
-
-/**
- * Parses floats, with optional range bounds.
- */
-class FloatArgumentType(
-    minimum: Float = -Float.MAX_VALUE,
-    maximum: Float = Float.MAX_VALUE
-) : NumericalArgumentType<Float>(minimum, maximum, StringReader::readFloat) {
-    override val examples: Collection<String> = listOf("0", "1.2", ".5", "-12.34")
-
-    override fun equals(other: Any?): Boolean = other is FloatArgumentType
-    override fun hashCode(): Int = FloatArgumentType::class.hashCode()
-}
-
-/**
- * Parses doubles, with optional range bounds.
- */
-class DoubleArgumentType(
-    minimum: Double = -Double.MAX_VALUE,
-    maximum: Double = Double.MAX_VALUE
-) : NumericalArgumentType<Double>(minimum, maximum, StringReader::readDouble) {
-    override val examples: Collection<String> = listOf("0", "1.2", ".5", "-12.34")
-
-    override fun equals(other: Any?): Boolean = other is DoubleArgumentType
-    override fun hashCode(): Int = DoubleArgumentType::class.hashCode()
-}
+data class DoubleArgumentType(
+    override val minimum: Double = -Double.MAX_VALUE,
+    override val maximum: Double = Double.MAX_VALUE
+) : NumericalArgumentType<Double>(minimum, maximum, StringReader::readDouble, listOf("0", "1.2", ".5", "-12.34"))

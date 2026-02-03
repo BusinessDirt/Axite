@@ -1,7 +1,7 @@
 package github.businessdirt.axite.commands.builder
 
-import github.businessdirt.axite.commands.arguments.ArgumentType
 import github.businessdirt.axite.commands.Command
+import github.businessdirt.axite.commands.arguments.ArgumentType
 import github.businessdirt.axite.commands.arguments.IntegerArgumentType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame

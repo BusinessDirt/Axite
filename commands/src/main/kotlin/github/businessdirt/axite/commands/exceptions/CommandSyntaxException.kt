@@ -1,7 +1,6 @@
 package github.businessdirt.axite.commands.exceptions
 
 import github.businessdirt.axite.commands.strings.ImmutableStringReader
-import github.businessdirt.axite.commands.strings.StringReader
 
 class CommandSyntaxException(
     val type: CommandError,
