@@ -5,6 +5,10 @@ import github.businessdirt.axite.commands.suggestions.Suggestions
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
 import java.util.concurrent.CompletableFuture
 
+interface Command<S> {
+    fun run(command: CommandContext<S>): Int
+}
+
 /**
  * Transforms one source into many. Used for "forking" commands
  * (e.g., executing a command for every player in a list).
@@ -33,4 +37,13 @@ fun interface SingleRedirectModifier<S> {
 fun interface SuggestionProvider<S> {
     @Throws(CommandSyntaxException::class)
     fun getSuggestions(context: CommandContext<S>, builder: SuggestionsBuilder): CompletableFuture<Suggestions>
+}
+
+fun interface AmbiguityConsumer<S> {
+    fun ambiguous(
+        parent: CommandNode<S>,
+        child: CommandNode<S>,
+        sibling: CommandNode<S>,
+        inputs: MutableCollection<String>
+    )
 }
