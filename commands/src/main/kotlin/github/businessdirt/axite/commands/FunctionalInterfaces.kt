@@ -1,6 +1,9 @@
 package github.businessdirt.axite.commands
 
 import github.businessdirt.axite.commands.exceptions.CommandSyntaxException
+import github.businessdirt.axite.commands.suggestions.Suggestions
+import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
+import java.util.concurrent.CompletableFuture
 
 /**
  * Transforms one source into many. Used for "forking" commands
@@ -25,4 +28,9 @@ fun interface ResultConsumer<S> {
 fun interface SingleRedirectModifier<S> {
     @Throws(CommandSyntaxException::class)
     fun apply(context: CommandContext<S>): S
+}
+
+fun interface SuggestionProvider<S> {
+    @Throws(CommandSyntaxException::class)
+    fun getSuggestions(context: CommandContext<S>, builder: SuggestionsBuilder): CompletableFuture<Suggestions>
 }
