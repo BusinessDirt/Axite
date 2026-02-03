@@ -9,13 +9,15 @@ import org.junit.jupiter.api.DynamicTest.dynamicTest
 import org.junit.jupiter.api.TestFactory
 import java.util.stream.Stream
 import kotlin.test.Test
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 @DisplayName("Suggestions Builder Logic")
 class SuggestionsBuilderTest {
 
     inline fun buildTestSuggestions(
         builderAction: SuggestionsBuilder.() -> Unit
-    ): Suggestions = buildSuggestions("Hello w", 6) { builderAction() }
+    ): Suggestions = suggestions("Hello w", 6) { builderAction() }
 
     @Test
     @DisplayName("suggest() should append new text to the defined range")
@@ -42,20 +44,6 @@ class SuggestionsBuilderTest {
     fun suggest_noop() {
         val result = buildTestSuggestions { suggest("w") }
         assertEquals(true, result.isEmpty, "Should be empty because 'w' is already at the current range")
-    }
-
-    @Test
-    @DisplayName("restart() should create a fresh builder with same configuration")
-    fun restart() {
-        val builder = SuggestionsBuilder("Hello w", "hello w", 6)
-        builder.suggest("won't be included")
-        val other = builder.restart()
-
-        assertNotSame(builder, other, "Restarted builder should be a new instance")
-        assertEquals(builder.input, other.input, "Input strings should match")
-        assertEquals(builder.start, other.start, "Start indices should match")
-        assertEquals(builder.remaining, other.remaining, "Remaining strings should match")
-        assertEquals(true, other.build().isEmpty, "New builder should have no suggestions")
     }
 
     @TestFactory

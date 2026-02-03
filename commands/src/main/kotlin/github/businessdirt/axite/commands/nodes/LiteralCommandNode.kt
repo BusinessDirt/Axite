@@ -62,7 +62,10 @@ class LiteralCommandNode<S>(
         context: CommandContext<S>,
         builder: SuggestionsBuilder
     ): CompletableFuture<Suggestions> = when {
-        literalLowerCase.startsWith(builder.remainingLowerCase) -> builder.suggest(literal).buildFuture()
+        literalLowerCase.startsWith(builder.remainingLowerCase) -> {
+            builder.suggest(literal)
+            builder.buildFuture()
+        }
         else -> Suggestions.empty()
     }
 
