@@ -1,4 +1,3 @@
 package github.businessdirt.axite.commands
 
-class CommandContext<S> {
-}
+class CommandContext<S>
