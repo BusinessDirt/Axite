@@ -7,7 +7,7 @@ import github.businessdirt.axite.commands.suggestions.Suggestions
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
 import java.util.concurrent.CompletableFuture
 
-interface Command<S> {
+fun interface Command<S> {
     fun run(command: CommandContext<S>): Int
 }
 

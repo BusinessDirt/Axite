@@ -37,7 +37,7 @@ abstract class ArgumentBuilder<S, T : ArgumentBuilder<S, T>> {
     val allArguments: Collection<CommandNode<S>>
         get() = arguments.allChildren
 
-    fun executes(command: Command<S>?): T {
+    fun executes(command: Command<S>): T {
         this.command = command
         return `this`
     }
