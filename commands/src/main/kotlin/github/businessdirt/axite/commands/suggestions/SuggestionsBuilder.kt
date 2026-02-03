@@ -21,7 +21,7 @@ class SuggestionsBuilder(
      */
     fun suggest(text: String, tooltip: Message? = null): SuggestionsBuilder {
         if (text != remaining) {
-            result.add(Suggestion(StringRange.between(start, input.length), text, tooltip))
+            result.add(StringSuggestion(StringRange.between(start, input.length), text, tooltip))
         }
         return this
     }

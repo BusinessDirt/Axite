@@ -24,7 +24,7 @@ class SuggestionsTest {
     @DisplayName("Merging a single Suggestions object returns an equivalent object")
     fun merge_single() {
         val range = StringRange.at(5)
-        val suggestions = Suggestions(range, listOf(Suggestion(range, "ar")))
+        val suggestions = Suggestions(range, listOf(StringSuggestion(range, "ar")))
         val merged = Suggestions.merge("foo b", listOf(suggestions))
 
         assertEquals(suggestions, merged, "Merging a single source should return it unchanged")
@@ -41,31 +41,31 @@ class SuggestionsTest {
                     Suggestions(
                         StringRange.at(5), // Position after the 'b'
                         listOf(
-                            Suggestion(StringRange.at(5), "ar"), // Result: "bar"
-                            Suggestion(StringRange.at(5), "az"), // Result: "baz"
-                            Suggestion(StringRange.at(5), "Az")  // Result: "bAz"
+                            StringSuggestion(StringRange.at(5), "ar"), // Result: "bar"
+                            StringSuggestion(StringRange.at(5), "az"), // Result: "baz"
+                            StringSuggestion(StringRange.at(5), "Az")  // Result: "bAz"
                         )
                     ),
                     Suggestions(
                         StringRange.between(4, 5), // Position covering 'b'
                         listOf(
-                            Suggestion(StringRange.between(4, 5), "foo"),
-                            Suggestion(StringRange.between(4, 5), "qux"),
-                            Suggestion(StringRange.between(4, 5), "apple"),
-                            Suggestion(StringRange.between(4, 5), "Bar")
+                            StringSuggestion(StringRange.between(4, 5), "foo"),
+                            StringSuggestion(StringRange.between(4, 5), "qux"),
+                            StringSuggestion(StringRange.between(4, 5), "apple"),
+                            StringSuggestion(StringRange.between(4, 5), "Bar")
                         )
                     )
                 ),
                 listOf(
                     // Expectations are normalized to the widest range (4, 5)
                     // and sorted alphabetically (case-insensitive)
-                    Suggestion(StringRange.between(4, 5), "apple"),
-                    Suggestion(StringRange.between(4, 5), "bar"), // "ar" expanded to "bar"
-                    Suggestion(StringRange.between(4, 5), "Bar"),
-                    Suggestion(StringRange.between(4, 5), "baz"), // "az" expanded to "baz"
-                    Suggestion(StringRange.between(4, 5), "bAz"), // "Az" expanded to "bAz"
-                    Suggestion(StringRange.between(4, 5), "foo"),
-                    Suggestion(StringRange.between(4, 5), "qux")
+                    StringSuggestion(StringRange.between(4, 5), "apple"),
+                    StringSuggestion(StringRange.between(4, 5), "bar"), // "ar" expanded to "bar"
+                    StringSuggestion(StringRange.between(4, 5), "Bar"),
+                    StringSuggestion(StringRange.between(4, 5), "baz"), // "az" expanded to "baz"
+                    StringSuggestion(StringRange.between(4, 5), "bAz"), // "Az" expanded to "bAz"
+                    StringSuggestion(StringRange.between(4, 5), "foo"),
+                    StringSuggestion(StringRange.between(4, 5), "qux")
                 )
             )
         ).map { (name, input, expectedList) ->

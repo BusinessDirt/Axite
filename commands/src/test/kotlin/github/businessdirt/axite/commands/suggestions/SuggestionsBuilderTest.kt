@@ -23,7 +23,7 @@ class SuggestionsBuilderTest {
         val result = buildTestSuggestions { suggest("world!") }
         val expectedRange = StringRange.between(6, 7)
 
-        assertEquals(listOf(Suggestion(expectedRange, "world!")), result.list, "Should contain the 'world!' suggestion")
+        assertEquals(listOf(StringSuggestion(expectedRange, "world!")), result.list, "Should contain the 'world!' suggestion")
         assertEquals(expectedRange, result.range, "Resulting range should match the builder's range")
         assertEquals(false, result.isEmpty, "Result should not be empty")
     }
@@ -34,7 +34,7 @@ class SuggestionsBuilderTest {
         val result = buildTestSuggestions { suggest("everybody") }
         val expectedRange = StringRange.between(6, 7)
 
-        assertEquals(listOf(Suggestion(expectedRange, "everybody")), result.list, "Should replace with 'everybody'")
+        assertEquals(listOf(StringSuggestion(expectedRange, "everybody")), result.list, "Should replace with 'everybody'")
     }
 
     @Test

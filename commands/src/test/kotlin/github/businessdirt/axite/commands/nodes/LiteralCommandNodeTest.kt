@@ -8,7 +8,7 @@ import github.businessdirt.axite.commands.exceptions.CommandError
 import github.businessdirt.axite.commands.exceptions.CommandSyntaxException
 import github.businessdirt.axite.commands.strings.StringRange
 import github.businessdirt.axite.commands.strings.StringReader
-import github.businessdirt.axite.commands.suggestions.Suggestion
+import github.businessdirt.axite.commands.suggestions.StringSuggestion
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -78,7 +78,7 @@ class LiteralCommandNodeTest : AbstractCommandNodeTest() {
     fun testSuggestions() {
         // Empty input suggests the literal
         val empty = node.listSuggestions(contextBuilder.build(""), SuggestionsBuilder("", "", 0)).join()
-        assertEquals(listOf(Suggestion(StringRange.at(0), "foo")), empty.list)
+        assertEquals(listOf(StringSuggestion(StringRange.at(0), "foo")), empty.list)
 
         // Exact match or partial non-match should result in no suggestions
         assertTrue(node.listSuggestions(contextBuilder.build("foo"), SuggestionsBuilder("foo", "foo", 0)).join().isEmpty)
