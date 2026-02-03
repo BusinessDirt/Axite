@@ -14,3 +14,8 @@ data class ParsedCommandNode<S>(
     val node: CommandNode<S>,
     val range: StringRange
 )
+
+class SuggestionContext<S>(
+    val parent: CommandNode<S>,
+    val startPos: Int
+)
