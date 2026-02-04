@@ -35,8 +35,8 @@ class RequiredArgumentBuilder<S, T>(
             command = command,
             requirement = requirement,
             redirect = redirect,
-            modifier = redirectModifier,
-            forks = isFork,
+            modifier = modifier,
+            forks = forks,
             customSuggestions = suggestionsProvider
         )
 

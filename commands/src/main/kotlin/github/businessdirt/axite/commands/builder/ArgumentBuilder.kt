@@ -9,6 +9,7 @@ import github.businessdirt.axite.commands.nodes.CommandNode
 import github.businessdirt.axite.commands.nodes.RootCommandNode
 import java.util.function.Predicate
 
+
 typealias ArgumentBlock<S, T> = T.() -> Unit
 
 @CommandDsl
@@ -22,13 +23,13 @@ abstract class ArgumentBuilder<S, T : ArgumentBuilder<S, T>> {
     protected var command: Command<S>? = null
     protected var requirement: Predicate<S> = Predicate { true }
     protected var redirect: CommandNode<S>? = null
-    protected var redirectModifier: RedirectModifier<S>? = null
-    protected var isFork: Boolean = false
+    protected var modifier: RedirectModifier<S>? = null
+    protected var forks: Boolean = false
 
     protected abstract val self: T
 
     fun literal(name: String, block: ArgumentBlock<S, LiteralArgumentBuilder<S>> = {}): T {
-        check(redirect == null) { "Cannot add children to a node with redirect set" }
+        check(redirect == null) { "Cannot add children to a redirected node" }
         val child = LiteralArgumentBuilder<S>(name).apply(block)
         arguments.addChild(child.build())
         return self
@@ -55,10 +56,11 @@ abstract class ArgumentBuilder<S, T : ArgumentBuilder<S, T>> {
         return self
     }
 
-    fun redirect(target: CommandNode<S>?, modifier: SingleRedirectModifier<S>? = null): T {
-        val mod = modifier?.let { m -> RedirectModifier { listOf(m.apply(it)) } }
-        return forward(target, mod, false)
-    }
+    fun redirect(target: CommandNode<S>?, modifier: SingleRedirectModifier<S>? = null): T = forward(
+        target,
+        if (modifier == null) null else RedirectModifier { o -> listOf(modifier.apply(o)) },
+        false
+    )
 
     fun fork(target: CommandNode<S>?, modifier: RedirectModifier<S>?): T =
         forward(target, modifier, true)
@@ -66,8 +68,8 @@ abstract class ArgumentBuilder<S, T : ArgumentBuilder<S, T>> {
     fun forward(target: CommandNode<S>?, modifier: RedirectModifier<S>?, fork: Boolean): T {
         check(arguments.allChildren.isEmpty()) { "Cannot forward a node with children" }
         this.redirect = target
-        this.redirectModifier = modifier
-        this.isFork = fork
+        this.modifier = modifier
+        this.forks = fork
         return self
     }
 

@@ -10,7 +10,6 @@ import github.businessdirt.axite.commands.strings.StringReader
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
-import java.util.regex.Matcher
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
@@ -507,9 +506,7 @@ class CommandDispatcherTest {
 
         whenever(command.run(any())).thenReturn(3)
 
-        val ex = assertFailsWith<CommandSyntaxException> {
-            subject.execute("redirect noop", source)
-        }
+        val ex = assertFailsWith<CommandSyntaxException> { subject.execute("redirect noop", source) }
         assertEquals(exception, ex)
 
         verify(command, never()).run(any())
@@ -544,16 +541,14 @@ class CommandDispatcherTest {
         subject.register(literal("run") { executes(command) })
 
         subject.register(literal("split") {
-            fork(subject.root) { _ ->
-                listOf(source, rejectedSource, otherSource)
-            }
+            fork(subject.root) { listOf(source, rejectedSource, otherSource) }
         })
 
         subject.register(literal("filter") {
             fork(subject.root) { context ->
                 val currentSource = context.source
-                if (currentSource === rejectedSource) throw exception
-                mutableSetOf(currentSource)
+                if (currentSource == rejectedSource) throw exception
+                listOf(currentSource)
             }
         })
 
@@ -561,12 +556,12 @@ class CommandDispatcherTest {
 
         assertEquals(2, subject.execute("split filter run", source))
 
-        verify(command).run(argThat { this.source === source })
+        verify(command).run(argThat { this.source === this@CommandDispatcherTest.source })
         verify(command).run(argThat { this.source === otherSource })
         verifyNoMoreInteractions(command)
 
         verify(consumer).onCommandComplete(argThat { this.source === rejectedSource }, eq(false), eq(0))
-        verify(consumer).onCommandComplete(argThat { this.source === source }, eq(true), eq(3))
+        verify(consumer).onCommandComplete(argThat { this.source === this@CommandDispatcherTest.source }, eq(true), eq(3))
         verify(consumer).onCommandComplete(argThat { this.source === otherSource }, eq(true), eq(3))
         verifyNoMoreInteractions(consumer)
     }

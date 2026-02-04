@@ -12,8 +12,8 @@ class LiteralArgumentBuilder<S>(val literal: String) : ArgumentBuilder<S, Litera
             command = command,
             requirement = requirement,
             redirect = redirect,
-            modifier = redirectModifier,
-            forks = isFork
+            modifier = modifier,
+            forks = forks
         )
 
         allArguments.forEach { result.addChild(it) }

@@ -1,5 +1,6 @@
 package github.businessdirt.axite.commands
 
+import github.businessdirt.axite.commands.context.CommandContext
 import github.businessdirt.axite.commands.context.CommandContextBuilder
 import github.businessdirt.axite.commands.context.ContextChain
 import github.businessdirt.axite.commands.context.SuggestionContext
@@ -16,7 +17,7 @@ import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
-class ParseResults<S>(
+data class ParseResults<S>(
     val context: CommandContextBuilder<S>,
     val reader: ImmutableStringReader = StringReader(""),
     val exceptions: Map<CommandNode<S>, CommandSyntaxException> = emptyMap()
@@ -40,7 +41,7 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
 
     @Throws(CommandSyntaxException::class)
     fun execute(input: StringReader, source: S): Int {
-        val parse = parse(input, source)
+        val parse: ParseResults<S> = parse(input, source)
         return execute(parse)
     }
 
@@ -55,9 +56,9 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
             }
         }
 
-        val commandString = parse.reader.string
-        val original = parse.context.build(commandString)
-        val flatContext = ContextChain.tryFlatten(original)
+        val commandString: String = parse.reader.string
+        val original: CommandContext<S> = parse.context.build(commandString)
+        val flatContext: Optional<ContextChain<S>> = ContextChain.tryFlatten(original)
 
         if (flatContext.isEmpty) {
             consumer.onCommandComplete(original, false, 0)
