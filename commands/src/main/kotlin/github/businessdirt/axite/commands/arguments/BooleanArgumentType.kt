@@ -6,9 +6,6 @@ import github.businessdirt.axite.commands.suggestions.Suggestions
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
 import java.util.concurrent.CompletableFuture
 
-/**
- * Parses "true" or "false".
- */
 data object BooleanArgumentType : ArgumentType<Boolean> {
     override fun parse(reader: StringReader): Boolean = reader.readBoolean()
 

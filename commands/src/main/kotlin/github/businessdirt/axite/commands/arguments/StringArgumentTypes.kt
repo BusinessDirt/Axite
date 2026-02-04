@@ -29,7 +29,7 @@ fun String.escapeIfRequired(): String = when {
     else -> this
 }
 
-private fun String.escape(): String = buildString {
+fun String.escape(): String = buildString {
     append('"')
     for (char in this@escape) {
         if (char == '\\' || char == '"') append('\\')

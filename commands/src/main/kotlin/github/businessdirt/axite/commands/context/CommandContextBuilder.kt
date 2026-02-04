@@ -61,43 +61,22 @@ class CommandContextBuilder<S>(
     }
 
     fun findSuggestionContext(cursor: Int): SuggestionContext<S> {
-        check(range.start <= cursor) { "Can't find node before cursor" }
-
         if (range.end < cursor) {
-            return when {
-                child != null -> child!!.findSuggestionContext(cursor)
-                nodes.isNotEmpty() -> {
-                    val last = nodes.last()
-                    SuggestionContext(last.node, last.range.end + 1)
-                }
-                else -> SuggestionContext(rootNode, range.start)
-            }
+            return child?.findSuggestionContext(cursor)
+                ?: nodes.lastOrNull()?.let { SuggestionContext(it.node, it.range.end + 1) }
+                ?: SuggestionContext(rootNode, range.start)
         }
 
-        var prev = rootNode
-        for (node in nodes) {
-            val nodeRange = node.range
-            if (nodeRange.start <= cursor && cursor <= nodeRange.end) {
-                return SuggestionContext(prev, nodeRange.start)
+        var result: SuggestionContext<S>? = null
+        nodes.fold(rootNode) { prev, current ->
+            if (result == null && cursor in current.range.start..current.range.end) {
+                result = SuggestionContext(prev, current.range.start)
             }
-            prev = node.node
+            current.node
         }
 
-        return SuggestionContext(prev, range.start)
+        return result ?: SuggestionContext(nodes.lastOrNull()?.node ?: rootNode, range.start)
     }
-}
-
-fun <S> buildCommandContext(
-    dispatcher: CommandDispatcher<S>,
-    source: S,
-    rootNode: CommandNode<S>,
-    start: Int,
-    input: String,
-    init: CommandContextBuilder<S>.() -> Unit
-): CommandContext<S> {
-    val builder = CommandContextBuilder(dispatcher, source, rootNode, start)
-    builder.init()
-    return builder.build(input)
 }
 
 fun <S> CommandContextBuilder<S>.childContext(
@@ -109,9 +88,6 @@ fun <S> CommandContextBuilder<S>.childContext(
     this.child = childBuilder
 }
 
-/**
- * Automatically handles node registration and range calculations.
- */
 fun <S> CommandContextBuilder<S>.node(
     node: CommandNode<S>,
     start: Int,
@@ -119,7 +95,7 @@ fun <S> CommandContextBuilder<S>.node(
     action: (CommandContextBuilder<S>.() -> Unit)? = null
 ) {
     val range = StringRange(start, end)
-    addNode(node, range) // Uses the helper we created earlier
+    addNode(node, range)
     action?.invoke(this)
 }
 

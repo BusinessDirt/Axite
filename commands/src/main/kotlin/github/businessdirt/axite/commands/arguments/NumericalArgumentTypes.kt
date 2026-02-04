@@ -14,14 +14,17 @@ sealed class NumericalArgumentType<T>(
     override fun parse(reader: StringReader): T {
         val start = reader.cursor
         val result: T = read.invoke(reader)
+
         if (result < minimum) {
             reader.cursor = start
             throw reader.error(CommandError.TooSmall(result, minimum))
         }
+
         if (result > maximum) {
             reader.cursor = start
             throw reader.error(CommandError.TooBig(result, maximum))
         }
+
         return result
     }
 }
