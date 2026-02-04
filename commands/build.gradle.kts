@@ -26,7 +26,7 @@ dependencies {
 tasks.test {
     useJUnitPlatform()
     ksp.arg("processor.debug", "true")
-    jvmArgs("-XX:+EnableDynamicAgentLoading", "-Djdk.instrument.traceUsage")
+    jvmArgs("-XX:+EnableDynamicAgentLoading")
 }
 
 kotlin {

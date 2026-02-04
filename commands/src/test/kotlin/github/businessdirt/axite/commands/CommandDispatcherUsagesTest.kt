@@ -25,76 +25,76 @@ class CommandDispatcherUsagesTest {
 
         subject.register(literal("a") {
             literal("1") {
-                literal("i") { executes(this@CommandDispatcherUsagesTest.command) }
-                literal("ii") { executes(this@CommandDispatcherUsagesTest.command) }
+                literal("i") { executes(command) }
+                literal("ii") { executes(command) }
             }
             literal("2") {
-                literal("i") { executes(this@CommandDispatcherUsagesTest.command) }
-                literal("ii") { executes(this@CommandDispatcherUsagesTest.command) }
+                literal("i") { executes(command) }
+                literal("ii") { executes(command) }
             }
         })
 
         subject.register(literal("b") {
-            literal("1") { executes(this@CommandDispatcherUsagesTest.command) }
+            literal("1") { executes(command) }
         })
 
-        subject.register(literal("c") { executes(this@CommandDispatcherUsagesTest.command) })
+        subject.register(literal("c") { executes(command) })
 
         subject.register(literal("d") {
             requires { false }
-            executes(this@CommandDispatcherUsagesTest.command)
+            executes(command)
         })
 
         subject.register(literal("e") {
-            executes(this@CommandDispatcherUsagesTest.command)
+            executes(command)
             literal("1") {
-                executes(this@CommandDispatcherUsagesTest.command)
-                literal("i") { executes(this@CommandDispatcherUsagesTest.command) }
-                literal("ii") { executes(this@CommandDispatcherUsagesTest.command) }
+                executes(command)
+                literal("i") { executes(command) }
+                literal("ii") { executes(command) }
             }
         })
 
         subject.register(literal("f") {
             literal("1") {
-                literal("i") { executes(this@CommandDispatcherUsagesTest.command) }
+                literal("i") { executes(command) }
                 literal("ii") {
-                    executes(this@CommandDispatcherUsagesTest.command)
+                    executes(command)
                     requires { false }
                 }
             }
             literal("2") {
                 literal("i") {
-                    executes(this@CommandDispatcherUsagesTest.command)
+                    executes(command)
                     requires { false }
                 }
-                literal("ii") { executes(this@CommandDispatcherUsagesTest.command) }
+                literal("ii") { executes(command) }
             }
         })
 
         subject.register(literal("g") {
-            executes(this@CommandDispatcherUsagesTest.command)
+            executes(command)
             literal("1") {
-                literal("i") { executes(this@CommandDispatcherUsagesTest.command) }
+                literal("i") { executes(command) }
             }
         })
 
         subject.register(literal("h") {
-            executes(this@CommandDispatcherUsagesTest.command)
+            executes(command)
             literal("1") {
-                literal("i") { executes(this@CommandDispatcherUsagesTest.command) }
+                literal("i") { executes(command) }
             }
             literal("2") {
                 literal("i") {
-                    literal("ii") { executes(this@CommandDispatcherUsagesTest.command) }
+                    literal("ii") { executes(command) }
                 }
             }
-            literal("3") { executes(this@CommandDispatcherUsagesTest.command) }
+            literal("3") { executes(command) }
         })
 
         subject.register(literal("i") {
-            executes(this@CommandDispatcherUsagesTest.command)
-            literal("1") { executes(this@CommandDispatcherUsagesTest.command) }
-            literal("2") { executes(this@CommandDispatcherUsagesTest.command) }
+            executes(command)
+            literal("1") { executes(command) }
+            literal("2") { executes(command) }
         })
 
         subject.register(literal("j") { redirect(subject.root) })

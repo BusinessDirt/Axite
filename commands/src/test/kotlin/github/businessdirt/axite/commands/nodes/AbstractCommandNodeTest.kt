@@ -58,7 +58,7 @@ abstract class AbstractCommandNodeTest {
         val node = createCommandNode()
 
         node.addChild(literal("child") {
-            executes(this@AbstractCommandNodeTest.command)
+            executes(command)
         })
         node.addChild(literal("child"))
 
@@ -72,7 +72,7 @@ abstract class AbstractCommandNodeTest {
 
         node.addChild(literal("child"))
         node.addChild(literal("child") {
-            executes(this@AbstractCommandNodeTest.command)
+            executes(command)
         })
 
         assertSame(command, node.allChildren.first().command, "Newer command should overwrite the old one")

@@ -3,6 +3,8 @@ package github.businessdirt.axite.commands.nodes
 import github.businessdirt.axite.commands.Command
 import github.businessdirt.axite.commands.CommandDispatcher
 import github.businessdirt.axite.commands.builder.literal
+import github.businessdirt.axite.commands.builder.testCommand
+import github.businessdirt.axite.commands.builder.testRequirement
 import github.businessdirt.axite.commands.context.CommandContextBuilder
 import github.businessdirt.axite.commands.exceptions.CommandError
 import github.businessdirt.axite.commands.exceptions.CommandSyntaxException
@@ -113,7 +115,7 @@ class LiteralCommandNodeTest : AbstractCommandNodeTest() {
     fun testCreateBuilder() {
         val builder = node.createBuilder()
         assertEquals(node.literal, builder.literal)
-        assertEquals(node.requirement, builder.requirement)
-        assertEquals(node.command, builder.command)
+        assertEquals(node.requirement, builder.testRequirement)
+        assertEquals(node.command, builder.testCommand)
     }
 }

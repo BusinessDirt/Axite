@@ -5,7 +5,6 @@ import github.businessdirt.axite.commands.CommandDispatcher
 import github.businessdirt.axite.commands.nodes.CommandNode
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.assertAll
 import org.mockito.Mockito.mock

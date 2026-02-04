@@ -2,15 +2,12 @@ package github.businessdirt.axite.commands.suggestions
 
 import github.businessdirt.axite.commands.strings.StringRange
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotSame
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.DynamicTest.dynamicTest
 import org.junit.jupiter.api.TestFactory
 import java.util.stream.Stream
 import kotlin.test.Test
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 @DisplayName("Suggestions Builder Logic")
 class SuggestionsBuilderTest {

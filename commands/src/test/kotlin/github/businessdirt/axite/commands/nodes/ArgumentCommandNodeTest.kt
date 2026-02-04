@@ -4,6 +4,8 @@ import github.businessdirt.axite.commands.Command
 import github.businessdirt.axite.commands.CommandDispatcher
 import github.businessdirt.axite.commands.arguments.IntegerArgumentType
 import github.businessdirt.axite.commands.builder.argument
+import github.businessdirt.axite.commands.builder.testCommand
+import github.businessdirt.axite.commands.builder.testRequirement
 import github.businessdirt.axite.commands.context.CommandContextBuilder
 import github.businessdirt.axite.commands.strings.StringReader
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
@@ -59,8 +61,8 @@ class ArgumentCommandNodeTest : AbstractCommandNodeTest() {
         assertAll(
             { assertEquals(node.name, builder.name) },
             { assertEquals(node.type, builder.type) },
-            { assertEquals(node.requirement, builder.requirement) },
-            { assertEquals(node.command, builder.command) }
+            { assertEquals(node.requirement, builder.testRequirement) },
+            { assertEquals(node.command, builder.testCommand) }
         )
     }
 

@@ -31,9 +31,7 @@ class ContextChain<S>(
 
     @Throws(CommandSyntaxException::class)
     fun executeAll(source: S, resultConsumer: ResultConsumer<S>): Int {
-        if (modifiers.isEmpty()) {
-            return runExecutable(executable, source, resultConsumer, false)
-        }
+        if (modifiers.isEmpty()) return runExecutable(executable, source, resultConsumer, false)
 
         var forkedMode = false
         var currentSources = listOf(source)
@@ -41,16 +39,16 @@ class ContextChain<S>(
         for (modifier in modifiers) {
             forkedMode = forkedMode or modifier.isForked
 
-            val nextSources = currentSources.flatMap { src ->
-                runModifier(modifier, src, resultConsumer, forkedMode)
+            val nextSources = currentSources.flatMap { sourceToRun ->
+                runModifier(modifier, sourceToRun, resultConsumer, forkedMode)
             }
 
             if (nextSources.isEmpty()) return 0
             currentSources = nextSources
         }
 
-        return currentSources.sumOf { src ->
-            runExecutable(executable, src, resultConsumer, forkedMode)
+        return currentSources.sumOf { executionSource ->
+            runExecutable(executable, executionSource, resultConsumer, forkedMode)
         }
     }
 

@@ -58,7 +58,7 @@ class ArgumentCommandNode<S, T>(
             requires(this@ArgumentCommandNode.requirement)
             forward(this@ArgumentCommandNode.redirect, this@ArgumentCommandNode.modifier, isFork)
             suggests(customSuggestions)
-            this@ArgumentCommandNode.command?.let { executes(it) }
+            command?.let { executes(it) }
         }
 
         return builder

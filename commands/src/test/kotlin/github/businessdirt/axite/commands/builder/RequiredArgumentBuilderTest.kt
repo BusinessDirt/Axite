@@ -3,10 +3,8 @@ package github.businessdirt.axite.commands.builder
 import github.businessdirt.axite.commands.Command
 import github.businessdirt.axite.commands.arguments.ArgumentType
 import github.businessdirt.axite.commands.arguments.IntegerArgumentType
-import jdk.javadoc.internal.tool.Main.execute
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertAll
@@ -33,7 +31,7 @@ class RequiredArgumentBuilderTest {
     @DisplayName("build() with an executor should preserve the command reference")
     fun testBuildWithExecutor() {
         val node = argument("foo", type) {
-            executes(this@RequiredArgumentBuilderTest.command)
+            executes(command)
         }
 
         assertAll("Node properties",

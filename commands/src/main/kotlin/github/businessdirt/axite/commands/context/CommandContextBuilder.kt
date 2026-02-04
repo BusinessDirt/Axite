@@ -53,7 +53,7 @@ class CommandContextBuilder<S>(
 
     fun copy(): CommandContextBuilder<S> {
         return CommandContextBuilder(dispatcher, source, rootNode, range.start).apply {
-            command = this@CommandContextBuilder.command
+            command = command
             arguments.putAll(this@CommandContextBuilder.arguments)
             nodes.addAll(this@CommandContextBuilder.nodes)
             child = this@CommandContextBuilder.child

@@ -34,11 +34,11 @@ class ProcessorConfig(options: Map<String, String>) {
     fun debugLog(logger: KSPLogger) {
         if (!debug) return
         if (settings.isNotEmpty()) {
-            logger.warn("--- KSP Options Found ---")
+            logger.info("--- KSP Options Found ---")
             settings.forEach { (key, value) ->
-                logger.warn("Option: $key = $value")
+                logger.info("Option: $key = $value")
             }
-            logger.warn("-------------------------")
+            logger.info("-------------------------")
         }
     }
 }

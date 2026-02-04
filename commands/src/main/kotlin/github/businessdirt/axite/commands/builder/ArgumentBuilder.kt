@@ -28,6 +28,7 @@ abstract class ArgumentBuilder<S, T : ArgumentBuilder<S, T>> {
     protected abstract val self: T
 
     fun literal(name: String, block: ArgumentBlock<S, LiteralArgumentBuilder<S>> = {}): T {
+        check(redirect == null) { "Cannot add children to a node with redirect set" }
         val child = LiteralArgumentBuilder<S>(name).apply(block)
         arguments.addChild(child.build())
         return self

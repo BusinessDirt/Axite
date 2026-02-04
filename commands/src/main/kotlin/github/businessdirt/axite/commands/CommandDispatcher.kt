@@ -1,6 +1,5 @@
 package github.businessdirt.axite.commands
 
-import github.businessdirt.axite.commands.builder.LiteralArgumentBuilder
 import github.businessdirt.axite.commands.context.CommandContextBuilder
 import github.businessdirt.axite.commands.context.ContextChain
 import github.businessdirt.axite.commands.context.SuggestionContext

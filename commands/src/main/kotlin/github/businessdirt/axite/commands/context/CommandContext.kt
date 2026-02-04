@@ -4,8 +4,6 @@ import github.businessdirt.axite.commands.Command
 import github.businessdirt.axite.commands.RedirectModifier
 import github.businessdirt.axite.commands.nodes.CommandNode
 import github.businessdirt.axite.commands.strings.StringRange
-import kotlin.reflect.KClass
-import kotlin.reflect.full.isSubclassOf
 
 data class CommandContext<S>(
     val source: S,
@@ -20,16 +18,9 @@ data class CommandContext<S>(
     val isForked: Boolean
 ) {
 
-    val lastChild: CommandContext<S>
-        get() {
-            var result = this
-            while (result.child != null) result = result.child
-            return result
-        }
-
-    fun copyFor(source: S): CommandContext<S> = when (this.source) {
-        source -> this
-        else -> CommandContext(source, input, arguments, command, rootNode, nodes, range, child, modifier, isForked)
+    fun copyFor(newSource: S): CommandContext<S> = when {
+        this.source === newSource -> this
+        else -> this.copy(source = newSource)
     }
 
     inline fun <reified V : Any> getArgument(name: String): V {

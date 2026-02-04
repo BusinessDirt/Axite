@@ -1,11 +1,13 @@
 package github.businessdirt.axite.commands.builder
 
+import github.businessdirt.axite.commands.Command
 import github.businessdirt.axite.commands.arguments.IntegerArgumentType
 import github.businessdirt.axite.commands.nodes.CommandNode
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.mockito.Mockito.mock
+import java.util.function.Predicate
 import kotlin.test.Test
 
 @DisplayName("ArgumentBuilder logic tests")
@@ -20,9 +22,7 @@ class ArgumentBuilderTest {
     @Test
     @DisplayName("apply { argument } should successfully add a child argument")
     fun testArguments() {
-        builder.apply {
-            argument<Int>("bar", IntegerArgumentType())
-        }
+        builder.apply { argument("bar", IntegerArgumentType()) }
 
         val builtArgument = argument<Any, Int>("bar", IntegerArgumentType())
         assertEquals(1, builder.allArguments.size)
@@ -30,11 +30,22 @@ class ArgumentBuilderTest {
     }
 
     @Test
+    @DisplayName("Should throw if a redirect is already set")
+    fun testThen_withRedirect() {
+        val target: CommandNode<Any> = mock()
+        builder.redirect(target)
+
+        assertThrows(IllegalStateException::class.java) {
+            builder.literal("foo")
+        }
+    }
+
+    @Test
     @DisplayName("redirect() should correctly set the target node")
     fun testRedirect() {
         val target: CommandNode<Any> = mock()
         builder.redirect(target)
-        assertEquals(target, builder.redirect)
+        assertEquals(target, builder.testRedirect)
     }
 
     @Test
@@ -59,4 +70,24 @@ class ArgumentBuilderTest {
 
         override fun build(): CommandNode<S> = mock()
     }
+}
+
+// Helper property to access 'command'
+val <S, T : ArgumentBuilder<S, T>> ArgumentBuilder<S, T>.testCommand: Command<S>?
+    get() = getProtectedField("command")
+
+// Helper property to access 'redirect'
+val <S, T : ArgumentBuilder<S, T>> ArgumentBuilder<S, T>.testRedirect: CommandNode<S>?
+    get() = getProtectedField("redirect")
+
+// Helper property to access 'redirect'
+val <S, T : ArgumentBuilder<S, T>> ArgumentBuilder<S, T>.testRequirement: Predicate<S>
+    get() = getProtectedField("requirement")
+
+// Generic reflection helper
+@Suppress("UNCHECKED_CAST")
+private fun <R> Any.getProtectedField(fieldName: String): R {
+    val field = this::class.java.superclass.getDeclaredField(fieldName)
+    field.isAccessible = true
+    return field.get(this) as R
 }
