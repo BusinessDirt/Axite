@@ -1,6 +1,6 @@
 package github.businessdirt.axite.commands
 
-import github.businessdirt.axite.commands.builder.LiteralArgumentBuilder.Companion.literal
+import github.businessdirt.axite.commands.builder.literal
 import github.businessdirt.axite.commands.nodes.CommandNode
 import github.businessdirt.axite.commands.strings.StringReader
 import org.junit.jupiter.api.Assertions.assertArrayEquals
@@ -23,53 +23,82 @@ class CommandDispatcherUsagesTest {
     fun setUp() {
         subject = CommandDispatcher()
 
-        // Helper to register nested literals more concisely
-        subject.register(
-            literal<Any>("a")
-                .then(literal<Any>("1")
-                    .then(literal<Any>("i").executes(command))
-                    .then(literal<Any>("ii").executes(command)))
-                .then(literal<Any>("2")
-                    .then(literal<Any>("i").executes(command))
-                    .then(literal<Any>("ii").executes(command)))
-        )
+        subject.register(literal("a") {
+            literal("1") {
+                literal("i") { executes(this@CommandDispatcherUsagesTest.command) }
+                literal("ii") { executes(this@CommandDispatcherUsagesTest.command) }
+            }
+            literal("2") {
+                literal("i") { executes(this@CommandDispatcherUsagesTest.command) }
+                literal("ii") { executes(this@CommandDispatcherUsagesTest.command) }
+            }
+        })
 
-        subject.register(literal<Any>("b").then(literal<Any>("1").executes(command)))
-        subject.register(literal<Any>("c").executes(command))
-        subject.register(literal<Any>("d").requires { false }.executes(command))
+        subject.register(literal("b") {
+            literal("1") { executes(this@CommandDispatcherUsagesTest.command) }
+        })
 
-        subject.register(
-            literal<Any>("e")
-                .executes(command)
-                .then(literal<Any>("1")
-                    .executes(command)
-                    .then(literal<Any>("i").executes(command))
-                    .then(literal<Any>("ii").executes(command)))
-        )
+        subject.register(literal("c") { executes(this@CommandDispatcherUsagesTest.command) })
 
-        subject.register(
-            literal<Any>("f")
-                .then(literal<Any>("1")
-                    .then(literal<Any>("i").executes(command))
-                    .then(literal<Any>("ii").executes(command).requires { false }))
-                .then(literal<Any>("2")
-                    .then(literal<Any>("i").executes(command).requires { false })
-                    .then(literal<Any>("ii").executes(command)))
-        )
+        subject.register(literal("d") {
+            requires { false }
+            executes(this@CommandDispatcherUsagesTest.command)
+        })
 
-        subject.register(literal<Any>("g").executes(command).then(literal<Any>("1").then(literal<Any>("i").executes(command))))
+        subject.register(literal("e") {
+            executes(this@CommandDispatcherUsagesTest.command)
+            literal("1") {
+                executes(this@CommandDispatcherUsagesTest.command)
+                literal("i") { executes(this@CommandDispatcherUsagesTest.command) }
+                literal("ii") { executes(this@CommandDispatcherUsagesTest.command) }
+            }
+        })
 
-        subject.register(
-            literal<Any>("h")
-                .executes(command)
-                .then(literal<Any>("1").then(literal<Any>("i").executes(command)))
-                .then(literal<Any>("2").then(literal<Any>("i").then(literal<Any>("ii").executes(command))))
-                .then(literal<Any>("3").executes(command))
-        )
+        subject.register(literal("f") {
+            literal("1") {
+                literal("i") { executes(this@CommandDispatcherUsagesTest.command) }
+                literal("ii") {
+                    executes(this@CommandDispatcherUsagesTest.command)
+                    requires { false }
+                }
+            }
+            literal("2") {
+                literal("i") {
+                    executes(this@CommandDispatcherUsagesTest.command)
+                    requires { false }
+                }
+                literal("ii") { executes(this@CommandDispatcherUsagesTest.command) }
+            }
+        })
 
-        subject.register(literal<Any>("i").executes(command).then(literal<Any>("1").executes(command)).then(literal<Any>("2").executes(command)))
-        subject.register(literal<Any>("j").redirect(subject.root))
-        subject.register(literal<Any>("k").redirect(getNode("h")))
+        subject.register(literal("g") {
+            executes(this@CommandDispatcherUsagesTest.command)
+            literal("1") {
+                literal("i") { executes(this@CommandDispatcherUsagesTest.command) }
+            }
+        })
+
+        subject.register(literal("h") {
+            executes(this@CommandDispatcherUsagesTest.command)
+            literal("1") {
+                literal("i") { executes(this@CommandDispatcherUsagesTest.command) }
+            }
+            literal("2") {
+                literal("i") {
+                    literal("ii") { executes(this@CommandDispatcherUsagesTest.command) }
+                }
+            }
+            literal("3") { executes(this@CommandDispatcherUsagesTest.command) }
+        })
+
+        subject.register(literal("i") {
+            executes(this@CommandDispatcherUsagesTest.command)
+            literal("1") { executes(this@CommandDispatcherUsagesTest.command) }
+            literal("2") { executes(this@CommandDispatcherUsagesTest.command) }
+        })
+
+        subject.register(literal("j") { redirect(subject.root) })
+        subject.register(literal("k") { redirect(getNode("h")) })
     }
 
     private fun getNode(command: String): CommandNode<Any> {
@@ -102,6 +131,7 @@ class CommandDispatcherUsagesTest {
                 "g", "g 1 i", "h", "h 1 i", "h 2 i ii", "h 3",
                 "i", "i 1", "i 2", "j ...", "k -> h"
             )
+
             assertArrayEquals(expected, results)
         }
     }
@@ -109,8 +139,6 @@ class CommandDispatcherUsagesTest {
     @Nested
     @DisplayName("Smart Usage (Compressed/Visual)")
     inner class SmartUsage {
-
-
 
         @Test
         @DisplayName("Should generate compressed usage maps for root")

@@ -1,7 +1,7 @@
 package github.businessdirt.axite.commands.nodes
 
 import github.businessdirt.axite.commands.Command
-import github.businessdirt.axite.commands.builder.LiteralArgumentBuilder
+import github.businessdirt.axite.commands.builder.literal
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.DisplayName
@@ -23,9 +23,9 @@ abstract class AbstractCommandNodeTest {
     fun testAddChild() {
         val node = createCommandNode()
 
-        node.addChild(LiteralArgumentBuilder.literal<Any>("child1").build())
-        node.addChild(LiteralArgumentBuilder.literal<Any>("child2").build())
-        node.addChild(LiteralArgumentBuilder.literal<Any>("child1").build())
+        node.addChild(literal("child1"))
+        node.addChild(literal("child2"))
+        node.addChild(literal("child1"))
 
         assertEquals(2, node.allChildren.size, "Children should be deduplicated by name")
     }
@@ -36,15 +36,15 @@ abstract class AbstractCommandNodeTest {
         val node = createCommandNode()
 
         node.addChild(
-            LiteralArgumentBuilder.literal<Any>("child")
-                .then(LiteralArgumentBuilder.literal("grandchild1"))
-                .build()
+            literal("child") {
+                literal("grandchild1")
+            }
         )
 
         node.addChild(
-            LiteralArgumentBuilder.literal<Any>("child")
-                .then(LiteralArgumentBuilder.literal("grandchild2"))
-                .build()
+            literal("child") {
+                literal("grandchild2")
+            }
         )
 
         assertEquals(1, node.allChildren.size, "Parent nodes should merge")
@@ -57,8 +57,10 @@ abstract class AbstractCommandNodeTest {
     fun testAddChildPreservesCommand() {
         val node = createCommandNode()
 
-        node.addChild(LiteralArgumentBuilder.literal<Any>("child").executes(command).build())
-        node.addChild(LiteralArgumentBuilder.literal<Any>("child").build())
+        node.addChild(literal("child") {
+            executes(this@AbstractCommandNodeTest.command)
+        })
+        node.addChild(literal("child"))
 
         assertSame(command, node.allChildren.first().command, "Command should not be cleared by a node without one")
     }
@@ -68,8 +70,10 @@ abstract class AbstractCommandNodeTest {
     fun testAddChildOverwritesCommand() {
         val node = createCommandNode()
 
-        node.addChild(LiteralArgumentBuilder.literal<Any>("child").build())
-        node.addChild(LiteralArgumentBuilder.literal<Any>("child").executes(command).build())
+        node.addChild(literal("child"))
+        node.addChild(literal("child") {
+            executes(this@AbstractCommandNodeTest.command)
+        })
 
         assertSame(command, node.allChildren.first().command, "Newer command should overwrite the old one")
     }

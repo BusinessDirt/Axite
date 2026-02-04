@@ -3,7 +3,7 @@ package github.businessdirt.axite.commands.context
 import github.businessdirt.axite.commands.Command
 import github.businessdirt.axite.commands.CommandDispatcher
 import github.businessdirt.axite.commands.ResultConsumer
-import github.businessdirt.axite.commands.builder.LiteralArgumentBuilder.Companion.literal
+import github.businessdirt.axite.commands.builder.literal
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -25,7 +25,7 @@ class ContextChainTest {
             whenever(command.run(any())).thenReturn(4)
 
             val dispatcher = CommandDispatcher<Any>()
-            dispatcher.register(literal<Any>("foo").executes(command))
+            dispatcher.register(literal("foo") { executes(command) })
 
             val result = dispatcher.parse("foo", "compile_source")
             val chain = ContextChain.tryFlatten(result.context.build("foo")).orElseThrow()
@@ -52,8 +52,8 @@ class ContextChainTest {
 
             val redirectedSource = "redirected_source"
             val dispatcher = CommandDispatcher<Any>()
-            dispatcher.register(literal<Any>("foo").executes(command))
-            dispatcher.register(literal<Any>("bar").redirect(dispatcher.root) { redirectedSource })
+            dispatcher.register(literal("foo") { executes(command) })
+            dispatcher.register(literal("bar") { redirect(dispatcher.root) { redirectedSource } })
 
             val result = dispatcher.parse("bar foo", "compile_source")
             val chain = ContextChain.tryFlatten(result.context.build("bar foo")).orElseThrow()
@@ -76,8 +76,8 @@ class ContextChainTest {
         @DisplayName("Should correctly identify stages in a multi-redirect command")
         fun testMultiStageExecution() {
             val dispatcher = CommandDispatcher<Any>()
-            dispatcher.register(literal<Any>("foo").executes { 1 })
-            dispatcher.register(literal<Any>("bar").redirect(dispatcher.root))
+            dispatcher.register(literal("foo") { executes { 1 } })
+            dispatcher.register(literal("bar") { redirect(dispatcher.root) })
 
             val result = dispatcher.parse("bar bar foo", Any())
             val topContext = result.context.build("bar bar foo")
@@ -105,8 +105,8 @@ class ContextChainTest {
         @DisplayName("tryFlatten() should return empty if command is not executable")
         fun testMissingExecute() {
             val dispatcher = CommandDispatcher<Any>()
-            dispatcher.register(literal<Any>("foo").executes { 1 })
-            dispatcher.register(literal<Any>("bar").redirect(dispatcher.root))
+            dispatcher.register(literal("foo") { executes { 1 } })
+            dispatcher.register(literal("bar") { redirect(dispatcher.root) })
 
             val result = dispatcher.parse("bar bar", Any())
             val topContext = result.context.build("bar bar")

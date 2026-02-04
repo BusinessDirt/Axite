@@ -3,7 +3,7 @@ package github.businessdirt.axite.commands.nodes
 import github.businessdirt.axite.commands.Command
 import github.businessdirt.axite.commands.CommandDispatcher
 import github.businessdirt.axite.commands.arguments.IntegerArgumentType
-import github.businessdirt.axite.commands.builder.RequiredArgumentBuilder
+import github.businessdirt.axite.commands.builder.argument
 import github.businessdirt.axite.commands.context.CommandContextBuilder
 import github.businessdirt.axite.commands.strings.StringReader
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
@@ -22,7 +22,7 @@ class ArgumentCommandNodeTest : AbstractCommandNodeTest() {
 
     @BeforeEach
     fun setUp() {
-        node = RequiredArgumentBuilder.argument<Any, Int>("foo", IntegerArgumentType()).build()
+        node = argument("foo", IntegerArgumentType())
         contextBuilder = CommandContextBuilder(CommandDispatcher(), Any(), RootCommandNode(), 0)
     }
 
@@ -71,15 +71,19 @@ class ArgumentCommandNodeTest : AbstractCommandNodeTest() {
         val command = mock(Command::class.java) as Command<Any>
 
         // Group 1: Identical simple nodes
-        val nodeA = RequiredArgumentBuilder.argument<Any, Int>("foo", IntegerArgumentType()).build()
-        val nodeB = RequiredArgumentBuilder.argument<Any, Int>("foo", IntegerArgumentType()).build()
+        val nodeA = argument<Any, Int>("foo", IntegerArgumentType())
+        val nodeB = argument<Any, Int>("foo", IntegerArgumentType())
 
         // Group 2: Nodes with same command
-        val nodeC = RequiredArgumentBuilder.argument<Any, Int>("foo", IntegerArgumentType()).executes(command).build()
-        val nodeD = RequiredArgumentBuilder.argument<Any, Int>("foo", IntegerArgumentType()).executes(command).build()
+        val nodeC = argument("foo", IntegerArgumentType()) {
+            executes(command)
+        }
+        val nodeD = argument("foo", IntegerArgumentType()) {
+            executes(command)
+        }
 
         // Group 3: Different name/range
-        val nodeE = RequiredArgumentBuilder.argument<Any, Int>("bar", IntegerArgumentType(-100, 100)).build()
+        val nodeE = argument<Any, Int>("bar", IntegerArgumentType(-100, 100))
 
         assertAll(
             { assertEquals(nodeA, nodeB, "Simple nodes should be equal") },

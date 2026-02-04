@@ -3,6 +3,8 @@ package github.businessdirt.axite.commands.builder
 import github.businessdirt.axite.commands.SuggestionProvider
 import github.businessdirt.axite.commands.arguments.ArgumentType
 import github.businessdirt.axite.commands.nodes.ArgumentCommandNode
+import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
+import github.businessdirt.axite.commands.suggestions.suggestionsFuture
 
 class RequiredArgumentBuilder<S, T>(
     val name: String,
@@ -12,19 +14,18 @@ class RequiredArgumentBuilder<S, T>(
     var suggestionsProvider: SuggestionProvider<S>? = null
         private set
 
-    companion object {
-        @JvmStatic
-        fun <S, T> argument(name: String, type: ArgumentType<T>): RequiredArgumentBuilder<S, T> {
-            return RequiredArgumentBuilder(name, type)
-        }
-    }
-
-    override val `this`: RequiredArgumentBuilder<S, T>
-        get() = this
+    override val self: RequiredArgumentBuilder<S, T> get() = this
 
     fun suggests(provider: SuggestionProvider<S>?): RequiredArgumentBuilder<S, T> {
         this.suggestionsProvider = provider
-        return `this`
+        return self
+    }
+
+    fun suggests(block: SuggestionsBuilder.() -> Unit): RequiredArgumentBuilder<S, T> {
+        this.suggestionsProvider = SuggestionProvider { _, builder ->
+            suggestionsFuture(builder.input, builder.start, block)
+        }
+        return self
     }
 
     override fun build(): ArgumentCommandNode<S, T> {
@@ -39,8 +40,14 @@ class RequiredArgumentBuilder<S, T>(
             customSuggestions = suggestionsProvider
         )
 
-        for (argument in allArguments) result.addChild(argument)
+        allArguments.forEach { result.addChild(it) }
 
         return result
     }
 }
+
+fun <S, T> argument(
+    name: String,
+    type: ArgumentType<T>,
+    block: ArgumentBlock<S, RequiredArgumentBuilder<S, T>> = {}
+): ArgumentCommandNode<S, T> = RequiredArgumentBuilder<S, T>(name, type).apply(block).build()

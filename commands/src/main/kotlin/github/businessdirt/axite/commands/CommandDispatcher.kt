@@ -27,10 +27,9 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
 
     private var consumer: ResultConsumer<S> = ResultConsumer { _, _, _ -> }
 
-    fun register(command: LiteralArgumentBuilder<S>): LiteralCommandNode<S> {
-        val build = command.build()
-        root.addChild(build)
-        return build
+    fun register(command: LiteralCommandNode<S>): LiteralCommandNode<S> {
+        root.addChild(command)
+        return command
     }
 
     fun setConsumer(consumer: ResultConsumer<S>) {
@@ -158,13 +157,17 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
 
         if (node.command != null) result.add(prefix)
 
-        if (node.redirect != null) {
-            val redirectMsg = if (node.redirect == root) "..." else "-> ${node.redirect.usageText}"
-            result.add(if (prefix.isEmpty()) "${node.usageText} $redirectMsg" else "$prefix $redirectMsg")
-        } else if (node.allChildren.isNotEmpty()) {
-            for (child in node.allChildren) {
-                val nextPrefix = if (prefix.isEmpty()) child.usageText else "$prefix $ARGUMENT_SEPARATOR${child.usageText}"
-                getAllUsageInternal(child, source, result, nextPrefix, restricted)
+        when {
+            node.redirect != null -> {
+                val redirectMsg = if (node.redirect == root) "..." else "-> ${node.redirect.usageText}"
+                result.add(if (prefix.isEmpty()) "${node.usageText} $redirectMsg" else "$prefix $redirectMsg")
+            }
+
+            node.allChildren.isNotEmpty() -> {
+                for (child in node.allChildren) {
+                    val nextPrefix = if (prefix.isEmpty()) child.usageText else "$prefix$ARGUMENT_SEPARATOR${child.usageText}"
+                    getAllUsageInternal(child, source, result, nextPrefix, restricted)
+                }
             }
         }
     }
@@ -191,27 +194,31 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
         if (!deep) {
             if (node.redirect != null) {
                 val redirectMsg = if (node.redirect == root) "..." else "-> ${node.redirect.usageText}"
-                return "$self $redirectMsg"
+                return "$self$ARGUMENT_SEPARATOR$redirectMsg"
             }
+
             val children = node.allChildren.filter { it.canUse(source) }
-            if (children.size == 1) {
-                getSmartUsageInternal(children.first(), source, childOptional, childOptional)?.let {
-                    return "$self $it"
-                }
-            } else if (children.size > 1) {
-                val childUsage = children.mapNotNull { getSmartUsageInternal(it, source, childOptional, true) }.toSet()
-                if (childUsage.size == 1) {
-                    val usage = childUsage.first()
-                    return "$self ${if (childOptional) "$USAGE_OPTIONAL_OPEN$usage$USAGE_OPTIONAL_CLOSE" else usage}"
-                } else if (childUsage.size > 1) {
-                    val builder = StringBuilder(open)
-                    children.forEachIndexed { i, child ->
-                        if (i > 0) builder.append(USAGE_OR)
-                        builder.append(child.usageText)
+            when {
+                children.size == 1 -> {
+                    getSmartUsageInternal(children.first(), source, childOptional, childOptional)?.let {
+                        return "$self$ARGUMENT_SEPARATOR$it"
                     }
-                    if (children.isNotEmpty()) {
-                        builder.append(close)
-                        return "$self $builder"
+                }
+                children.size > 1 -> {
+                    val childUsage = children.mapNotNull { getSmartUsageInternal(it, source, childOptional, true) }.toSet()
+                    if (childUsage.size == 1) {
+                        val usage = childUsage.first()
+                        return "$self ${if (childOptional) "$USAGE_OPTIONAL_OPEN$usage$USAGE_OPTIONAL_CLOSE" else usage}"
+                    } else if (childUsage.size > 1) {
+                        val builder = StringBuilder(open)
+                        children.forEachIndexed { i, child ->
+                            if (i > 0) builder.append(USAGE_OR)
+                            builder.append(child.usageText)
+                        }
+                        if (children.isNotEmpty()) {
+                            builder.append(close)
+                            return "$self $builder"
+                        }
                     }
                 }
             }

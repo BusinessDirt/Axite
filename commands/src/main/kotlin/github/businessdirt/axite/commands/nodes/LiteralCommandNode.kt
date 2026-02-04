@@ -72,7 +72,7 @@ class LiteralCommandNode<S>(
     override fun isValidInput(input: String): Boolean = parse(StringReader(input)) > -1
 
     override fun createBuilder(): LiteralArgumentBuilder<S> {
-        val builder = LiteralArgumentBuilder.literal<S>(literal)
+        val builder = LiteralArgumentBuilder<S>(literal)
         builder.requires(requirement)
         builder.forward(redirect, modifier, isFork)
         command?.let { builder.executes(it) }

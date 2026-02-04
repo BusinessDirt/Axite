@@ -53,11 +53,14 @@ class ArgumentCommandNode<S, T>(
     }
 
     override fun createBuilder(): RequiredArgumentBuilder<S, T> {
-        val builder = RequiredArgumentBuilder.argument<S, T>(name, type)
-        builder.requires(requirement)
-        builder.forward(redirect, modifier, isFork)
-        builder.suggests(customSuggestions)
-        command?.let { builder.executes(it) }
+        val builder = RequiredArgumentBuilder<S, T>(name, type)
+        builder.apply {
+            requires(this@ArgumentCommandNode.requirement)
+            forward(this@ArgumentCommandNode.redirect, this@ArgumentCommandNode.modifier, isFork)
+            suggests(customSuggestions)
+            this@ArgumentCommandNode.command?.let { executes(it) }
+        }
+
         return builder
     }
 
@@ -66,7 +69,7 @@ class ArgumentCommandNode<S, T>(
             val reader = StringReader(input)
             type.parse(reader)
             !reader.canRead() || reader.peek() == ' '
-        } catch (ignored: CommandSyntaxException) {
+        } catch (_: CommandSyntaxException) {
             false
         }
     }

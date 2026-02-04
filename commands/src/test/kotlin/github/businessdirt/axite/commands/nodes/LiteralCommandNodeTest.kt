@@ -2,7 +2,7 @@ package github.businessdirt.axite.commands.nodes
 
 import github.businessdirt.axite.commands.Command
 import github.businessdirt.axite.commands.CommandDispatcher
-import github.businessdirt.axite.commands.builder.LiteralArgumentBuilder
+import github.businessdirt.axite.commands.builder.literal
 import github.businessdirt.axite.commands.context.CommandContextBuilder
 import github.businessdirt.axite.commands.exceptions.CommandError
 import github.businessdirt.axite.commands.exceptions.CommandSyntaxException
@@ -25,7 +25,7 @@ class LiteralCommandNodeTest : AbstractCommandNodeTest() {
 
     @BeforeEach
     fun setUp() {
-        node = LiteralArgumentBuilder.literal<Any>("foo").build()
+        node = literal("foo")
         contextBuilder = CommandContextBuilder(CommandDispatcher(), Any(), RootCommandNode(), 0)
     }
 
@@ -92,13 +92,13 @@ class LiteralCommandNodeTest : AbstractCommandNodeTest() {
     fun testEquals() {
         val command = mock(Command::class.java) as Command<Any>
 
-        val nodeA = LiteralArgumentBuilder.literal<Any>("foo").build()
-        val nodeB = LiteralArgumentBuilder.literal<Any>("foo").build()
-        val nodeC = LiteralArgumentBuilder.literal<Any>("bar").executes(command).build()
-        val nodeD = LiteralArgumentBuilder.literal<Any>("bar").executes(command).build()
+        val nodeA = literal<Any>("foo")
+        val nodeB = literal<Any>("foo")
+        val nodeC = literal("bar") { executes(command) }
+        val nodeD = literal("bar") { executes(command) }
 
-        val nestedA = LiteralArgumentBuilder.literal<Any>("foo").then(LiteralArgumentBuilder.literal("bar")).build()
-        val nestedB = LiteralArgumentBuilder.literal<Any>("foo").then(LiteralArgumentBuilder.literal("bar")).build()
+        val nestedA = literal<Any>("foo") { literal("bar") }
+        val nestedB = literal<Any>("foo") { literal("bar") }
 
         assertAll(
             { assertEquals(nodeA, nodeB) },

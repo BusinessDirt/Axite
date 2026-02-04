@@ -1,7 +1,7 @@
 package github.businessdirt.axite.commands.nodes
 
 import github.businessdirt.axite.commands.CommandDispatcher
-import github.businessdirt.axite.commands.builder.LiteralArgumentBuilder
+import github.businessdirt.axite.commands.builder.literal
 import github.businessdirt.axite.commands.context.CommandContext
 import github.businessdirt.axite.commands.context.CommandContextBuilder
 import github.businessdirt.axite.commands.strings.StringReader
@@ -71,10 +71,10 @@ class RootCommandNodeTest : AbstractCommandNodeTest() {
         val nodeB = RootCommandNode<Any>()
 
         val nodeC = RootCommandNode<Any>().apply {
-            addChild(LiteralArgumentBuilder.literal<Any>("foo").build())
+            addChild(literal("foo"))
         }
         val nodeD = RootCommandNode<Any>().apply {
-            addChild(LiteralArgumentBuilder.literal<Any>("foo").build())
+            addChild(literal("foo"))
         }
 
         assertAll(

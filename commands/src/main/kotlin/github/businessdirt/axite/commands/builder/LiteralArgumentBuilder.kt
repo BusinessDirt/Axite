@@ -4,13 +4,7 @@ import github.businessdirt.axite.commands.nodes.LiteralCommandNode
 
 class LiteralArgumentBuilder<S>(val literal: String) : ArgumentBuilder<S, LiteralArgumentBuilder<S>>() {
 
-    companion object {
-        @JvmStatic
-        fun <S> literal(name: String): LiteralArgumentBuilder<S> = LiteralArgumentBuilder(name)
-    }
-
-    override val `this`: LiteralArgumentBuilder<S>
-        get() = this
+    override val self: LiteralArgumentBuilder<S> get() = this
 
     override fun build(): LiteralCommandNode<S> {
         val result = LiteralCommandNode(
@@ -22,8 +16,10 @@ class LiteralArgumentBuilder<S>(val literal: String) : ArgumentBuilder<S, Litera
             forks = isFork
         )
 
-        for (argument in allArguments) result.addChild(argument)
-
+        allArguments.forEach { result.addChild(it) }
         return result
     }
 }
+
+fun <S> literal(name: String, block: ArgumentBlock<S, LiteralArgumentBuilder<S>> = {}): LiteralCommandNode<S> =
+    LiteralArgumentBuilder<S>(name).apply(block).build()

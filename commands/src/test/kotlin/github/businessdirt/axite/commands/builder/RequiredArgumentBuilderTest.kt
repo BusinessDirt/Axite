@@ -3,6 +3,7 @@ package github.businessdirt.axite.commands.builder
 import github.businessdirt.axite.commands.Command
 import github.businessdirt.axite.commands.arguments.ArgumentType
 import github.businessdirt.axite.commands.arguments.IntegerArgumentType
+import jdk.javadoc.internal.tool.Main.execute
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
@@ -17,18 +18,10 @@ class RequiredArgumentBuilderTest {
     val type: ArgumentType<Int> = mock()
     val command: Command<Any> = mock()
 
-    private lateinit var builder: RequiredArgumentBuilder<Any, Int>
-
-    @BeforeEach
-    fun setUp() {
-        // Using static factory method from the companion object
-        builder = RequiredArgumentBuilder.argument("foo", type)
-    }
-
     @Test
     @DisplayName("build() should create a node with the correct name and type")
     fun testBuild() {
-        val node = builder.build()
+        val node = argument<Any, Int>("foo", type)
 
         assertAll("Node properties",
             { assertEquals("foo", node.name) },
@@ -39,7 +32,9 @@ class RequiredArgumentBuilderTest {
     @Test
     @DisplayName("build() with an executor should preserve the command reference")
     fun testBuildWithExecutor() {
-        val node = builder.executes(command).build()
+        val node = argument("foo", type) {
+            executes(this@RequiredArgumentBuilderTest.command)
+        }
 
         assertAll("Node properties",
             { assertEquals("foo", node.name) },
@@ -51,11 +46,10 @@ class RequiredArgumentBuilderTest {
     @Test
     @DisplayName("build() with children should populate the child node map")
     fun testBuildWithChildren() {
-        // We can use concrete types for children here
-        builder.then(RequiredArgumentBuilder.argument("bar", IntegerArgumentType()))
-        builder.then(RequiredArgumentBuilder.argument("baz", IntegerArgumentType()))
-
-        val node = builder.build()
+        val node = argument<Any, Int>("foo", type) {
+            argument("bar", IntegerArgumentType())
+            argument("baz", IntegerArgumentType())
+        }
 
         assertEquals(2, node.allChildren.size, "Should have exactly 2 child nodes")
     }

@@ -20,10 +20,11 @@ class ArgumentBuilderTest {
     @Test
     @DisplayName("then() should successfully add a child argument")
     fun testArguments() {
-        val argument = RequiredArgumentBuilder.argument<Any, Int>("bar", IntegerArgumentType())
-        builder.then(argument)
+        builder.apply {
+            argument<Int>("bar", IntegerArgumentType())
+        }
 
-        val builtArgument = argument.build()
+        val builtArgument = argument<Any, Int>("bar", IntegerArgumentType())
         assertEquals(1, builder.allArguments.size)
         assertTrue(builder.allArguments.contains(builtArgument), "Builder should contain the added argument")
     }
@@ -40,21 +41,12 @@ class ArgumentBuilderTest {
     @DisplayName("redirect() should throw if children already exist")
     fun testRedirect_withChild() {
         val target: CommandNode<Any> = mock()
-        builder.then(LiteralArgumentBuilder.literal("foo"))
+        builder.apply {
+            literal("foo")
+        }
 
         assertThrows(IllegalStateException::class.java) {
             builder.redirect(target)
-        }
-    }
-
-    @Test
-    @DisplayName("then() should throw if a redirect is already set")
-    fun testThen_withRedirect() {
-        val target: CommandNode<Any> = mock()
-        builder.redirect(target)
-
-        assertThrows(IllegalStateException::class.java) {
-            builder.then(LiteralArgumentBuilder.literal("foo"))
         }
     }
 
@@ -62,7 +54,7 @@ class ArgumentBuilderTest {
      * Test implementation of the abstract ArgumentBuilder.
      */
     private class TestableArgumentBuilder<S> : ArgumentBuilder<S, TestableArgumentBuilder<S>>() {
-        override val `this`: TestableArgumentBuilder<S>
+        override val self: TestableArgumentBuilder<S>
             get() = this
 
         override fun build(): CommandNode<S> = mock()

@@ -1,10 +1,12 @@
 package github.businessdirt.axite.commands.suggestions
 
+import github.businessdirt.axite.commands.CommandDsl
 import github.businessdirt.axite.commands.strings.Message
 import github.businessdirt.axite.commands.strings.StringRange
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
+@CommandDsl
 class SuggestionsBuilder(
     val input: String,
     val inputLowerCase: String = input.lowercase(Locale.ROOT),

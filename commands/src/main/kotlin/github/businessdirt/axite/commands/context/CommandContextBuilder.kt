@@ -2,10 +2,12 @@ package github.businessdirt.axite.commands.context
 
 import github.businessdirt.axite.commands.Command
 import github.businessdirt.axite.commands.CommandDispatcher
+import github.businessdirt.axite.commands.CommandDsl
 import github.businessdirt.axite.commands.RedirectModifier
 import github.businessdirt.axite.commands.nodes.CommandNode
 import github.businessdirt.axite.commands.strings.StringRange
 
+@CommandDsl
 class CommandContextBuilder<S>(
     val dispatcher: CommandDispatcher<S>,
     var source: S,

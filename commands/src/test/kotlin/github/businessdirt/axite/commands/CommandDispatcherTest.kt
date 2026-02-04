@@ -1,8 +1,8 @@
 package github.businessdirt.axite.commands
 
 import github.businessdirt.axite.commands.arguments.IntegerArgumentType
-import github.businessdirt.axite.commands.builder.LiteralArgumentBuilder.Companion.literal
-import github.businessdirt.axite.commands.builder.RequiredArgumentBuilder.Companion.argument
+import github.businessdirt.axite.commands.builder.argument
+import github.businessdirt.axite.commands.builder.literal
 import github.businessdirt.axite.commands.context.CommandContext
 import github.businessdirt.axite.commands.exceptions.CommandError
 import github.businessdirt.axite.commands.exceptions.CommandSyntaxException
@@ -11,16 +11,17 @@ import github.businessdirt.axite.commands.strings.StringReader
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
+import kotlin.collections.mutableListOf
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class CommandDispatcherTest {
-    private lateinit var subject: CommandDispatcher<Any?>
-    private val command: Command<Any?> = mock()
+    private lateinit var subject: CommandDispatcher<Any>
+    private val command: Command<Any> = mock()
     private val source: Any = mock()
-    private val consumer: ResultConsumer<Any?> = mock()
+    private val consumer: ResultConsumer<Any> = mock()
 
     @BeforeEach
     fun setUp() {
@@ -38,7 +39,7 @@ class CommandDispatcherTest {
 
     @Test
     fun testCreateAndExecuteCommand() {
-        subject.register(literal<Any?>("foo").executes(command))
+        subject.register(literal("foo") { executes(this@CommandDispatcherTest.command) })
 
         assertEquals(42, subject.execute("foo", source))
         verify(command).run(any())
@@ -46,7 +47,7 @@ class CommandDispatcherTest {
 
     @Test
     fun testCreateAndExecuteOffsetCommand() {
-        subject.register(literal<Any?>("foo").executes(command))
+        subject.register(literal("foo") { executes(this@CommandDispatcherTest.command) })
 
         assertEquals(42, subject.execute(inputWithOffset(), source))
         verify(command).run(any())
@@ -54,8 +55,13 @@ class CommandDispatcherTest {
 
     @Test
     fun testCreateAndMergeCommands() {
-        subject.register(literal<Any?>("base").then(literal<Any?>("foo").executes(command)))
-        subject.register(literal<Any?>("base").then(literal<Any?>("bar").executes(command)))
+        subject.register(literal("base") {
+            literal("foo") { executes(this@CommandDispatcherTest.command) }
+        })
+
+        subject.register(literal("base") {
+            literal("bar") { executes(this@CommandDispatcherTest.command) }
+        })
 
         assertEquals(42, subject.execute("base foo", source))
         assertEquals(42, subject.execute("base bar", source))
@@ -67,20 +73,16 @@ class CommandDispatcherTest {
         subject.register(literal("bar"))
         subject.register(literal("baz"))
 
-        val ex = assertFailsWith<CommandSyntaxException> {
-            subject.execute("foo", source)
-        }
+        val ex = assertFailsWith<CommandSyntaxException> { subject.execute("foo", source) }
         assertEquals(CommandError.UnknownCommand, ex.type)
         assertEquals(0, ex.cursor)
     }
 
     @Test
     fun testExecuteImpermissibleCommand() {
-        subject.register(literal<Any?>("foo").requires { false })
+        subject.register(literal("foo") { requires { false } })
 
-        val ex = assertFailsWith<CommandSyntaxException> {
-            subject.execute("foo", source)
-        }
+        val ex = assertFailsWith<CommandSyntaxException> { subject.execute("foo", source) }
         assertEquals(CommandError.UnknownCommand, ex.type)
         assertEquals(0, ex.cursor)
     }
@@ -89,64 +91,56 @@ class CommandDispatcherTest {
     fun testExecuteEmptyCommand() {
         subject.register(literal(""))
 
-        val ex = assertFailsWith<CommandSyntaxException> {
-            subject.execute("", source)
-        }
+        val ex = assertFailsWith<CommandSyntaxException> { subject.execute("", source) }
         assertEquals(CommandError.UnknownCommand, ex.type)
         assertEquals(0, ex.cursor)
     }
 
     @Test
     fun testExecuteUnknownSubcommand() {
-        subject.register(literal<Any?>("foo").executes(command))
+        subject.register(literal("foo") { executes(this@CommandDispatcherTest.command) })
 
-        val ex = assertFailsWith<CommandSyntaxException> {
-            subject.execute("foo bar", source)
-        }
+        val ex = assertFailsWith<CommandSyntaxException> { subject.execute("foo bar", source) }
         assertEquals(CommandError.UnknownArgument, ex.type)
         assertEquals(4, ex.cursor)
     }
 
     @Test
     fun testExecuteIncorrectLiteral() {
-        subject.register(literal<Any?>("foo").executes(command).then(literal("bar")))
+        subject.register(literal("foo") {
+            executes(this@CommandDispatcherTest.command)
+            literal("bar")
+        })
 
-        val ex = assertFailsWith<CommandSyntaxException> {
-            subject.execute("foo baz", source)
-        }
+        val ex = assertFailsWith<CommandSyntaxException> { subject.execute("foo baz", source) }
         assertEquals(CommandError.UnknownArgument, ex.type)
         assertEquals(4, ex.cursor)
     }
 
     @Test
     fun testExecuteAmbiguousIncorrectArgument() {
-        subject.register(
-            literal<Any?>("foo").executes(command)
-                .then(literal("bar"))
-                .then(literal("baz"))
-        )
+        subject.register(literal("foo") {
+            executes(this@CommandDispatcherTest.command)
+            literal("bar")
+            literal("baz")
+        })
 
-        val ex = assertFailsWith<CommandSyntaxException> {
-            subject.execute("foo unknown", source)
-        }
+        val ex = assertFailsWith<CommandSyntaxException> { subject.execute("foo unknown", source) }
         assertEquals(CommandError.UnknownArgument, ex.type)
         assertEquals(4, ex.cursor)
     }
 
     @Test
     fun testExecuteSubcommand() {
-        val subCommand: Command<Any?> = mock()
+        val subCommand: Command<Any> = mock()
         whenever(subCommand.run(any())).thenReturn(100)
 
-        subject.register(
-            literal<Any?>("foo").then(
-                literal("a")
-            ).then(
-                literal<Any?>("=").executes(subCommand)
-            ).then(
-                literal("c")
-            ).executes(command)
-        )
+        subject.register(literal("foo") {
+            executes(this@CommandDispatcherTest.command)
+            literal("a")
+            literal("=") { executes(subCommand) }
+            literal("c")
+        })
 
         assertEquals(100, subject.execute("foo =", source))
         verify(subCommand).run(any())
@@ -154,7 +148,9 @@ class CommandDispatcherTest {
 
     @Test
     fun testParseIncompleteLiteral() {
-        subject.register(literal<Any?>("foo").then(literal<Any?>("bar").executes(command)))
+        subject.register(literal("foo") {
+            literal("bar") { executes(this@CommandDispatcherTest.command) }
+        })
 
         val parse = subject.parse("foo ", source)
         assertEquals(" ", parse.reader.remaining())
@@ -163,7 +159,9 @@ class CommandDispatcherTest {
 
     @Test
     fun testParseIncompleteArgument() {
-        subject.register(literal<Any?>("foo").then(argument<Any?, Int>("bar", integer()).executes(command)))
+        subject.register(literal("foo") {
+            argument("bar", integer()) { executes(this@CommandDispatcherTest.command) }
+        })
 
         val parse = subject.parse("foo ", source)
         assertEquals(" ", parse.reader.remaining())
@@ -172,23 +170,17 @@ class CommandDispatcherTest {
 
     @Test
     fun testExecuteAmbiguousParentSubcommand() {
-        val subCommand: Command<Any?> = mock()
+        val subCommand: Command<Any> = mock()
         whenever(subCommand.run(any())).thenReturn(100)
 
-        subject.register(
-            literal<Any?>("test")
-                .then(
-                    argument<Any?, Int>("incorrect", integer())
-                        .executes(command)
-                )
-                .then(
-                    argument<Any?, Int>("right", integer())
-                        .then(
-                            argument<Any?, Int>("sub", integer())
-                                .executes(subCommand)
-                        )
-                )
-        )
+        subject.register(literal("test") {
+            argument("incorrect", integer()) { executes(this@CommandDispatcherTest.command) }
+            argument("right", integer()) {
+                argument("sub", integer()) {
+                    executes(subCommand)
+                }
+            }
+        })
 
         assertEquals(100, subject.execute("test 1 2", source))
         verify(subCommand).run(any())
@@ -197,25 +189,19 @@ class CommandDispatcherTest {
 
     @Test
     fun testExecuteAmbiguousParentSubcommandViaRedirect() {
-        val subCommand: Command<Any?> = mock()
+        val subCommand: Command<Any> = mock()
         whenever(subCommand.run(any())).thenReturn(100)
 
-        val real = subject.register(
-            literal<Any?>("test")
-                .then(
-                    argument<Any?, Int>("incorrect", integer())
-                        .executes(command)
-                )
-                .then(
-                    argument<Any?, Int>("right", integer())
-                        .then(
-                            argument<Any?, Int>("sub", integer())
-                                .executes(subCommand)
-                        )
-                )
-        )
+        val real = subject.register(literal("test") {
+            argument("incorrect", integer()) { executes(this@CommandDispatcherTest.command) }
+            argument("right", integer()) {
+                argument("sub", integer()) {
+                    executes(subCommand)
+                }
+            }
+        })
 
-        subject.register(literal<Any?>("redirect").redirect(real))
+        subject.register(literal("redirect") { redirect(real) })
 
         assertEquals(100, subject.execute("redirect 1 2", source))
         verify(subCommand).run(any())
@@ -224,8 +210,8 @@ class CommandDispatcherTest {
 
     @Test
     fun testExecuteRedirectedMultipleTimes() {
-        val concreteNode = subject.register(literal<Any?>("actual").executes(command))
-        val redirectNode = subject.register(literal<Any?>("redirected").redirect(subject.root))
+        val concreteNode = subject.register(literal("actual") { executes(this@CommandDispatcherTest.command) })
+        val redirectNode = subject.register(literal("redirected") { redirect(subject.root) })
 
         val input = "redirected redirected actual"
 
@@ -261,20 +247,17 @@ class CommandDispatcherTest {
         val subject = CommandDispatcher<Int>()
 
         val root = subject.root
-        val add = literal<Int>("add")
-        val blank = literal<Int>("blank")
-        val addArg = argument<Int, Int>("value", integer())
-        val run = literal<Int>("run")
 
-        subject.register(
-            add.then(
-                addArg.redirect(
-                    root
-                ) { c -> c.source + c.getArgument<Int>("value") }
-            )
-        )
-        subject.register(blank.redirect(root))
-        subject.register(run.executes { c -> c.source })
+        subject.register(literal("add") {
+            argument("value", integer()) {
+                redirect(root) { c ->
+                    c.source + c.getArgument<Int>("value")
+                }
+            }
+        })
+
+        subject.register(literal("blank") { redirect(root) })
+        subject.register(literal("run") { executes { c -> c.source } })
 
         assertEquals(0, subject.execute("run", 0))
         assertEquals(1, subject.execute("run", 1))
@@ -292,18 +275,12 @@ class CommandDispatcherTest {
         val subject = CommandDispatcher<Int>()
 
         val root = subject.root
-        val add = literal<Int>("add")
-        val addArg = argument<Int, Int>("value", integer())
-
-        subject.register(
-            add.then(
-                addArg
-                    .redirect(
-                        root
-                    ) { c -> c.source + c.getArgument<Int>("value") }
+        subject.register(literal("add") {
+            argument("value", integer()) {
+                redirect(root) { c -> c.source + c.getArgument<Int>("value") }
                     .executes { c -> c.source }
-            )
-        )
+            }
+        })
 
         assertEquals(1, subject.execute("add 5", 1))
         assertEquals(1 + 5, subject.execute("add 5 add 6", 1))
@@ -311,14 +288,14 @@ class CommandDispatcherTest {
 
     @Test
     fun testExecuteRedirected() {
-        val modifier: RedirectModifier<Any?> = mock()
+        val modifier: RedirectModifier<Any> = mock()
         val source1 = Any()
         val source2 = Any()
 
         whenever(modifier.apply(argThat { this.source == source })).thenReturn(listOf(source1, source2))
 
-        val concreteNode = subject.register(literal<Any?>("actual").executes(command))
-        val redirectNode = subject.register(literal<Any?>("redirected").fork(subject.root, modifier))
+        val concreteNode = subject.register(literal("actual") { executes(this@CommandDispatcherTest.command) })
+        val redirectNode = subject.register(literal("redirected") { fork(subject.root, modifier) })
 
         val input = "redirected actual"
         val parse = subject.parse(input, source)
@@ -345,62 +322,54 @@ class CommandDispatcherTest {
 
     @Test
     fun testIncompleteRedirectShouldThrow() {
-        val foo = subject.register(
-            literal<Any?>("foo")
-                .then(
-                    literal<Any?>("bar")
-                        .then(argument<Any?, Int>("value", integer()).executes { context ->
-                            context.getArgument("value")
-                        })
-                )
-                .then(literal<Any?>("awa").executes { 2 })
-        )
-        subject.register(literal<Any?>("baz").redirect(foo))
-        
-        val ex = assertFailsWith<CommandSyntaxException> {
-            subject.execute("baz bar", source)
-        }
+        val foo = subject.register(literal("foo") {
+            literal("awa") { executes { 2 }}
+            literal("bar") {
+                argument("value", integer()) {
+                    executes { context -> context.getArgument("value") }
+                }
+            }
+        })
+
+        subject.register(literal("baz") { redirect(foo) })
+
+        val ex = assertFailsWith<CommandSyntaxException> { subject.execute("baz bar", source) }
         assertEquals(CommandError.UnknownCommand, ex.type)
     }
 
     @Test
     fun testRedirectModifierEmptyResult() {
-        val foo = subject.register(
-            literal<Any?>("foo")
-                .then(
-                    literal<Any?>("bar")
-                        .then(argument<Any?, Int>("value", integer()).executes { context ->
-                             context.getArgument("value")
-                        })
-                )
-                .then(literal<Any?>("awa").executes { 2 })
-        )
-        val emptyModifier = RedirectModifier { _: CommandContext<Any?>? -> mutableListOf() }
-        subject.register(literal<Any?>("baz").fork(foo, emptyModifier))
+        val foo = subject.register(literal("foo") {
+            literal("awa") { executes { 2 }}
+            literal("bar") {
+                argument("value", integer()) {
+                    executes { context -> context.getArgument("value") }
+                }
+            }
+        })
+
+        val emptyModifier = RedirectModifier { _: CommandContext<Any> -> mutableListOf() }
+        subject.register(literal("baz") { fork(foo, emptyModifier) })
         val result = subject.execute("baz bar 100", source)
         assertEquals(0, result)
     }
 
     @Test
     fun testExecuteOrphanedSubcommand() {
-        subject.register(
-            literal<Any?>("foo").then(
-                argument("bar", integer())
-            ).executes(command)
-        )
+        subject.register(literal("foo") {
+            argument("bar", integer()) { executes(this@CommandDispatcherTest.command) }
+        })
 
-        val ex = assertFailsWith<CommandSyntaxException> {
-            subject.execute("foo 5", source)
-        }
+        val ex = assertFailsWith<CommandSyntaxException> { subject.execute("foo 5", source) }
         assertEquals(CommandError.UnknownCommand, ex.type)
         assertEquals(5, ex.cursor)
     }
 
     @Test
     fun testExecute_invalidOther() {
-        val wrongCommand: Command<Any?> = mock()
-        subject.register(literal<Any?>("w").executes(wrongCommand))
-        subject.register(literal<Any?>("world").executes(command))
+        val wrongCommand: Command<Any > = mock()
+        subject.register(literal("w") { executes(wrongCommand) })
+        subject.register(literal("world") { executes(this@CommandDispatcherTest.command) })
 
         assertEquals(42, subject.execute("world", source))
         verify(wrongCommand, never()).run(any())
@@ -409,23 +378,23 @@ class CommandDispatcherTest {
 
     @Test
     fun parse_noSpaceSeparator() {
-        subject.register(literal<Any?>("foo").then(argument<Any?, Int>("bar", integer()).executes(command)))
+        subject.register(literal("foo") {
+            argument("bar", integer()) {
+                executes(this@CommandDispatcherTest.command)
+            }
+        })
 
-        val ex = assertFailsWith<CommandSyntaxException> {
-            subject.execute("foo$", source)
-        }
-
+        val ex = assertFailsWith<CommandSyntaxException> { subject.execute("foo$", source) }
         assertEquals(CommandError.UnknownCommand, ex.type)
         assertEquals(0, ex.cursor)
     }
 
     @Test
     fun testExecuteInvalidSubcommand() {
-        subject.register(
-            literal<Any?>("foo").then(
-                argument("bar", integer())
-            ).executes(command)
-        )
+        subject.register(literal("foo") {
+            executes(this@CommandDispatcherTest.command)
+            argument("bar", integer())
+        })
 
         val ex = assertFailsWith<CommandSyntaxException> { subject.execute("foo bar", source) }
         assertEquals(CommandError.ExpectedType(Int::class), ex.type)
@@ -434,16 +403,16 @@ class CommandDispatcherTest {
 
     @Test
     fun testGetPath() {
-        val bar: LiteralCommandNode<Any?> = literal<Any?>("bar").build()
-        subject.register(literal<Any?>("foo").then(bar))
+        val bar: LiteralCommandNode<Any> = literal("bar")
+        subject.register(literal("foo") { literal("bar") })
 
         assertEquals(listOf("foo", "bar"), subject.getPath(bar))
     }
 
     @Test
     fun testFindNodeExists() {
-        val bar: LiteralCommandNode<Any?> = literal<Any?>("bar").build()
-        subject.register(literal<Any?>("foo").then(bar))
+        val bar: LiteralCommandNode<Any> = literal("bar")
+        subject.register(literal("foo") { literal("bar") })
 
         assertEquals(bar, subject.findNode(listOf("foo", "bar")))
     }
@@ -457,7 +426,7 @@ class CommandDispatcherTest {
     fun testResultConsumerInNonErrorRun() {
         subject.setConsumer(consumer)
 
-        subject.register(literal<Any?>("foo").executes(command))
+        subject.register(literal("foo") { executes(this@CommandDispatcherTest.command) })
         whenever(command.run(any())).thenReturn(5)
 
         assertEquals(5, subject.execute("foo", source))
@@ -469,10 +438,10 @@ class CommandDispatcherTest {
     fun testResultConsumerInForkedNonErrorRun() {
         subject.setConsumer(consumer)
 
-        subject.register(literal<Any?>("foo").executes { c -> c.source as Int })
-        val contexts = arrayOf<Any?>(9, 10, 11)
+        subject.register(literal("foo") { executes { c -> c.source as Int } })
+        val contexts = arrayOf<Any>(9, 10, 11)
 
-        subject.register(literal<Any?>("repeat").fork(subject.root) { listOf(*contexts) })
+        subject.register(literal("repeat") { fork(subject.root) { listOf(*contexts) } })
 
         assertEquals(contexts.size, subject.execute("repeat foo", source))
         verify(consumer).onCommandComplete(argThat { this.source == contexts[0] }, eq(true), eq(9))
@@ -484,7 +453,7 @@ class CommandDispatcherTest {
     @Test
     fun testExceptionInNonForkedCommand() {
         subject.setConsumer(consumer)
-        subject.register(literal<Any?>("crash").executes(command))
+        subject.register(literal("crash") { executes(this@CommandDispatcherTest.command) })
         val exception = CommandSyntaxException(CommandError.ExpectedType(Boolean::class))
         whenever(command.run(any())).thenThrow(exception)
 
@@ -500,15 +469,13 @@ class CommandDispatcherTest {
     @Test
     fun testExceptionInNonForkedRedirectedCommand() {
         subject.setConsumer(consumer)
-        subject.register(literal<Any?>("crash").executes(command))
-        subject.register(literal<Any?>("redirect").redirect(subject.root))
+        subject.register(literal("crash") { executes(this@CommandDispatcherTest.command) })
+        subject.register(literal("redirect") { redirect(subject.root) })
 
         val exception = CommandSyntaxException(CommandError.ExpectedType(Boolean::class))
         whenever(command.run(any())).thenThrow(exception)
 
-        val ex = assertFailsWith<CommandSyntaxException> {
-            subject.execute("redirect crash", source)
-        }
+        val ex = assertFailsWith<CommandSyntaxException> { subject.execute("redirect crash", source) }
         assertEquals(exception, ex)
 
         verify(consumer).onCommandComplete(any(), eq(false), eq(0))
@@ -518,8 +485,8 @@ class CommandDispatcherTest {
     @Test
     fun testExceptionInForkedRedirectedCommand() {
         subject.setConsumer(consumer)
-        subject.register(literal<Any?>("crash").executes(command))
-        subject.register(literal<Any?>("redirect").fork(subject.root) { o -> mutableSetOf(o) })
+        subject.register(literal("crash") { executes(this@CommandDispatcherTest.command) })
+        subject.register(literal("redirect") { fork(subject.root) { o -> mutableSetOf(o) } })
 
         val exception = CommandSyntaxException(CommandError.ExpectedType(Boolean::class))
         whenever(command.run(any())).thenThrow(exception)
@@ -534,8 +501,8 @@ class CommandDispatcherTest {
         val exception = CommandSyntaxException(CommandError.ExpectedType(Boolean::class))
 
         subject.setConsumer(consumer)
-        subject.register(literal<Any?>("noop").executes(command))
-        subject.register(literal<Any?>("redirect").redirect(subject.root) { throw exception })
+        subject.register(literal("noop") { executes(this@CommandDispatcherTest.command) })
+        subject.register(literal("redirect") { redirect(subject.root) { throw exception } })
 
         whenever(command.run(any())).thenReturn(3)
 
@@ -554,8 +521,8 @@ class CommandDispatcherTest {
         val exception = CommandSyntaxException(CommandError.ExpectedType(Boolean::class))
 
         subject.setConsumer(consumer)
-        subject.register(literal<Any?>("noop").executes(command))
-        subject.register(literal<Any?>("redirect").fork(subject.root) { throw exception })
+        subject.register(literal("noop") { executes(this@CommandDispatcherTest.command) })
+        subject.register(literal("redirect") { fork(subject.root) { throw exception } })
 
         whenever(command.run(any())).thenReturn(3)
 
@@ -573,18 +540,16 @@ class CommandDispatcherTest {
         val rejectedSource = Any()
 
         subject.setConsumer(consumer)
-        subject.register(literal<Any?>("run").executes(command))
-        subject.register(
-            literal<Any?>("split").fork(
-                subject.root
-            ) { listOf(source, rejectedSource, otherSource) }
-        )
-        subject.register(literal<Any?>("filter").fork(subject.root) { context ->
-            val currentSource = context.source
-            if (currentSource === rejectedSource) {
-                throw exception
+        subject.register(literal("run") { executes(this@CommandDispatcherTest.command) })
+        subject.register(literal("split") {
+            fork(subject.root) { listOf(source, rejectedSource, otherSource) }
+        })
+        subject.register(literal("filter") {
+            fork(subject.root) { context ->
+                val currentSource = context.source
+                if (currentSource === rejectedSource) throw exception
+                mutableSetOf(currentSource)
             }
-            mutableSetOf(currentSource)
         })
 
         whenever(command.run(any())).thenReturn(3)
