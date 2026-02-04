@@ -30,7 +30,7 @@ class CommandContextTest {
     fun testGetArgument_nonexistent() {
         val context = "".buildTestContext()
         assertThrows(IllegalArgumentException::class.java) {
-            context.getArgument("foo", Any::class.java)
+            context.getArgument<Int>("foo")
         }
     }
 
@@ -42,7 +42,7 @@ class CommandContextTest {
         }
 
         assertThrows(IllegalArgumentException::class.java) {
-            context.getArgument("foo", String::class.java)
+            context.getArgument<String>("foo")
         }
     }
 
@@ -53,7 +53,7 @@ class CommandContextTest {
             argument("foo", ParsedArgument(0, 1, 123))
         }
 
-        assertEquals(123, context.getArgument("foo", Int::class.java))
+        assertEquals(123, context.getArgument("foo"))
     }
 
     @Test

@@ -270,7 +270,7 @@ class CommandDispatcherTest {
             add.then(
                 addArg.redirect(
                     root
-                ) { c -> c.source + c.getArgument("value", Int::class.java) }
+                ) { c -> c.source + c.getArgument<Int>("value") }
             )
         )
         subject.register(blank.redirect(root))
@@ -300,7 +300,7 @@ class CommandDispatcherTest {
                 addArg
                     .redirect(
                         root
-                    ) { c -> c.source + c.getArgument("value", Int::class.java) }
+                    ) { c -> c.source + c.getArgument<Int>("value") }
                     .executes { c -> c.source }
             )
         )
@@ -350,7 +350,7 @@ class CommandDispatcherTest {
                 .then(
                     literal<Any?>("bar")
                         .then(argument<Any?, Int>("value", integer()).executes { context ->
-                            context.getArgument("value", Int::class.java)
+                            context.getArgument("value")
                         })
                 )
                 .then(literal<Any?>("awa").executes { 2 })
@@ -370,7 +370,7 @@ class CommandDispatcherTest {
                 .then(
                     literal<Any?>("bar")
                         .then(argument<Any?, Int>("value", integer()).executes { context ->
-                             context.getArgument("value", Int::class.java)
+                             context.getArgument("value")
                         })
                 )
                 .then(literal<Any?>("awa").executes { 2 })
