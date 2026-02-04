@@ -50,19 +50,16 @@ class SuggestionsBuilderTest {
     @DisplayName("Sorting Logic: Alphabetical vs Numerical")
     fun sortingTests(): Stream<DynamicTest> {
         return Stream.of(
-            // Alphabetical: "30" comes before "4" because "3" < "4"
             SortingCase(
                 "Alphabetical sort (Strings)",
                 listOf("2", "4", "6", "8", "30", "32"),
                 listOf("2", "30", "32", "4", "6", "8")
             ),
-            // Numerical: 4 comes before 30
             SortingCase(
                 "Numerical sort (Integers)",
                 listOf(2, 4, 6, 8, 30, 32),
                 listOf("2", "4", "6", "8", "30", "32")
             ),
-            // Mixed: Brigadier sorts numbers then letters, but still largely alphabetical
             SortingCase(
                 "Mixed sort (Complex)",
                 listOf("11", "22", "33", "a", "b", "c", 2, 4, 6, 8, 30, 32, "3a", "a3"),

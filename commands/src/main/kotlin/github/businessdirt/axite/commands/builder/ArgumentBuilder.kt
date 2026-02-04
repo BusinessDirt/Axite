@@ -19,16 +19,11 @@ abstract class ArgumentBuilder<S, T : ArgumentBuilder<S, T>> {
     val allArguments: Collection<CommandNode<S>>
         get() = arguments.allChildren
 
-    var command: Command<S>? = null
-        private set
-    var requirement: Predicate<S> = Predicate { true }
-        private set
-    var redirect: CommandNode<S>? = null
-        private set
-    var redirectModifier: RedirectModifier<S>? = null
-        private set
-    var isFork: Boolean = false
-        private set
+    protected var command: Command<S>? = null
+    protected var requirement: Predicate<S> = Predicate { true }
+    protected var redirect: CommandNode<S>? = null
+    protected var redirectModifier: RedirectModifier<S>? = null
+    protected var isFork: Boolean = false
 
     protected abstract val self: T
 

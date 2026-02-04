@@ -18,7 +18,7 @@ class ArgumentBuilderTest {
     }
 
     @Test
-    @DisplayName("then() should successfully add a child argument")
+    @DisplayName("apply { argument } should successfully add a child argument")
     fun testArguments() {
         builder.apply {
             argument<Int>("bar", IntegerArgumentType())
