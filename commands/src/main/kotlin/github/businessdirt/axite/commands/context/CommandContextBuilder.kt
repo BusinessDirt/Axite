@@ -31,7 +31,7 @@ class CommandContextBuilder<S>(
         nodes.add(ParsedCommandNode(node, range))
         this.range = StringRange.encompassing(this.range, range)
         this.modifier = node.modifier
-        this.isForked = node.isFork
+        this.isForked = node.forks
     }
 
     fun command(command: Command<S>) {
@@ -51,15 +51,12 @@ class CommandContextBuilder<S>(
         child?.build(input), modifier, isForked
     )
 
-    fun copy(): CommandContextBuilder<S> {
-        return CommandContextBuilder(dispatcher, source, rootNode, range.start).apply {
-            command = command
-            arguments.putAll(this@CommandContextBuilder.arguments)
-            nodes.addAll(this@CommandContextBuilder.nodes)
-            child = this@CommandContextBuilder.child
-            range = this@CommandContextBuilder.range
-            isForked = this@CommandContextBuilder.isForked
-        }
+    fun copy(): CommandContextBuilder<S> = CommandContextBuilder(dispatcher, source, rootNode, range.start).apply {
+        arguments.putAll(this@CommandContextBuilder.arguments)
+        nodes.addAll(this@CommandContextBuilder.nodes)
+        child = this@CommandContextBuilder.child
+        range = this@CommandContextBuilder.range
+        isForked = this@CommandContextBuilder.isForked
     }
 
     fun findSuggestionContext(cursor: Int): SuggestionContext<S> {

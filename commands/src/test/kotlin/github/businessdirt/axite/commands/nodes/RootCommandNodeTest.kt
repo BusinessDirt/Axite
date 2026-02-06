@@ -36,7 +36,7 @@ class RootCommandNodeTest : AbstractCommandNodeTest() {
     @Test
     @DisplayName("addChild() should throw when attempting to add another root node")
     fun testAddChildNoRoot() {
-        assertThrows(UnsupportedOperationException::class.java) {
+        assertThrows(IllegalArgumentException::class.java) {
             node.addChild(RootCommandNode())
         }
     }

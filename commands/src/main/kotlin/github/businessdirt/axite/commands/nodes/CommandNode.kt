@@ -14,11 +14,11 @@ import java.util.concurrent.CompletableFuture
 import java.util.function.Predicate
 
 abstract class CommandNode<S>(
-    var command: Command<S>?,
+    var command: Command<S>? = null,
     val requirement: Predicate<S>,
-    val redirect: CommandNode<S>?,
-    val modifier: RedirectModifier<S>?,
-    val isFork: Boolean
+    val redirect: CommandNode<S>? = null,
+    val modifier: RedirectModifier<S>? = null,
+    val forks: Boolean = false
 ) : Comparable<CommandNode<S>> {
 
     private val children = mutableMapOf<String, CommandNode<S>>()
@@ -27,77 +27,77 @@ abstract class CommandNode<S>(
 
     val allChildren: Collection<CommandNode<S>> get() = children.values
 
-    fun getChild(name: String): CommandNode<S>? = children[name]
+    // Operator overload allows syntax: node["childName"]
+    operator fun get(name: String): CommandNode<S>? = children[name]
+
+    // Backwards compatibility alias
+    fun getChild(name: String): CommandNode<S>? = this[name]
 
     fun canUse(source: S): Boolean = requirement.test(source)
 
     open fun addChild(node: CommandNode<S>) {
-        if (node is RootCommandNode) {
-            throw UnsupportedOperationException("Cannot add a RootCommandNode as a child to any other CommandNode")
+        require(node !is RootCommandNode) {
+            "Cannot add a RootCommandNode as a child to any other CommandNode"
         }
 
-        val child = children[node.name]
-        if (child != null) {
+        children[node.name]?.let { child ->
             // Merge logic
             node.command?.let { child.command = it }
-            node.allChildren.forEach { child.addChild(it) }
-        } else {
+            node.allChildren.forEach(child::addChild)
+        } ?: run {
+            // New child logic
             children[node.name] = node
             when (node) {
                 is LiteralCommandNode -> literals[node.name] = node
-                is ArgumentCommandNode<S, *> -> arguments[node.name] = node
+                is ArgumentCommandNode<*, *> -> arguments[node.name] = node as ArgumentCommandNode<S, *>
             }
         }
     }
 
     fun findAmbiguities(consumer: AmbiguityConsumer<S>) {
-        children.values.forEach { child ->
-            children.values.filter { it != child }.forEach { sibling ->
-                val matches = child.examples.filter { sibling.isValidInput(it) }.toSet()
-                if (matches.isNotEmpty()) {
-                    consumer.ambiguous(this, child, sibling, matches)
+        val childList = children.values.toList() // Avoid concurrent modification if consumer alters state
+
+        for (child in childList) {
+            childList.asSequence().filter { it !== child }
+                .forEach { sibling ->
+                    val matches = child.examples.filter(sibling::isValidInput).toSet()
+                    if (matches.isNotEmpty()) {
+                        consumer.ambiguous(this, child, sibling, matches)
+                    }
                 }
-            }
             child.findAmbiguities(consumer)
         }
     }
 
     fun getRelevantNodes(input: StringReader): Collection<CommandNode<S>> {
-        if (literals.isNotEmpty()) {
-            val cursor = input.cursor
-            while (input.canRead() && input.peek() != ' ') {
-                input.skip()
-            }
-            val text = input.string.substring(cursor, input.cursor)
-            input.cursor = cursor
+        if (literals.isEmpty()) return arguments.values
 
-            val literal = literals[text]
-            return if (literal != null) listOf(literal) else arguments.values
-        }
-        return arguments.values
+        val cursor = input.cursor
+        while (input.canRead() && input.peek() != ' ') input.skip()
+
+        val text = input.string.substring(cursor, input.cursor)
+        input.cursor = cursor // Reset cursor for actual parsing later
+
+        return literals[text]?.let { listOf(it) } ?: arguments.values
     }
 
-    override fun compareTo(other: CommandNode<S>): Int {
-        if (this is LiteralCommandNode == other is LiteralCommandNode) {
-            return sortedKey.compareTo(other.sortedKey)
-        }
-        return if (other is LiteralCommandNode) 1 else -1
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is CommandNode<*>) return false
-        return children == other.children && command == other.command
+    // Simplified comparison logic
+    override fun compareTo(other: CommandNode<S>): Int = when {
+        (this is LiteralCommandNode) == (other is LiteralCommandNode) -> sortedKey.compareTo(other.sortedKey)
+        other is LiteralCommandNode -> 1
+        else -> -1
     }
 
     override fun hashCode(): Int = 31 * children.hashCode() + (command?.hashCode() ?: 0)
+    override fun equals(other: Any?): Boolean =
+        this === other || (other is CommandNode<*> && children == other.children && command == other.command)
 
-    // Abstract members
-    protected abstract fun isValidInput(input: String): Boolean
     abstract val name: String
     abstract val usageText: String
     abstract val examples: Collection<String>
     protected abstract val sortedKey: String
+
+    protected abstract fun isValidInput(input: String): Boolean
 
     @Throws(CommandSyntaxException::class)
     abstract fun parse(reader: StringReader, contextBuilder: CommandContextBuilder<S>)

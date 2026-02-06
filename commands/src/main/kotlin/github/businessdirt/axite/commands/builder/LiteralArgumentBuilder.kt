@@ -6,19 +6,14 @@ class LiteralArgumentBuilder<S>(val literal: String) : ArgumentBuilder<S, Litera
 
     override val self: LiteralArgumentBuilder<S> get() = this
 
-    override fun build(): LiteralCommandNode<S> {
-        val result = LiteralCommandNode(
-            literal = literal,
-            command = command,
-            requirement = requirement,
-            redirect = redirect,
-            modifier = modifier,
-            forks = forks
-        )
-
-        allArguments.forEach { result.addChild(it) }
-        return result
-    }
+    override fun build(): LiteralCommandNode<S> = LiteralCommandNode(
+        literal = literal,
+        command = command,
+        requirement = requirement,
+        redirect = redirect,
+        modifier = modifier,
+        forks = this@LiteralArgumentBuilder.forks
+    ).apply { allArguments.forEach { addChild(it) } }
 }
 
 fun <S> literal(name: String, block: ArgumentBlock<S, LiteralArgumentBuilder<S>> = {}): LiteralCommandNode<S> =

@@ -16,34 +16,25 @@ class RequiredArgumentBuilder<S, T>(
 
     override val self: RequiredArgumentBuilder<S, T> get() = this
 
-    fun suggests(provider: SuggestionProvider<S>?): RequiredArgumentBuilder<S, T> {
-        this.suggestionsProvider = provider
-        return self
-    }
+    fun suggests(provider: SuggestionProvider<S>?): RequiredArgumentBuilder<S, T> =
+        self.apply { this.suggestionsProvider = provider }
 
-    fun suggests(block: SuggestionsBuilder.() -> Unit): RequiredArgumentBuilder<S, T> {
+    fun suggests(block: SuggestionsBuilder.() -> Unit): RequiredArgumentBuilder<S, T> = self.apply {
         this.suggestionsProvider = SuggestionProvider { _, builder ->
             suggestionsFuture(builder.input, builder.start, block)
         }
-        return self
     }
 
-    override fun build(): ArgumentCommandNode<S, T> {
-        val result = ArgumentCommandNode(
-            name = name,
-            type = type,
-            command = command,
-            requirement = requirement,
-            redirect = redirect,
-            modifier = modifier,
-            forks = forks,
-            customSuggestions = suggestionsProvider
-        )
-
-        allArguments.forEach { result.addChild(it) }
-
-        return result
-    }
+    override fun build(): ArgumentCommandNode<S, T> = ArgumentCommandNode(
+        name = name,
+        type = type,
+        command = command,
+        requirement = requirement,
+        redirect = redirect,
+        modifier = modifier,
+        forks = this@RequiredArgumentBuilder.forks,
+        customSuggestions = suggestionsProvider
+    ).apply { allArguments.forEach { addChild(it) } }
 }
 
 fun <S, T> argument(

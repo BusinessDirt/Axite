@@ -33,28 +33,26 @@ class LiteralCommandNode<S>(
 
     override fun parse(reader: StringReader, contextBuilder: CommandContextBuilder<S>) {
         val start = reader.cursor
-        val end = parse(reader)
-        if (end > -1) {
-            contextBuilder.addNode(this, StringRange.between(start, end))
-            return
-        }
+        val end = parseLiteral(reader)
 
-        throw reader.error(CommandError.InvalidLiteral(literal))
+        if (end > -1) contextBuilder.addNode(this, StringRange.between(start, end)) else
+            throw reader.error(CommandError.InvalidLiteral(literal))
     }
 
-    private fun parse(reader: StringReader): Int {
+    private fun parseLiteral(reader: StringReader): Int {
         val start = reader.cursor
-        if (reader.canRead(literal.length)) {
+
+        if (reader.canRead(literal.length) && reader.string.startsWith(literal, startIndex = start)) {
             val end = start + literal.length
-            if (reader.string.substring(start, end) == literal) {
-                reader.cursor = end
-                if (!reader.canRead() || reader.peek() == ' ') {
-                    return end
-                } else {
-                    reader.cursor = start
-                }
-            }
+            reader.cursor = end
+
+            // Check if we are at the end of input or followed by a separator
+            if (!reader.canRead() || reader.peek() == ' ') return end
+
+            // Reset cursor if the boundary check fails (e.g., input is "commandX" but we wanted "command")
+            reader.cursor = start
         }
+
         return -1
     }
 
@@ -69,27 +67,17 @@ class LiteralCommandNode<S>(
         else -> Suggestions.empty()
     }
 
-    override fun isValidInput(input: String): Boolean = parse(StringReader(input)) > -1
+    override fun isValidInput(input: String): Boolean = parseLiteral(StringReader(input)) > -1
 
-    override fun createBuilder(): LiteralArgumentBuilder<S> {
-        val builder = LiteralArgumentBuilder<S>(literal)
-        builder.requires(requirement)
-        builder.forward(redirect, modifier, isFork)
-        command?.let { builder.executes(it) }
-        return builder
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is LiteralCommandNode<*>) return false
-        return literal == other.literal && super.equals(other)
-    }
-
-    override fun hashCode(): Int {
-        var result = literal.hashCode()
-        result = 31 * result + super.hashCode()
-        return result
+    override fun createBuilder(): LiteralArgumentBuilder<S> = LiteralArgumentBuilder<S>(literal).apply {
+        requires(requirement)
+        forward(redirect, modifier, forks)
+        command?.let { executes(it) }
     }
 
     override fun toString(): String = "<literal $literal>"
+    override fun hashCode(): Int = 31 * literal.hashCode() + super.hashCode()
+    override fun equals(other: Any?): Boolean =
+        this === other || (other is LiteralCommandNode<*> && literal == other.literal && super.equals(other))
+
 }
