@@ -17,14 +17,3 @@ fun ImmutableStringReader.error(error: CommandError, at: Int = this.cursor): Com
 fun ImmutableStringReader.expect(error: CommandError, at: Int = this.cursor, conditionBlock: () -> Boolean) {
     if (!conditionBlock()) throw this.error(error, at)
 }
-
-/**
- * Executes [block]. If any exception occurs, it throws a CommandException
- * using the provided [error].
- */
-@Throws(CommandSyntaxException::class)
-inline fun <T> ImmutableStringReader.tryOrError(error: CommandError, at: Int = this.cursor, block: () -> T): T = try {
-    block()
-} catch (_: Exception) {
-    throw CommandSyntaxException(error, this.string, at)
-}

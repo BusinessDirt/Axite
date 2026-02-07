@@ -27,22 +27,16 @@ class StringReader(override val string: String) : ImmutableStringReader {
     }
 
     @Throws(CommandSyntaxException::class)
-    private inline fun <reified T : Number> StringReader.readNumber(
-        parser: (String) -> T?
-    ): T {
+    private inline fun <reified T : Number> StringReader.readNumber(parser: (String) -> T?): T {
         val start = cursor
+        while (canRead() && isAllowedNumber(peek())) skip()
 
-        try {
-            while (canRead() && isAllowedNumber(peek())) skip()
-            val numberString = string.substring(start, cursor)
+        val text = string.substring(start, cursor)
+        if (text.isEmpty()) throw error(CommandError.ExpectedType(T::class), start)
 
-            expect(CommandError.ExpectedType(T::class), start) { numberString.isNotEmpty() }
-            return tryOrError(CommandError.InvalidValue(T::class, numberString), start) {
-                parser(numberString) ?: throw Exception()
-            }
-        } catch (e: CommandSyntaxException) {
+        return parser(text) ?: run {
             cursor = start
-            throw e
+            throw error(CommandError.InvalidValue(T::class, text), start)
         }
     }
 
