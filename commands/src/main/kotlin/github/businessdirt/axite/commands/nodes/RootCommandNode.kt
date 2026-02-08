@@ -7,6 +7,12 @@ import github.businessdirt.axite.commands.strings.StringReader
 import github.businessdirt.axite.commands.suggestions.Suggestions
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
 
+/**
+ * The root node of the command tree.
+ * Does not match any input itself but serves as the entry point.
+ *
+ * @param S The type of the command source.
+ */
 @Suppress("EqualsOrHashCode")
 class RootCommandNode<S> : CommandNode<S>(
     command = null,

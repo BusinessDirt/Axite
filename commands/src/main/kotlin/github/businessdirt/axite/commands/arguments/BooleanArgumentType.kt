@@ -5,6 +5,9 @@ import github.businessdirt.axite.commands.strings.StringReader
 import github.businessdirt.axite.commands.suggestions.Suggestions
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
 
+/**
+ * An [ArgumentType] that parses boolean values ("true" or "false").
+ */
 data object BooleanArgumentType : ArgumentType<Boolean> {
     override fun parse(reader: StringReader): Boolean = reader.readBoolean()
 

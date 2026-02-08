@@ -12,6 +12,16 @@ import github.businessdirt.axite.commands.suggestions.Suggestions
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
 import java.util.function.Predicate
 
+/**
+ * Base class for all nodes in the command tree.
+ *
+ * @param S The type of the command source.
+ * @property command The command to execute when this node is matched (optional).
+ * @property requirement The predicate to determine if a source can use this node.
+ * @property redirect The node to redirect to (optional).
+ * @property modifier The modifier to transform the source (optional).
+ * @property forks Whether execution forks at this node.
+ */
 abstract class CommandNode<S>(
     var command: Command<S>? = null,
     val requirement: Predicate<S>,
@@ -24,6 +34,7 @@ abstract class CommandNode<S>(
     private val literals = mutableMapOf<String, LiteralCommandNode<S>>()
     private val arguments = mutableMapOf<String, ArgumentCommandNode<S, *>>()
 
+    /** Returns all children of this node. */
     val allChildren: Collection<CommandNode<S>> get() = children.values
 
     // Operator overload allows syntax: node["childName"]
@@ -32,8 +43,16 @@ abstract class CommandNode<S>(
     // Backwards compatibility alias
     fun getChild(name: String): CommandNode<S>? = this[name]
 
+    /**
+     * Checks if the given source can use this node.
+     */
     fun canUse(source: S): Boolean = requirement.test(source)
 
+    /**
+     * Adds a child node.
+     *
+     * @param node The child node to add.
+     */
     open fun addChild(node: CommandNode<S>) {
         require(node !is RootCommandNode) {
             "Cannot add a RootCommandNode as a child to any other CommandNode"
@@ -53,6 +72,11 @@ abstract class CommandNode<S>(
         }
     }
 
+    /**
+     * Recursively finds ambiguities in the command tree.
+     *
+     * @param consumer The consumer to report ambiguities to.
+     */
     fun findAmbiguities(consumer: AmbiguityConsumer<S>) {
         val childList = children.values.toList() // Avoid concurrent modification if consumer alters state
 
@@ -68,6 +92,12 @@ abstract class CommandNode<S>(
         }
     }
 
+    /**
+     * Returns relevant child nodes for the current input.
+     *
+     * @param input The string reader containing the input.
+     * @return A collection of relevant nodes.
+     */
     fun getRelevantNodes(input: StringReader): Collection<CommandNode<S>> {
         if (literals.isEmpty()) return arguments.values
 

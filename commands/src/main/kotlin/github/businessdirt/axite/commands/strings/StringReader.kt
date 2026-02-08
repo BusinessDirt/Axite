@@ -2,6 +2,11 @@ package github.businessdirt.axite.commands.strings
 
 import github.businessdirt.axite.commands.exceptions.*
 
+/**
+ * A mutable string reader used for parsing commands.
+ *
+ * @property string The source string.
+ */
 class StringReader(override val string: String) : ImmutableStringReader {
 
     override var cursor: Int = 0
@@ -19,9 +24,12 @@ class StringReader(override val string: String) : ImmutableStringReader {
     override fun canRead(length: Int): Boolean = cursor + length <= string.length
     override fun peek(offset: Int): Char = string[cursor + offset]
 
+    /** Reads the next character and advances the cursor. */
     fun read(): Char = string[cursor++]
+    /** Skips the next character and advances the cursor. */
     fun skip(): Int = cursor++
 
+    /** Skips any whitespace characters at the current cursor. */
     fun skipWhitespace() {
         while (canRead() && Character.isWhitespace(peek())) skip()
     }
@@ -40,17 +48,26 @@ class StringReader(override val string: String) : ImmutableStringReader {
         }
     }
 
+    /** Reads an integer. */
     fun readInt(): Int = readNumber { it.toIntOrNull() }
+    /** Reads a double. */
     fun readDouble(): Double = readNumber { it.toDoubleOrNull() }
+    /** Reads a long. */
     fun readLong(): Long = readNumber { it.toLongOrNull() }
+    /** Reads a float. */
     fun readFloat(): Float = readNumber { it.toFloatOrNull() }
 
+    /** Reads an unquoted string (alphanumeric, underscore, dash, dot, plus). */
     fun readUnquotedString(): String {
         val start = cursor
         while (canRead() && isAllowedInUnquotedString(peek())) skip()
         return string.substring(start, cursor)
     }
 
+    /**
+     * Reads a quoted string.
+     * Expects the next character to be a quote.
+     */
     @Throws(CommandSyntaxException::class)
     fun readQuotedString(): String {
         if (!canRead()) return ""
@@ -62,6 +79,10 @@ class StringReader(override val string: String) : ImmutableStringReader {
         return readStringUntil(next)
     }
 
+    /**
+     * Reads characters until a terminator is found.
+     * Handles escape sequences.
+     */
     @Throws(CommandSyntaxException::class)
     fun readStringUntil(terminator: Char): String {
         val result = StringBuilder()
@@ -90,6 +111,10 @@ class StringReader(override val string: String) : ImmutableStringReader {
         throw error(CommandError.ExpectedEndOfQuote)
     }
 
+    /**
+     * Reads a string.
+     * Can be either quoted or unquoted.
+     */
     @Throws(CommandSyntaxException::class)
     fun readString(): String {
         if (!canRead()) return ""
@@ -103,6 +128,9 @@ class StringReader(override val string: String) : ImmutableStringReader {
         return readUnquotedString()
     }
 
+    /**
+     * Reads a boolean value ("true" or "false").
+     */
     @Throws(CommandSyntaxException::class)
     fun readBoolean(): Boolean {
         val start = cursor
@@ -119,6 +147,10 @@ class StringReader(override val string: String) : ImmutableStringReader {
         }
     }
 
+    /**
+     * Expects the next character to be [c].
+     * Advances the cursor if successful.
+     */
     @Throws(CommandSyntaxException::class)
     fun expect(c: Char) {
         expect(CommandError.ExpectedSymbol(c)) { canRead() && peek() == c }

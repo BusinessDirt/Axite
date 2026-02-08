@@ -6,10 +6,17 @@ import org.slf4j.LoggerFactory
 import java.util.*
 import kotlin.reflect.KClass
 
+/**
+ * Singleton registry for automatically discovering and registering commands.
+ * Uses [ServiceLoader] to find [CommandRegistryProvider] implementations.
+ */
 object CommandRegistry {
 
     private val logger: Logger = LoggerFactory.getLogger(CommandRegistry::class.java)
 
+    /**
+     * Initializes the registry by loading command modules from the classpath.
+     */
     @Suppress("UNCHECKED_CAST", "unused")
     fun initialize() = try {
         val loader = ServiceLoader.load(CommandRegistryProvider::class.java)

@@ -2,6 +2,13 @@ package github.businessdirt.axite.commands.exceptions
 
 import github.businessdirt.axite.commands.strings.ImmutableStringReader
 
+/**
+ * Exception thrown when a syntax error occurs during command parsing.
+ *
+ * @property type The type of error.
+ * @property input The input string where the error occurred (optional).
+ * @property cursor The position in the input string where the error occurred (optional).
+ */
 class CommandSyntaxException(
     val type: CommandError,
     val input: String? = null,

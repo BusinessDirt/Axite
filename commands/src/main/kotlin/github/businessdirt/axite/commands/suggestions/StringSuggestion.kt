@@ -3,11 +3,24 @@ package github.businessdirt.axite.commands.suggestions
 import github.businessdirt.axite.commands.strings.Message
 import github.businessdirt.axite.commands.strings.StringRange
 
+/**
+ * Represents a single tab completion suggestion.
+ */
 sealed class Suggestion : Comparable<Suggestion> {
+    /** The range in the input string that this suggestion applies to. */
     abstract val range: StringRange
+    /** The text to suggest. */
     abstract val text: String
+    /** Optional tooltip to display with the suggestion. */
     abstract val tooltip: Message?
 
+    /**
+     * Applies this suggestion to the given input string.
+     * Replaces the text in [range] with [text].
+     *
+     * @param input The original input string.
+     * @return The new string with the suggestion applied.
+     */
     fun apply(input: String): String {
         if (range.start == 0 && range.end == input.length) return text
 
@@ -18,6 +31,13 @@ sealed class Suggestion : Comparable<Suggestion> {
         }
     }
 
+    /**
+     * Expands the suggestion to cover a larger range if necessary.
+     *
+     * @param command The full command string.
+     * @param range The new range to cover.
+     * @return A new suggestion instance.
+     */
     fun expand(command: String, range: StringRange): Suggestion {
         if (range == this.range) return this
 
@@ -36,15 +56,23 @@ sealed class Suggestion : Comparable<Suggestion> {
 
     override fun compareTo(other: Suggestion): Int = text.compareTo(other.text)
 
+    /** Compares suggestions ignoring case. */
     open fun compareToIgnoreCase(other: Suggestion): Int = text.compareTo(other.text, ignoreCase = true)
 }
 
+/**
+ * A standard string suggestion.
+ */
 data class StringSuggestion(
     override val range: StringRange,
     override val text: String,
     override val tooltip: Message? = null
 ) : Suggestion()
 
+/**
+ * An integer suggestion.
+ * Use [value] for numerical comparisons.
+ */
 data class IntegerSuggestion(
     override val range: StringRange,
     val value: Int,

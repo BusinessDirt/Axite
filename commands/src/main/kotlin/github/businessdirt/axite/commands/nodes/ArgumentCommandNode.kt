@@ -14,6 +14,15 @@ import github.businessdirt.axite.commands.suggestions.Suggestions
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
 import java.util.function.Predicate
 
+/**
+ * A command node that matches an argument using an [ArgumentType].
+ *
+ * @param S The type of the command source.
+ * @param T The type of the argument value.
+ * @property name The name of the argument.
+ * @property type The type of the argument.
+ * @property customSuggestions Optional custom suggestion provider.
+ */
 class ArgumentCommandNode<S, T>(
     override val name: String,
     val type: ArgumentType<T>,

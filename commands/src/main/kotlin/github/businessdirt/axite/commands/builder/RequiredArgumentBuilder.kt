@@ -6,6 +6,14 @@ import github.businessdirt.axite.commands.nodes.ArgumentCommandNode
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
 import github.businessdirt.axite.commands.suggestions.suggestions
 
+/**
+ * Builder for [ArgumentCommandNode].
+ *
+ * @param S The type of the command source.
+ * @param T The type of the argument.
+ * @property name The name of the argument.
+ * @property type The type of the argument.
+ */
 class RequiredArgumentBuilder<S, T>(
     val name: String,
     val type: ArgumentType<T>
@@ -16,9 +24,21 @@ class RequiredArgumentBuilder<S, T>(
 
     override val self: RequiredArgumentBuilder<S, T> get() = this
 
+    /**
+     * Sets a custom suggestion provider for this argument.
+     *
+     * @param provider The suggestion provider.
+     * @return This builder.
+     */
     fun suggests(provider: SuggestionProvider<S>?): RequiredArgumentBuilder<S, T> =
         self.apply { this.suggestionsProvider = provider }
 
+    /**
+     * Sets a custom suggestion provider for this argument using a DSL block.
+     *
+     * @param block The suggestion logic.
+     * @return This builder.
+     */
     fun suggests(block: SuggestionsBuilder.() -> Unit): RequiredArgumentBuilder<S, T> = self.apply {
         this.suggestionsProvider = SuggestionProvider { _, builder ->
             suggestions(builder.input, builder.start, block)
@@ -37,6 +57,9 @@ class RequiredArgumentBuilder<S, T>(
     ).apply { allArguments.forEach { addChild(it) } }
 }
 
+/**
+ * Helper function to create an [ArgumentCommandNode] using a builder block.
+ */
 fun <S, T> argument(
     name: String,
     type: ArgumentType<T>,

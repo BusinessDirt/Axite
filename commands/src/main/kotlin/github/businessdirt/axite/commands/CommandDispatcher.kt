@@ -19,34 +19,85 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import java.util.*
 
+/**
+ * Holds the result of a command parse.
+ *
+ * @param S The type of the command source.
+ * @property context The command context builder containing the parsed state.
+ * @property reader The string reader used during parsing, potentially advanced to the end of the input.
+ * @property exceptions A map of exceptions encountered during parsing, keyed by the node where they occurred.
+ */
 data class ParseResults<S>(
     val context: CommandContextBuilder<S>,
     val reader: ImmutableStringReader = StringReader(""),
     val exceptions: Map<CommandNode<S>, CommandSyntaxException> = emptyMap()
 )
 
+/**
+ * The core command dispatcher, responsible for registering, parsing, and executing commands.
+ *
+ * It manages the command tree starting from a [RootCommandNode] and provides methods to
+ * dispatch input strings to the appropriate command handlers.
+ *
+ * @param S The type of the command source (e.g., a player, a console, or an entity).
+ * @property root The root node of the command tree. Defaults to a new [RootCommandNode].
+ */
 class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
 
     private var consumer: ResultConsumer<S> = ResultConsumer { _, _, _ -> }
 
+    /**
+     * Registers a new command.
+     *
+     * @param command The literal command node to register.
+     * @return The registered command node.
+     */
     fun register(command: LiteralCommandNode<S>): LiteralCommandNode<S> {
         root.addChild(command)
         return command
     }
 
+    /**
+     * Sets a consumer to be notified when a command completes (successfully or not).
+     *
+     * @param consumer The result consumer.
+     */
     fun setConsumer(consumer: ResultConsumer<S>) {
         this.consumer = consumer
     }
 
+    /**
+     * Parses and executes a command given a string input.
+     *
+     * @param input The command string to execute.
+     * @param source The command source initiating the execution.
+     * @return The integer result returned by the command.
+     * @throws CommandSyntaxException If the command input is invalid.
+     */
     @Throws(CommandSyntaxException::class)
     fun execute(input: String, source: S): Int = execute(StringReader(input), source)
 
+    /**
+     * Parses and executes a command given a [StringReader].
+     *
+     * @param input The string reader containing the command input.
+     * @param source The command source initiating the execution.
+     * @return The integer result returned by the command.
+     * @throws CommandSyntaxException If the command input is invalid.
+     */
     @Throws(CommandSyntaxException::class)
     fun execute(input: StringReader, source: S): Int {
         val parse: ParseResults<S> = parse(input, source)
         return execute(parse)
     }
 
+    /**
+     * Executes a previously parsed command.
+     *
+     * @param parse The results of the parse phase.
+     * @return The integer result returned by the command.
+     * @throws CommandSyntaxException If the parse results indicate failure or if execution fails.
+     */
     @Throws(CommandSyntaxException::class)
     fun execute(parse: ParseResults<S>): Int {
         if (parse.reader.canRead()) {
@@ -70,8 +121,22 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
         return flatContext.get().executeAll(original.source, consumer)
     }
 
+    /**
+     * Parses a command string without executing it.
+     *
+     * @param command The command string to parse.
+     * @param source The source to use for parsing (checking requirements, etc.).
+     * @return The results of the parse.
+     */
     fun parse(command: String, source: S): ParseResults<S> = parse(StringReader(command), source)
 
+    /**
+     * Parses a command from a [StringReader] without executing it.
+     *
+     * @param command The reader containing the command input.
+     * @param source The source to use for parsing.
+     * @return The results of the parse.
+     */
     fun parse(command: StringReader, source: S): ParseResults<S> {
         val context = CommandContextBuilder(this, source, root, command.cursor)
         return parseNodes(root, command, context)
@@ -148,6 +213,14 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
         return ParseResults(contextSoFar, originalReader, errors ?: emptyMap())
     }
 
+    /**
+     * Generates all possible usage strings for a given node.
+     *
+     * @param node The node to generate usage for.
+     * @param source The command source (for permission checks).
+     * @param restricted If true, only include paths the source can access.
+     * @return An array of usage strings.
+     */
     fun getAllUsage(node: CommandNode<S>, source: S, restricted: Boolean): Array<String> {
         val result = ArrayList<String>()
         getAllUsageInternal(node, source, result, "", restricted)
@@ -174,6 +247,14 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
         }
     }
 
+    /**
+     * Generates a map of smart usage strings for the children of a given node.
+     * This is useful for displaying help messages that summarize available subcommands.
+     *
+     * @param node The node to generate usage for.
+     * @param source The command source.
+     * @return A map where keys are child nodes and values are their usage strings.
+     */
     fun getSmartUsage(node: CommandNode<S>, source: S): Map<CommandNode<S>, String> {
         val result = LinkedHashMap<CommandNode<S>, String>()
         val optional = node.command != null
@@ -228,6 +309,13 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
         return self
     }
 
+    /**
+     * Gets tab completion suggestions for a given parse result.
+     *
+     * @param parse The result of a previous parse.
+     * @param cursor The cursor position to generate suggestions for (defaults to the end of input).
+     * @return A [Suggestions] object containing the list of suggestions.
+     */
     suspend fun getCompletionSuggestions(parse: ParseResults<S>, cursor: Int = parse.reader.totalLength()): Suggestions = coroutineScope {
         val context: CommandContextBuilder<S> = parse.context
         val nodeBeforeCursor: SuggestionContext<S> = context.findSuggestionContext(cursor)
@@ -253,6 +341,12 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
         Suggestions.merge(fullInput, suggestions)
     }
 
+    /**
+     * Finds the path to a specific node from the root.
+     *
+     * @param target The target node.
+     * @return A collection of strings representing the path (names of nodes) to the target.
+     */
     fun getPath(target: CommandNode<S>): Collection<String> {
         val paths = mutableListOf<List<CommandNode<S>>>()
         addPaths(root, paths, mutableListOf())
@@ -263,6 +357,12 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
             ?: emptyList()
     }
 
+    /**
+     * Finds a node given a path of names.
+     *
+     * @param path The path to search for.
+     * @return The node if found, or null.
+     */
     fun findNode(path: Collection<String>): CommandNode<S>? {
         var node: CommandNode<S>? = root
         for (name in path) {
@@ -272,6 +372,11 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
         return node
     }
 
+    /**
+     * Scans the command tree for ambiguous nodes and reports them to the consumer.
+     *
+     * @param consumer The consumer to handle ambiguity reports.
+     */
     fun findAmbiguities(consumer: AmbiguityConsumer<S>) = root.findAmbiguities(consumer)
 
     private fun addPaths(node: CommandNode<S>, result: MutableList<List<CommandNode<S>>>, parents: List<CommandNode<S>>) {

@@ -4,6 +4,12 @@ import github.businessdirt.axite.commands.ResultConsumer
 import github.businessdirt.axite.commands.exceptions.CommandSyntaxException
 import java.util.*
 
+/**
+ * Represents a flattened chain of command contexts, facilitating execution.
+ * Handles modifiers (redirects/forks) and the final executable command.
+ *
+ * @param S The type of the command source.
+ */
 class ContextChain<S>(
     private val modifiers: List<CommandContext<S>>,
     private val executable: CommandContext<S>
@@ -29,6 +35,14 @@ class ContextChain<S>(
         return nextStageCache
     }
 
+    /**
+     * Executes the chain for the given source.
+     *
+     * @param source The initial command source.
+     * @param resultConsumer Consumer for the execution result.
+     * @return The result of the command (or sum of results if forked).
+     * @throws CommandSyntaxException If execution fails.
+     */
     @Throws(CommandSyntaxException::class)
     fun executeAll(source: S, resultConsumer: ResultConsumer<S>): Int {
         if (modifiers.isEmpty()) return runExecutable(executable, source, resultConsumer, false)
@@ -53,6 +67,12 @@ class ContextChain<S>(
     }
 
     companion object {
+        /**
+         * Tries to flatten a recursive [CommandContext] structure into a [ContextChain].
+         *
+         * @param rootContext The root context.
+         * @return An Optional containing the chain if successful, or empty if no command is present.
+         */
         fun <S> tryFlatten(rootContext: CommandContext<S>): Optional<ContextChain<S>> {
             val modifiers = mutableListOf<CommandContext<S>>()
             var current = rootContext
@@ -68,6 +88,9 @@ class ContextChain<S>(
             }
         }
 
+        /**
+         * Runs a modifier context to transform the source(s).
+         */
         @Throws(CommandSyntaxException::class)
         fun <S> runModifier(
             modifier: CommandContext<S>,
@@ -86,6 +109,9 @@ class ContextChain<S>(
             }
         }
 
+        /**
+         * Runs the executable context.
+         */
         @Throws(CommandSyntaxException::class)
         fun <S> runExecutable(
             executable: CommandContext<S>,

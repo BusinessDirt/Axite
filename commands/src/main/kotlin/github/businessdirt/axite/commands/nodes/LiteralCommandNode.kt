@@ -14,6 +14,12 @@ import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
 import java.util.*
 import java.util.function.Predicate
 
+/**
+ * A command node that matches a specific literal string.
+ *
+ * @param S The type of the command source.
+ * @property literal The literal string to match.
+ */
 class LiteralCommandNode<S>(
     val literal: String,
     command: Command<S>?,
