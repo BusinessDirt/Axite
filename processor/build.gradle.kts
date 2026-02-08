@@ -1,8 +1,3 @@
-plugins {
-    kotlin("jvm")
-    id("com.google.devtools.ksp")
-}
-
 dependencies {
     // The KSP API itself
     implementation("com.google.devtools.ksp:symbol-processing-api:2.3.3")
