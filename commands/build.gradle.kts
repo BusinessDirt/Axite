@@ -11,11 +11,13 @@ dependencies {
     api("org.slf4j:slf4j-api:2.0.12")
     implementation(kotlin("stdlib"))
     implementation(kotlin("reflect"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.9.0")
 
     ksp(project(":processor"))
     kspTest(project(":processor"))
 
     testImplementation(kotlin("test"))
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     testImplementation("org.slf4j:slf4j-simple:2.0.12")
 
     testImplementation("org.mockito:mockito-core:5.21.0")

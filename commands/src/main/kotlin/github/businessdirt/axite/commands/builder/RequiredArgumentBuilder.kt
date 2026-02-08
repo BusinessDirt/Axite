@@ -4,7 +4,7 @@ import github.businessdirt.axite.commands.SuggestionProvider
 import github.businessdirt.axite.commands.arguments.ArgumentType
 import github.businessdirt.axite.commands.nodes.ArgumentCommandNode
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
-import github.businessdirt.axite.commands.suggestions.suggestionsFuture
+import github.businessdirt.axite.commands.suggestions.suggestions
 
 class RequiredArgumentBuilder<S, T>(
     val name: String,
@@ -21,7 +21,7 @@ class RequiredArgumentBuilder<S, T>(
 
     fun suggests(block: SuggestionsBuilder.() -> Unit): RequiredArgumentBuilder<S, T> = self.apply {
         this.suggestionsProvider = SuggestionProvider { _, builder ->
-            suggestionsFuture(builder.input, builder.start, block)
+            suggestions(builder.input, builder.start, block)
         }
     }
 

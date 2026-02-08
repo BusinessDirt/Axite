@@ -6,6 +6,7 @@ import github.businessdirt.axite.commands.context.CommandContext
 import github.businessdirt.axite.commands.context.CommandContextBuilder
 import github.businessdirt.axite.commands.strings.StringReader
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -50,9 +51,9 @@ class RootCommandNodeTest : AbstractCommandNodeTest() {
     @Test
     @DisplayName("listSuggestions() should always return empty suggestions")
     @Suppress("UNCHECKED_CAST")
-    fun testSuggestions() {
+    fun testSuggestions() = runTest {
         val context = mock(CommandContext::class.java) as CommandContext<Any>
-        val result = node.listSuggestions(context, SuggestionsBuilder("", "", 0)).join()
+        val result = node.listSuggestions(context, SuggestionsBuilder("", "", 0))
         assertTrue(result.isEmpty, "Root node should not provide suggestions directly")
     }
 

@@ -10,7 +10,6 @@ import github.businessdirt.axite.commands.exceptions.CommandSyntaxException
 import github.businessdirt.axite.commands.strings.StringReader
 import github.businessdirt.axite.commands.suggestions.Suggestions
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
-import java.util.concurrent.CompletableFuture
 import java.util.function.Predicate
 
 abstract class CommandNode<S>(
@@ -102,6 +101,6 @@ abstract class CommandNode<S>(
     @Throws(CommandSyntaxException::class)
     abstract fun parse(reader: StringReader, contextBuilder: CommandContextBuilder<S>)
 
-    abstract fun listSuggestions(context: CommandContext<S>, builder: SuggestionsBuilder): CompletableFuture<Suggestions>
+    abstract suspend fun listSuggestions(context: CommandContext<S>, builder: SuggestionsBuilder): Suggestions
     abstract fun createBuilder(): ArgumentBuilder<S, *>
 }

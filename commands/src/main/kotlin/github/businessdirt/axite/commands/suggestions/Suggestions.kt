@@ -1,7 +1,6 @@
 package github.businessdirt.axite.commands.suggestions
 
 import github.businessdirt.axite.commands.strings.StringRange
-import java.util.concurrent.CompletableFuture
 
 data class Suggestions(
     val range: StringRange,
@@ -14,8 +13,7 @@ data class Suggestions(
         private val EMPTY = Suggestions(StringRange.at(0), emptyList())
 
         @JvmStatic
-        fun empty(): CompletableFuture<Suggestions> =
-            CompletableFuture.completedFuture(EMPTY)
+        fun empty(): Suggestions = EMPTY
 
         @JvmStatic
         fun merge(command: String, input: Collection<Suggestions>): Suggestions {

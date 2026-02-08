@@ -6,7 +6,6 @@ import github.businessdirt.axite.commands.context.CommandContextBuilder
 import github.businessdirt.axite.commands.strings.StringReader
 import github.businessdirt.axite.commands.suggestions.Suggestions
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
-import java.util.concurrent.CompletableFuture
 
 @Suppress("EqualsOrHashCode")
 class RootCommandNode<S> : CommandNode<S>(
@@ -25,10 +24,10 @@ class RootCommandNode<S> : CommandNode<S>(
         // Root nodes don't parse anything; they are the starting point.
     }
 
-    override fun listSuggestions(
+    override suspend fun listSuggestions(
         context: CommandContext<S>,
         builder: SuggestionsBuilder
-    ): CompletableFuture<Suggestions> = Suggestions.empty()
+    ): Suggestions = Suggestions.empty()
 
     override fun isValidInput(input: String): Boolean = false
 

@@ -9,6 +9,7 @@ import github.businessdirt.axite.commands.builder.testRequirement
 import github.businessdirt.axite.commands.context.CommandContextBuilder
 import github.businessdirt.axite.commands.strings.StringReader
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -47,9 +48,9 @@ class ArgumentCommandNodeTest : AbstractCommandNodeTest() {
 
     @Test
     @DisplayName("listSuggestions() should default to empty for integers")
-    fun testSuggestions() {
+    fun testSuggestions() = runTest {
         val context = contextBuilder.build("")
-        val result = node.listSuggestions(context, SuggestionsBuilder("", "", 0)).join()
+        val result = node.listSuggestions(context, SuggestionsBuilder("", "", 0))
         assertTrue(result.isEmpty, "Suggestions should be empty by default for IntegerArgumentType")
     }
 

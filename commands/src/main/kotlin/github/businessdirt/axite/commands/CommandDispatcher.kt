@@ -14,8 +14,10 @@ import github.businessdirt.axite.commands.strings.ImmutableStringReader
 import github.businessdirt.axite.commands.strings.StringReader
 import github.businessdirt.axite.commands.suggestions.Suggestions
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import java.util.*
-import java.util.concurrent.CompletableFuture
 
 data class ParseResults<S>(
     val context: CommandContextBuilder<S>,
@@ -226,7 +228,7 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
         return self
     }
 
-    fun getCompletionSuggestions(parse: ParseResults<S>, cursor: Int = parse.reader.totalLength()): CompletableFuture<Suggestions> {
+    suspend fun getCompletionSuggestions(parse: ParseResults<S>, cursor: Int = parse.reader.totalLength()): Suggestions = coroutineScope {
         val context: CommandContextBuilder<S> = parse.context
         val nodeBeforeCursor: SuggestionContext<S> = context.findSuggestionContext(cursor)
         val parent: CommandNode<S> = nodeBeforeCursor.parent
@@ -236,18 +238,19 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
         val truncatedInput = fullInput.substring(0, cursor)
         val truncatedInputLower = truncatedInput.lowercase(Locale.ROOT)
 
-        val futures = parent.allChildren.map { node ->
-            runCatching {
-                node.listSuggestions(context.build(truncatedInput),
-                    SuggestionsBuilder(truncatedInput, truncatedInputLower, start)
-                )
-            }.getOrDefault(Suggestions.empty())
-        }
+        val suggestions = parent.allChildren.map { node ->
+            async {
+                try {
+                    node.listSuggestions(context.build(truncatedInput),
+                        SuggestionsBuilder(truncatedInput, truncatedInputLower, start)
+                    )
+                } catch (_: Exception) {
+                    Suggestions.empty()
+                }
+            }
+        }.awaitAll()
 
-        return CompletableFuture.allOf(*futures.toTypedArray()).thenApply {
-            val suggestions = futures.map { it.join() }
-            Suggestions.merge(fullInput, suggestions)
-        }
+        Suggestions.merge(fullInput, suggestions)
     }
 
     fun getPath(target: CommandNode<S>): Collection<String> {

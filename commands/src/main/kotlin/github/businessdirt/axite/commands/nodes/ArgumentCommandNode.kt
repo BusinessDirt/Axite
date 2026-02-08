@@ -12,7 +12,6 @@ import github.businessdirt.axite.commands.exceptions.CommandSyntaxException
 import github.businessdirt.axite.commands.strings.StringReader
 import github.businessdirt.axite.commands.suggestions.Suggestions
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
-import java.util.concurrent.CompletableFuture
 import java.util.function.Predicate
 
 class ArgumentCommandNode<S, T>(
@@ -44,10 +43,10 @@ class ArgumentCommandNode<S, T>(
         contextBuilder.addNode(this, parsed.range)
     }
 
-    override fun listSuggestions(
+    override suspend fun listSuggestions(
         context: CommandContext<S>,
         builder: SuggestionsBuilder
-    ): CompletableFuture<Suggestions> = customSuggestions?.getSuggestions(context, builder)
+    ): Suggestions = customSuggestions?.getSuggestions(context, builder)
         ?: type.listSuggestions(context, builder)
 
     override fun createBuilder(): RequiredArgumentBuilder<S, T> = RequiredArgumentBuilder<S, T>(name, type).apply {

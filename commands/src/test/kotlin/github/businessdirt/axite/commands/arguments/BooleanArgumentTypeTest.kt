@@ -4,6 +4,7 @@ import github.businessdirt.axite.commands.context.CommandContext
 import github.businessdirt.axite.commands.exceptions.CommandSyntaxException
 import github.businessdirt.axite.commands.strings.StringReader
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.DynamicTest
@@ -41,21 +42,19 @@ class BooleanArgumentTypeTest {
 
     @Test
     @DisplayName("listSuggestions() should suggest both options on empty input")
-    fun testSuggestions_empty() {
+    fun testSuggestions_empty() = runTest {
         val builder = SuggestionsBuilder("executable ", "executable ", 11)
-        val future = BooleanArgumentType.listSuggestions(mock<CommandContext<Any>>(), builder)
-        val suggestions = future.get().list.map { it.text }
+        val suggestions = BooleanArgumentType.listSuggestions(mock<CommandContext<Any>>(), builder).list.map { it.text }
 
         assertTrue(suggestions.containsAll(listOf("true", "false")))
     }
 
     @Test
     @DisplayName("listSuggestions() should filter based on remaining input")
-    fun testSuggestions_filtered() {
+    fun testSuggestions_filtered() = runTest {
         val builder = SuggestionsBuilder("executable t", "executable t", 11)
 
-        val future = BooleanArgumentType.listSuggestions(mock<CommandContext<Any>>(), builder)
-        val suggestions = future.get().list.map { it.text }
+        val suggestions = BooleanArgumentType.listSuggestions(mock<CommandContext<Any>>(), builder).list.map { it.text }
 
         assertTrue(suggestions.contains("true"))
         assertFalse(suggestions.contains("false"))

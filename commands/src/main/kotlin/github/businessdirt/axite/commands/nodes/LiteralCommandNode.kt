@@ -12,7 +12,6 @@ import github.businessdirt.axite.commands.strings.StringReader
 import github.businessdirt.axite.commands.suggestions.Suggestions
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
 import java.util.*
-import java.util.concurrent.CompletableFuture
 import java.util.function.Predicate
 
 class LiteralCommandNode<S>(
@@ -56,13 +55,13 @@ class LiteralCommandNode<S>(
         return -1
     }
 
-    override fun listSuggestions(
+    override suspend fun listSuggestions(
         context: CommandContext<S>,
         builder: SuggestionsBuilder
-    ): CompletableFuture<Suggestions> = when {
+    ): Suggestions = when {
         literalLowerCase.startsWith(builder.remainingLowerCase) -> {
             builder.suggest(literal)
-            builder.buildFuture()
+            builder.build()
         }
         else -> Suggestions.empty()
     }

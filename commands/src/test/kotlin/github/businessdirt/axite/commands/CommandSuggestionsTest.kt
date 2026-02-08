@@ -6,6 +6,7 @@ import github.businessdirt.axite.commands.builder.literal
 import github.businessdirt.axite.commands.strings.StringRange
 import github.businessdirt.axite.commands.strings.StringReader
 import github.businessdirt.axite.commands.suggestions.StringSuggestion
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.mockito.Mockito.mock
@@ -22,8 +23,8 @@ class CommandSuggestionsTest {
         source = mock(Any::class.java)
     }
 
-    private fun testSuggestions(contents: String, cursor: Int, range: StringRange, vararg suggestions: String) {
-        val result = subject.getCompletionSuggestions(subject.parse(contents, source), cursor).join()
+    private suspend fun testSuggestions(contents: String, cursor: Int, range: StringRange, vararg suggestions: String) {
+        val result = subject.getCompletionSuggestions(subject.parse(contents, source), cursor)
         assertEquals(range, result.range)
 
         val expected = suggestions.map { StringSuggestion(range, it) }
@@ -37,12 +38,12 @@ class CommandSuggestionsTest {
     }
 
     @Test
-    fun getCompletionSuggestions_rootCommands() {
+    fun getCompletionSuggestions_rootCommands() = runTest {
         subject.register(literal("foo"))
         subject.register(literal("bar"))
         subject.register(literal("baz"))
 
-        val result = subject.getCompletionSuggestions(subject.parse("", source)).join()
+        val result = subject.getCompletionSuggestions(subject.parse("", source))
 
         assertEquals(StringRange.at(0), result.range)
         assertEquals(
@@ -56,12 +57,12 @@ class CommandSuggestionsTest {
     }
 
     @Test
-    fun getCompletionSuggestions_rootCommands_withInputOffset() {
+    fun getCompletionSuggestions_rootCommands_withInputOffset() = runTest {
         subject.register(literal("foo"))
         subject.register(literal("bar"))
         subject.register(literal("baz"))
 
-        val result = subject.getCompletionSuggestions(subject.parse(inputWithOffset("OOO", 3), source)).join()
+        val result = subject.getCompletionSuggestions(subject.parse(inputWithOffset("OOO", 3), source))
 
         assertEquals(StringRange.at(3), result.range)
         assertEquals(
@@ -75,12 +76,12 @@ class CommandSuggestionsTest {
     }
 
     @Test
-    fun getCompletionSuggestions_rootCommands_partial() {
+    fun getCompletionSuggestions_rootCommands_partial() = runTest {
         subject.register(literal("foo"))
         subject.register(literal("bar"))
         subject.register(literal("baz"))
 
-        val result = subject.getCompletionSuggestions(subject.parse("b", source)).join()
+        val result = subject.getCompletionSuggestions(subject.parse("b", source))
 
         assertEquals(StringRange.between(0, 1), result.range)
         assertEquals(
@@ -93,12 +94,12 @@ class CommandSuggestionsTest {
     }
 
     @Test
-    fun getCompletionSuggestions_rootCommands_partial_withInputOffset() {
+    fun getCompletionSuggestions_rootCommands_partial_withInputOffset() = runTest {
         subject.register(literal("foo"))
         subject.register(literal("bar"))
         subject.register(literal("baz"))
 
-        val result = subject.getCompletionSuggestions(subject.parse(inputWithOffset("Zb", 1), source)).join()
+        val result = subject.getCompletionSuggestions(subject.parse(inputWithOffset("Zb", 1), source))
 
         assertEquals(StringRange.between(1, 2), result.range)
         assertEquals(
@@ -111,14 +112,14 @@ class CommandSuggestionsTest {
     }
 
     @Test
-    fun getCompletionSuggestions_subCommands() {
+    fun getCompletionSuggestions_subCommands() = runTest {
         subject.register(literal("parent") {
             literal("foo")
             literal("bar")
             literal("baz")
         })
 
-        val result = subject.getCompletionSuggestions(subject.parse("parent ", source)).join()
+        val result = subject.getCompletionSuggestions(subject.parse("parent ", source))
 
         assertEquals(StringRange.at(7), result.range)
         assertEquals(
@@ -132,7 +133,7 @@ class CommandSuggestionsTest {
     }
 
     @Test
-    fun getCompletionSuggestions_movingCursor_subCommands() {
+    fun getCompletionSuggestions_movingCursor_subCommands() = runTest {
         subject.register(literal("parent_one") {
             literal("faz")
             literal("fbz")
@@ -154,7 +155,7 @@ class CommandSuggestionsTest {
     }
 
     @Test
-    fun getCompletionSuggestions_subCommands_partial() {
+    fun getCompletionSuggestions_subCommands_partial() = runTest {
         subject.register(literal("parent") {
             literal("foo")
             literal("bar")
@@ -162,7 +163,7 @@ class CommandSuggestionsTest {
         })
 
         val parse = subject.parse("parent b", source)
-        val result = subject.getCompletionSuggestions(parse).join()
+        val result = subject.getCompletionSuggestions(parse)
 
         assertEquals(StringRange.between(7, 8), result.range)
         assertEquals(
@@ -175,7 +176,7 @@ class CommandSuggestionsTest {
     }
 
     @Test
-    fun getCompletionSuggestions_subCommands_partial_withInputOffset() {
+    fun getCompletionSuggestions_subCommands_partial_withInputOffset() = runTest {
         subject.register(literal("parent") {
             literal("foo")
             literal("bar")
@@ -183,7 +184,7 @@ class CommandSuggestionsTest {
         })
 
         val parse = subject.parse(inputWithOffset("junk parent b", 5), source)
-        val result = subject.getCompletionSuggestions(parse).join()
+        val result = subject.getCompletionSuggestions(parse)
 
         assertEquals(StringRange.between(12, 13), result.range)
         assertEquals(
@@ -196,12 +197,12 @@ class CommandSuggestionsTest {
     }
 
     @Test
-    fun getCompletionSuggestions_redirect() {
+    fun getCompletionSuggestions_redirect() = runTest {
         val actual = subject.register(literal("actual") { literal("sub") })
         subject.register(literal("redirect") { redirect(actual) })
 
         val parse = subject.parse("redirect ", source)
-        val result = subject.getCompletionSuggestions(parse).join()
+        val result = subject.getCompletionSuggestions(parse)
 
         assertEquals(StringRange.at(9), result.range)
         assertEquals(
@@ -211,12 +212,12 @@ class CommandSuggestionsTest {
     }
 
     @Test
-    fun getCompletionSuggestions_redirectPartial() {
+    fun getCompletionSuggestions_redirectPartial() = runTest {
         val actual = subject.register(literal("actual") { literal("sub") })
         subject.register(literal("redirect") { redirect(actual) })
 
         val parse = subject.parse("redirect s", source)
-        val result = subject.getCompletionSuggestions(parse).join()
+        val result = subject.getCompletionSuggestions(parse)
 
         assertEquals(StringRange.between(9, 10), result.range)
         assertEquals(
@@ -226,7 +227,7 @@ class CommandSuggestionsTest {
     }
 
     @Test
-    fun getCompletionSuggestions_movingCursor_redirect() {
+    fun getCompletionSuggestions_movingCursor_redirect() = runTest {
         val actualOne = subject.register(literal("actual_one") {
             literal("faz")
             literal("fbz")
@@ -249,12 +250,12 @@ class CommandSuggestionsTest {
     }
 
     @Test
-    fun getCompletionSuggestions_redirectPartial_withInputOffset() {
+    fun getCompletionSuggestions_redirectPartial_withInputOffset() = runTest {
         val actual = subject.register(literal("actual") { literal("sub") })
         subject.register(literal("redirect") { redirect(actual) })
 
         val parse = subject.parse(inputWithOffset("/redirect s", 1), source)
-        val result = subject.getCompletionSuggestions(parse).join()
+        val result = subject.getCompletionSuggestions(parse)
 
         assertEquals(StringRange.between(10, 11), result.range)
         assertEquals(
@@ -264,7 +265,7 @@ class CommandSuggestionsTest {
     }
 
     @Test
-    fun getCompletionSuggestions_redirect_lots() {
+    fun getCompletionSuggestions_redirect_lots() = runTest {
         val loop = subject.register(literal("redirect"))
         subject.register(literal("redirect") {
             literal("loop") {
@@ -274,7 +275,7 @@ class CommandSuggestionsTest {
             }
         })
 
-        val result = subject.getCompletionSuggestions(subject.parse("redirect loop 1 loop 02 loop 003 ", source)).join()
+        val result = subject.getCompletionSuggestions(subject.parse("redirect loop 1 loop 02 loop 003 ", source))
 
         assertEquals(StringRange.at(33), result.range)
         assertEquals(
@@ -284,7 +285,7 @@ class CommandSuggestionsTest {
     }
 
     @Test
-    fun getCompletionSuggestions_execute_simulation() {
+    fun getCompletionSuggestions_execute_simulation() = runTest {
         val execute = subject.register(literal("execute"))
         subject.register(literal("execute") {
             literal("as") {
@@ -298,13 +299,13 @@ class CommandSuggestionsTest {
         })
 
         val parse = subject.parse("execute as Dinnerbone as", source)
-        val result = subject.getCompletionSuggestions(parse).join()
+        val result = subject.getCompletionSuggestions(parse)
 
         assertTrue(result.isEmpty)
     }
 
     @Test
-    fun getCompletionSuggestions_execute_simulation_partial() {
+    fun getCompletionSuggestions_execute_simulation_partial() = runTest {
         val execute = subject.register(literal("execute"))
         subject.register(literal("execute") {
             literal("as") {
@@ -318,7 +319,7 @@ class CommandSuggestionsTest {
         })
 
         val parse = subject.parse("execute as bar as ", source)
-        val result = subject.getCompletionSuggestions(parse).join()
+        val result = subject.getCompletionSuggestions(parse)
 
         assertEquals(StringRange.at(18), result.range)
         assertEquals(

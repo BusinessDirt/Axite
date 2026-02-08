@@ -4,7 +4,6 @@ import github.businessdirt.axite.commands.CommandDsl
 import github.businessdirt.axite.commands.strings.Message
 import github.businessdirt.axite.commands.strings.StringRange
 import java.util.*
-import java.util.concurrent.CompletableFuture
 
 @CommandDsl
 class SuggestionsBuilder(
@@ -39,7 +38,6 @@ class SuggestionsBuilder(
     }
 
     fun build(): Suggestions = Suggestions.create(input, result)
-    fun buildFuture(): CompletableFuture<Suggestions> = CompletableFuture.completedFuture(build())
 }
 
 inline fun suggestions(
@@ -50,14 +48,4 @@ inline fun suggestions(
     val builder = SuggestionsBuilder(input, start = start)
     builder.block()
     return builder.build()
-}
-
-inline fun suggestionsFuture(
-    input: String,
-    start: Int,
-    block: SuggestionsBuilder.() -> Unit
-): CompletableFuture<Suggestions> {
-    val builder = SuggestionsBuilder(input, start = start)
-    builder.block()
-    return builder.buildFuture()
 }

@@ -12,6 +12,7 @@ import github.businessdirt.axite.commands.strings.StringRange
 import github.businessdirt.axite.commands.strings.StringReader
 import github.businessdirt.axite.commands.suggestions.StringSuggestion
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
+import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
@@ -77,15 +78,15 @@ class LiteralCommandNodeTest : AbstractCommandNodeTest() {
 
     @Test
     @DisplayName("listSuggestions() logic for literals")
-    fun testSuggestions() {
+    fun testSuggestions() = runTest {
         // Empty input suggests the literal
-        val empty = node.listSuggestions(contextBuilder.build(""), SuggestionsBuilder("", "", 0)).join()
+        val empty = node.listSuggestions(contextBuilder.build(""), SuggestionsBuilder("", "", 0))
         assertEquals(listOf(StringSuggestion(StringRange.at(0), "foo")), empty.list)
 
         // Exact match or partial non-match should result in no suggestions
-        assertTrue(node.listSuggestions(contextBuilder.build("foo"), SuggestionsBuilder("foo", "foo", 0)).join().isEmpty)
-        assertTrue(node.listSuggestions(contextBuilder.build("food"), SuggestionsBuilder("food", "food", 0)).join().isEmpty)
-        assertTrue(node.listSuggestions(contextBuilder.build("b"), SuggestionsBuilder("b", "b", 0)).join().isEmpty)
+        assertTrue(node.listSuggestions(contextBuilder.build("foo"), SuggestionsBuilder("foo", "foo", 0)).isEmpty)
+        assertTrue(node.listSuggestions(contextBuilder.build("food"), SuggestionsBuilder("food", "food", 0)).isEmpty)
+        assertTrue(node.listSuggestions(contextBuilder.build("b"), SuggestionsBuilder("b", "b", 0)).isEmpty)
     }
 
     @Test

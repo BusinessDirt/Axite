@@ -5,7 +5,6 @@ import github.businessdirt.axite.commands.exceptions.CommandSyntaxException
 import github.businessdirt.axite.commands.nodes.CommandNode
 import github.businessdirt.axite.commands.suggestions.Suggestions
 import github.businessdirt.axite.commands.suggestions.SuggestionsBuilder
-import java.util.concurrent.CompletableFuture
 
 fun interface Command<S> {
     fun run(command: CommandContext<S>): Int
@@ -38,7 +37,7 @@ fun interface SingleRedirectModifier<S> {
 
 fun interface SuggestionProvider<S> {
     @Throws(CommandSyntaxException::class)
-    fun getSuggestions(context: CommandContext<S>, builder: SuggestionsBuilder): CompletableFuture<Suggestions>
+    suspend fun getSuggestions(context: CommandContext<S>, builder: SuggestionsBuilder): Suggestions
 }
 
 fun interface AmbiguityConsumer<S> {
