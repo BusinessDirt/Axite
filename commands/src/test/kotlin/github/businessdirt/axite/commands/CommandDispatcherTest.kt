@@ -8,6 +8,7 @@ import github.businessdirt.axite.commands.exceptions.CommandSyntaxException
 import github.businessdirt.axite.commands.nodes.LiteralCommandNode
 import github.businessdirt.axite.commands.strings.StringReader
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.*
 import kotlin.test.assertEquals
@@ -16,6 +17,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 
+@DisplayName("Command Dispatcher Tests")
 class CommandDispatcherTest {
     private lateinit var subject: CommandDispatcher<Any>
     private val command: Command<Any> = mock()
@@ -37,6 +39,7 @@ class CommandDispatcherTest {
     private fun integer() = IntegerArgumentType()
 
     @Test
+    @DisplayName("Create and execute command")
     fun testCreateAndExecuteCommand() {
         subject.register(literal("foo") { executes(command) })
 
@@ -45,6 +48,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Create and execute command with input offset")
     fun testCreateAndExecuteOffsetCommand() {
         subject.register(literal("foo") { executes(command) })
 
@@ -53,6 +57,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Create and merge commands")
     fun testCreateAndMergeCommands() {
         subject.register(literal("base") {
             literal("foo") { executes(command) }
@@ -68,6 +73,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Execute unknown command")
     fun testExecuteUnknownCommand() {
         subject.register(literal("bar"))
         subject.register(literal("baz"))
@@ -78,6 +84,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Execute command with failed requirement")
     fun testExecuteImpermissibleCommand() {
         subject.register(literal("foo") { requires { false } })
 
@@ -87,6 +94,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Execute empty command")
     fun testExecuteEmptyCommand() {
         subject.register(literal(""))
 
@@ -96,6 +104,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Execute unknown subcommand")
     fun testExecuteUnknownSubcommand() {
         subject.register(literal("foo") { executes(command) })
 
@@ -105,6 +114,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Execute incorrect literal")
     fun testExecuteIncorrectLiteral() {
         subject.register(literal("foo") {
             executes(command)
@@ -117,6 +127,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Execute ambiguous incorrect argument")
     fun testExecuteAmbiguousIncorrectArgument() {
         subject.register(literal("foo") {
             executes(command)
@@ -130,6 +141,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Execute subcommand")
     fun testExecuteSubcommand() {
         val subCommand: Command<Any> = mock()
         whenever(subCommand.run(any())).thenReturn(100)
@@ -146,6 +158,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Parse incomplete literal")
     fun testParseIncompleteLiteral() {
         subject.register(literal("foo") {
             literal("bar") { executes(command) }
@@ -157,6 +170,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Parse incomplete argument")
     fun testParseIncompleteArgument() {
         subject.register(literal("foo") {
             argument("bar", integer()) { executes(command) }
@@ -168,6 +182,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Execute ambiguous parent subcommand")
     fun testExecuteAmbiguousParentSubcommand() {
         val subCommand: Command<Any> = mock()
         whenever(subCommand.run(any())).thenReturn(100)
@@ -187,6 +202,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Execute ambiguous parent subcommand via redirect")
     fun testExecuteAmbiguousParentSubcommandViaRedirect() {
         val subCommand: Command<Any> = mock()
         whenever(subCommand.run(any())).thenReturn(100)
@@ -208,6 +224,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Execute command redirected multiple times")
     fun testExecuteRedirectedMultipleTimes() {
         val concreteNode = subject.register(literal("actual") { executes(command) })
         val redirectNode = subject.register(literal("redirected") { redirect(subject.root) })
@@ -242,6 +259,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Correct execution context after redirect")
     fun testCorrectExecuteContextAfterRedirect() {
         val subject = CommandDispatcher<Int>()
 
@@ -270,6 +288,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Shared redirect and execute nodes")
     fun testSharedRedirectAndExecuteNodes() {
         val subject = CommandDispatcher<Int>()
 
@@ -286,6 +305,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Execute redirected command")
     fun testExecuteRedirected() {
         val modifier: RedirectModifier<Any> = mock()
         val source1 = Any()
@@ -320,6 +340,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Incomplete redirect should throw")
     fun testIncompleteRedirectShouldThrow() {
         val foo = subject.register(literal("foo") {
             literal("awa") { executes { 2 }}
@@ -337,6 +358,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Redirect modifier with empty result")
     fun testRedirectModifierEmptyResult() {
         val foo = subject.register(literal("foo") {
             literal("awa") { executes { 2 }}
@@ -354,6 +376,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Execute orphaned subcommand")
     fun testExecuteOrphanedSubcommand() {
         subject.register(literal("foo") {
             argument("bar", integer())
@@ -366,6 +389,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Execute with invalid other command")
     fun testExecute_invalidOther() {
         val wrongCommand: Command<Any > = mock()
         subject.register(literal("w") { executes(wrongCommand) })
@@ -377,6 +401,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Parse without space separator")
     fun parse_noSpaceSeparator() {
         subject.register(literal("foo") {
             argument("bar", integer()) {
@@ -390,6 +415,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Execute invalid subcommand")
     fun testExecuteInvalidSubcommand() {
         subject.register(literal("foo") {
             executes(command)
@@ -402,6 +428,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Get path of a node")
     fun testGetPath() {
         val bar: LiteralCommandNode<Any> = literal("bar")
         subject.register(literal("foo") { literal("bar") })
@@ -410,6 +437,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Find existing node")
     fun testFindNodeExists() {
         val bar: LiteralCommandNode<Any> = literal("bar")
         subject.register(literal("foo") { literal("bar") })
@@ -418,11 +446,13 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Find non-existing node")
     fun testFindNodeDoesntExist() {
         assertNull(subject.findNode(listOf("foo", "bar")))
     }
 
     @Test
+    @DisplayName("Result consumer in non-error run")
     fun testResultConsumerInNonErrorRun() {
         subject.setConsumer(consumer)
 
@@ -435,6 +465,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Result consumer in forked non-error run")
     fun testResultConsumerInForkedNonErrorRun() {
         subject.setConsumer(consumer)
 
@@ -451,6 +482,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Exception in non-forked command")
     fun testExceptionInNonForkedCommand() {
         subject.setConsumer(consumer)
         subject.register(literal("crash") { executes(command) })
@@ -467,6 +499,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Exception in non-forked redirected command")
     fun testExceptionInNonForkedRedirectedCommand() {
         subject.setConsumer(consumer)
         subject.register(literal("crash") { executes(command) })
@@ -483,6 +516,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Exception in forked redirected command")
     fun testExceptionInForkedRedirectedCommand() {
         subject.setConsumer(consumer)
         subject.register(literal("crash") { executes(command) })
@@ -497,6 +531,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Exception in non-forked redirect")
     fun testExceptionInNonForkedRedirect() {
         val exception = CommandSyntaxException(CommandError.ExpectedType(Boolean::class))
 
@@ -515,6 +550,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Exception in forked redirect")
     fun testExceptionInForkedRedirect() {
         val exception = CommandSyntaxException(CommandError.ExpectedType(Boolean::class))
 
@@ -532,6 +568,7 @@ class CommandDispatcherTest {
     }
 
     @Test
+    @DisplayName("Partial exception in forked redirect")
     fun testPartialExceptionInForkedRedirect() {
         val exception = CommandSyntaxException(CommandError.ExpectedType(Boolean::class))
         val otherSource = Any()

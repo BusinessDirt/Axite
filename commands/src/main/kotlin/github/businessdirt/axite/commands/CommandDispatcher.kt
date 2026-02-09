@@ -164,7 +164,7 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
                     throw ex
                 }
 
-                if (reader.canRead() && reader.peek() != ARGUMENT_SEPARATOR_CHAR) {
+                if (reader.canRead() && reader.peek() != ARGUMENT_SEPARATOR) {
                     throw reader.error(CommandError.ExpectedSeparator)
                 }
             } catch (ex: CommandSyntaxException) {
@@ -386,8 +386,7 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
     }
 
     companion object {
-        const val ARGUMENT_SEPARATOR = " "
-        const val ARGUMENT_SEPARATOR_CHAR = ' '
+        private const val ARGUMENT_SEPARATOR = ' '
         private const val USAGE_OPTIONAL_OPEN = "["
         private const val USAGE_OPTIONAL_CLOSE = "]"
         private const val USAGE_REQUIRED_OPEN = "("

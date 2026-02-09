@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DynamicTest.dynamicTest
 import org.junit.jupiter.api.TestFactory
 import java.util.stream.Stream
 
+@DisplayName("Suggestion Transformation Tests")
 sealed class SuggestionTest<T : Suggestion> {
 
     abstract val applyCases: List<ApplyCase<T>>
