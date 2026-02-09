@@ -21,10 +21,3 @@ benchmark {
         register("test")
     }
 }
-
-// --- KSP Configuration ---
-ksp {
-    arg("processor.prefix", "Commands")
-    arg("processor.moduleAnnotations", "github.businessdirt.axite.commands.registry.RegisterCommand")
-    arg("processor.RegisterCommand.interface", "github.businessdirt.axite.commands.registry.CommandRegistryProvider")
-}
