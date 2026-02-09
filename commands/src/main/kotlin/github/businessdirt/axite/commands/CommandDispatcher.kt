@@ -7,6 +7,7 @@ import github.businessdirt.axite.commands.context.SuggestionContext
 import github.businessdirt.axite.commands.exceptions.CommandError
 import github.businessdirt.axite.commands.exceptions.CommandSyntaxException
 import github.businessdirt.axite.commands.exceptions.error
+import github.businessdirt.axite.commands.exceptions.expect
 import github.businessdirt.axite.commands.nodes.CommandNode
 import github.businessdirt.axite.commands.nodes.LiteralCommandNode
 import github.businessdirt.axite.commands.nodes.RootCommandNode
@@ -148,8 +149,8 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
         contextSoFar: CommandContextBuilder<S>
     ): ParseResults<S> {
         val source = contextSoFar.source
-        var errors: MutableMap<CommandNode<S>, CommandSyntaxException>? = null
-        var potentials: MutableList<ParseResults<S>>? = null
+        val errors = mutableMapOf<CommandNode<S>, CommandSyntaxException>()
+        val potentials = mutableListOf<ParseResults<S>>()
         val cursor = originalReader.cursor
 
         for (child in node.getRelevantNodes(originalReader)) {
@@ -157,60 +158,52 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
 
             val context = contextSoFar.copy()
             val reader = StringReader(originalReader)
-            try {
-                try {
-                    child.parse(reader, context)
-                } catch (ex: CommandSyntaxException) {
-                    throw ex
-                }
 
-                if (reader.canRead() && reader.peek() != ARGUMENT_SEPARATOR) {
-                    throw reader.error(CommandError.ExpectedSeparator)
+            try {
+                child.parse(reader, context)
+                reader.expect(CommandError.ExpectedSeparator) {
+                    !canRead() || (canRead() && peek() == ARGUMENT_SEPARATOR)
                 }
             } catch (ex: CommandSyntaxException) {
-                if (errors == null) errors = LinkedHashMap()
                 errors[child] = ex
                 reader.cursor = cursor
                 continue
             }
 
-            if (child.command != null) context.command(child.command!!)
+            child.command?.let { context.command(it) }
 
-            val skipLength = if (child.redirect == null) 2 else 1
+            val redirect = child.redirect
+            val skipLength = if (redirect == null) 2 else 1
+
             if (reader.canRead(skipLength)) {
                 reader.skip()
-                if (child.redirect != null) {
-                    val childContext = CommandContextBuilder(this, source, child.redirect, reader.cursor)
-                    val parse = parseNodes(child.redirect, reader, childContext)
+                if (redirect != null) {
+                    val childContext = CommandContextBuilder(this, source, redirect, reader.cursor)
+                    val parse = parseNodes(redirect, reader, childContext)
                     context.child = parse.context
                     return ParseResults(context, parse.reader, parse.exceptions)
                 } else {
-                    val parse = parseNodes(child, reader, context)
-                    if (potentials == null) potentials = ArrayList(1)
-                    potentials.add(parse)
+                    potentials.add(parseNodes(child, reader, context))
                 }
             } else {
-                if (potentials == null) potentials = ArrayList(1)
                 potentials.add(ParseResults(context, reader, emptyMap()))
             }
         }
 
-        if (potentials != null) {
-            if (potentials.size > 1) {
-                potentials.sortWith { a, b ->
-                    when {
-                        !a.reader.canRead() && b.reader.canRead() -> -1
-                        a.reader.canRead() && !b.reader.canRead() -> 1
-                        a.exceptions.isEmpty() && b.exceptions.isNotEmpty() -> -1
-                        a.exceptions.isNotEmpty() && b.exceptions.isEmpty() -> 1
-                        else -> 0
-                    }
-                }
-            }
-            return potentials[0]
-        }
+        return potentials.bestOrFallback(contextSoFar, originalReader, errors)
+    }
 
-        return ParseResults(contextSoFar, originalReader, errors ?: emptyMap())
+    private fun List<ParseResults<S>>.bestOrFallback(
+        contextSoFar: CommandContextBuilder<S>,
+        reader: StringReader,
+        errors: Map<CommandNode<S>, CommandSyntaxException>
+    ): ParseResults<S> {
+        if (isEmpty()) return ParseResults(contextSoFar, reader, errors)
+
+        return minWithOrNull(
+            compareBy<ParseResults<S>> { it.reader.canRead() } // Finished readers first
+                .thenBy { it.exceptions.isNotEmpty() }        // No exceptions first
+        ) ?: first()
     }
 
     /**
@@ -221,28 +214,30 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
      * @param restricted If true, only include paths the source can access.
      * @return An array of usage strings.
      */
-    fun getAllUsage(node: CommandNode<S>, source: S, restricted: Boolean): Array<String> {
-        val result = ArrayList<String>()
-        getAllUsageInternal(node, source, result, "", restricted)
-        return result.toTypedArray()
-    }
+    fun getAllUsage(
+        node: CommandNode<S>,
+        source: S,
+        restricted: Boolean
+    ): Array<String> = mutableListOf<String>().apply {
+        fillUsage(node, source, "", restricted)
+    }.toTypedArray()
 
-    private fun getAllUsageInternal(node: CommandNode<S>, source: S, result: MutableList<String>, prefix: String, restricted: Boolean) {
+    private fun MutableList<String>.fillUsage(
+        node: CommandNode<S>,
+        source: S,
+        prefix: String,
+        restricted: Boolean
+    ) {
         if (restricted && !node.canUse(source)) return
 
-        if (node.command != null) result.add(prefix)
-
-        when {
-            node.redirect != null -> {
-                val redirectMsg = if (node.redirect == root) "..." else "-> ${node.redirect.usageText}"
-                result.add(if (prefix.isEmpty()) "${node.usageText} $redirectMsg" else "$prefix $redirectMsg")
-            }
-
-            node.allChildren.isNotEmpty() -> {
-                for (child in node.allChildren) {
-                    val nextPrefix = if (prefix.isEmpty()) child.usageText else "$prefix$ARGUMENT_SEPARATOR${child.usageText}"
-                    getAllUsageInternal(child, source, result, nextPrefix, restricted)
-                }
+        node.command?.let { add(prefix) }
+        node.redirect?.let { redirect ->
+            val redirectMsg = if (redirect == root) "..." else "-> ${redirect.usageText}"
+            add(if (prefix.isEmpty()) "${node.usageText} $redirectMsg" else "$prefix $redirectMsg")
+        } ?: run {
+            for (child in node.allChildren) {
+                val separator = if (prefix.isEmpty()) "" else ARGUMENT_SEPARATOR
+                fillUsage(child, source, "$prefix$separator${child.usageText}", restricted)
             }
         }
     }
@@ -255,59 +250,57 @@ class CommandDispatcher<S>(val root: RootCommandNode<S> = RootCommandNode()) {
      * @param source The command source.
      * @return A map where keys are child nodes and values are their usage strings.
      */
-    fun getSmartUsage(node: CommandNode<S>, source: S): Map<CommandNode<S>, String> {
-        val result = LinkedHashMap<CommandNode<S>, String>()
-        val optional = node.command != null
+    fun getSmartUsage(node: CommandNode<S>, source: S): Map<CommandNode<S>, String> = buildMap {
+        val isOptional = node.command != null
+
         for (child in node.allChildren) {
-            getSmartUsageInternal(child, source, optional, false)?.let {
-                result[child] = it
+            if (child.canUse(source)) {
+                getSmartUsageInternal(child, source, isOptional, false)?.let { usage ->
+                    put(child, usage)
+                }
             }
         }
-        return result
     }
 
     private fun getSmartUsageInternal(node: CommandNode<S>, source: S, optional: Boolean, deep: Boolean): String? {
         if (!node.canUse(source)) return null
 
-        val self = if (optional) "$USAGE_OPTIONAL_OPEN${node.usageText}$USAGE_OPTIONAL_CLOSE" else node.usageText
+        val self = node.usageText.wrapIf(optional, USAGE_OPTIONAL_OPEN, USAGE_OPTIONAL_CLOSE)
+        if (deep) return self
+
+        // Handle Redirects
+        node.redirect?.let {
+            val redirectMsg = if (it == root) "..." else "-> ${it.usageText}"
+            return "$self$ARGUMENT_SEPARATOR$redirectMsg"
+        }
+
+        val children = node.allChildren.filter { it.canUse(source) }
         val childOptional = node.command != null
-        val open = if (childOptional) USAGE_OPTIONAL_OPEN else USAGE_REQUIRED_OPEN
-        val close = if (childOptional) USAGE_OPTIONAL_CLOSE else USAGE_REQUIRED_CLOSE
 
-        if (!deep) {
-            if (node.redirect != null) {
-                val redirectMsg = if (node.redirect == root) "..." else "-> ${node.redirect.usageText}"
-                return "$self$ARGUMENT_SEPARATOR$redirectMsg"
+        return when (children.size) {
+            0 -> self
+            1 -> {
+                val usage = getSmartUsageInternal(children.first(), source, childOptional, childOptional)
+                if (usage != null) "$self$ARGUMENT_SEPARATOR$usage" else self
             }
+            else -> {
+                val distinctUsages = children.mapNotNull { getSmartUsageInternal(it, source, childOptional, true) }.toSet()
 
-            val children = node.allChildren.filter { it.canUse(source) }
-            when {
-                children.size == 1 -> {
-                    getSmartUsageInternal(children.first(), source, childOptional, childOptional)?.let {
-                        return "$self$ARGUMENT_SEPARATOR$it"
-                    }
-                }
-                children.size > 1 -> {
-                    val childUsage = children.mapNotNull { getSmartUsageInternal(it, source, childOptional, true) }.toSet()
-                    if (childUsage.size == 1) {
-                        val usage = childUsage.first()
-                        return "$self ${if (childOptional) "$USAGE_OPTIONAL_OPEN$usage$USAGE_OPTIONAL_CLOSE" else usage}"
-                    } else if (childUsage.size > 1) {
-                        val builder = StringBuilder(open)
-                        children.forEachIndexed { i, child ->
-                            if (i > 0) builder.append(USAGE_OR)
-                            builder.append(child.usageText)
-                        }
-                        if (children.isNotEmpty()) {
-                            builder.append(close)
-                            return "$self $builder"
-                        }
-                    }
+                if (distinctUsages.size == 1) {
+                    val usage = distinctUsages.first().wrapIf(childOptional, USAGE_OPTIONAL_OPEN, USAGE_OPTIONAL_CLOSE)
+                    "$self $usage"
+                } else {
+                    val open = if (childOptional) USAGE_OPTIONAL_OPEN else USAGE_REQUIRED_OPEN
+                    val close = if (childOptional) USAGE_OPTIONAL_CLOSE else USAGE_REQUIRED_CLOSE
+                    val list = children.joinToString(USAGE_OR, prefix = open, postfix = close) { it.usageText }
+                    "$self $list"
                 }
             }
         }
-        return self
     }
+
+    private fun String.wrapIf(condition: Boolean, open: String, close: String) =
+        if (condition) "$open$this$close" else this
 
     /**
      * Gets tab completion suggestions for a given parse result.

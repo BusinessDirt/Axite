@@ -136,7 +136,8 @@ class StringReader(override val string: String) : ImmutableStringReader {
         val start = cursor
         val value = readString()
 
-        expect(CommandError.ExpectedType(Boolean::class), start, value::isNotEmpty)
+        expect(CommandError.ExpectedType(Boolean::class), start) { value.isNotEmpty() }
+
         return when (value) {
             "true" -> true
             "false" -> false
