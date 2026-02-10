@@ -38,24 +38,24 @@ class LiteralCommandNode<S>(
 
     override fun parse(reader: StringReader, contextBuilder: CommandContextBuilder<S>) {
         val start = reader.cursor
-        val end = parseLiteral(reader)
+        val end = reader.parseLiteral()
 
         if (end > -1) contextBuilder.addNode(this, StringRange.between(start, end)) else
             throw reader.error(CommandError.InvalidLiteral(literal))
     }
 
-    private fun parseLiteral(reader: StringReader): Int {
-        val start = reader.cursor
+    private fun StringReader.parseLiteral(): Int {
+        val start = cursor
 
-        if (reader.canRead(literal.length) && reader.string.startsWith(literal, startIndex = start)) {
+        if (canRead(literal.length) && string.startsWith(literal, startIndex = start)) {
             val end = start + literal.length
-            reader.cursor = end
+            cursor = end
 
             // Check if we are at the end of input or followed by a separator
-            if (!reader.canRead() || reader.peek() == ' ') return end
+            if (!canRead() || peek() == ' ') return end
 
             // Reset cursor if the boundary check fails (e.g., input is "commandX" but we wanted "command")
-            reader.cursor = start
+            cursor = start
         }
 
         return -1
@@ -72,7 +72,7 @@ class LiteralCommandNode<S>(
         else -> Suggestions.empty()
     }
 
-    override fun isValidInput(input: String): Boolean = parseLiteral(StringReader(input)) > -1
+    override fun isValidInput(input: String): Boolean = StringReader(input).parseLiteral() > -1
 
     override fun createBuilder(): LiteralArgumentBuilder<S> = LiteralArgumentBuilder<S>(literal).apply {
         requires(requirement)

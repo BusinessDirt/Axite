@@ -44,11 +44,9 @@ abstract class ArgumentBuilder<S, T : ArgumentBuilder<S, T>> {
      * @param block Configuration block for the child builder.
      * @return This builder.
      */
-    fun literal(name: String, block: ArgumentBlock<S, LiteralArgumentBuilder<S>> = {}): T {
+    fun literal(name: String, block: ArgumentBlock<S, LiteralArgumentBuilder<S>> = {}): T = self.apply {
         check(redirect == null) { "Cannot add children to a redirected node" }
-        val child = LiteralArgumentBuilder<S>(name).apply(block)
-        arguments.addChild(child.build())
-        return self
+        this.arguments.addChild(literal<S>(name, block))
     }
 
     /**
@@ -59,10 +57,12 @@ abstract class ArgumentBuilder<S, T : ArgumentBuilder<S, T>> {
      * @param block Configuration block for the child builder.
      * @return This builder.
      */
-    fun <V> argument(name: String, type: ArgumentType<V>, block: ArgumentBlock<S, RequiredArgumentBuilder<S, V>> = {}): T {
-        val child = RequiredArgumentBuilder<S, V>(name, type).apply(block)
-        arguments.addChild(child.build())
-        return self
+    fun <V> argument(
+        name: String,
+        type: ArgumentType<V>,
+        block: ArgumentBlock<S, RequiredArgumentBuilder<S, V>> = {}
+    ): T = self.apply {
+        this.arguments.addChild(argument<S, V>(name, type, block))
     }
 
     /**
@@ -71,9 +71,8 @@ abstract class ArgumentBuilder<S, T : ArgumentBuilder<S, T>> {
      * @param cmd The command to execute.
      * @return This builder.
      */
-    fun executes(cmd: Command<S>): T {
+    fun executes(cmd: Command<S>): T = self.apply {
         this.command = cmd
-        return self
     }
 
     /**
@@ -82,9 +81,8 @@ abstract class ArgumentBuilder<S, T : ArgumentBuilder<S, T>> {
      * @param predicate The predicate that must return true for the source to use this node.
      * @return This builder.
      */
-    fun requires(predicate: Predicate<S>): T {
+    fun requires(predicate: Predicate<S>): T = self.apply {
         this.requirement = predicate
-        return self
     }
 
     /**
@@ -93,9 +91,8 @@ abstract class ArgumentBuilder<S, T : ArgumentBuilder<S, T>> {
      * @param predicate The function that must return true for the source to use this node.
      * @return This builder.
      */
-    fun requires(predicate: (S) -> Boolean): T {
+    fun requires(predicate: (S) -> Boolean): T = self.apply {
         this.requirement = Predicate { predicate(it) }
-        return self
     }
 
     /**
@@ -107,7 +104,7 @@ abstract class ArgumentBuilder<S, T : ArgumentBuilder<S, T>> {
      */
     fun redirect(target: CommandNode<S>?, modifier: SingleRedirectModifier<S>? = null): T = forward(
         target,
-        if (modifier == null) null else RedirectModifier { o -> listOf(modifier.apply(o)) },
+        modifier?.let { RedirectModifier { o -> listOf(modifier.apply(o)) } },
         false
     )
 
