@@ -1,4 +1,8 @@
-val ktorVersion = "2.3.x" // Use the latest stable version
+val ktorVersion = "3.4.0" // Use the latest stable version
+
+plugins {
+    kotlin("plugin.serialization")
+}
 
 dependencies {
     // Core Ktor Client
