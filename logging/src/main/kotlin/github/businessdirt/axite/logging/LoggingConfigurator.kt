@@ -2,7 +2,6 @@ package github.businessdirt.axite.logging
 
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
-import org.apache.logging.log4j.core.config.Configurator
 import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory
 import org.apache.logging.log4j.io.IoBuilder
 import java.lang.management.ManagementFactory
@@ -24,13 +23,17 @@ class LoggingConfigurator private constructor() {
     /** If true, redirects all [System.err] output to a Log4j2 logger. */
     var bridgeSysError: Boolean = false
 
-    /** The logger name used for System.out redirection. */
+    /** The logger name used for [System.out] redirection. */
     var sysOutLoggerName: String = "sys::out"
 
-    /** The logger name used for System.err redirection. */
+    /** The logger name used for [System.err] redirection. */
     var sysErrorLoggerName: String = "sys::err"
 
     var pattern: PatternBuilder = PatternBuilder.fancy()
+
+    /**
+     * Sets the log level. This will always be set to DEBUG when running the project in debug mode
+     */
     var rootLevel: Level = Level.INFO
 
     companion object {
@@ -51,26 +54,12 @@ class LoggingConfigurator private constructor() {
 
             builder.add(appenderBuilder)
 
-            // Explicitly define loggers for the bridged streams to ensure correct levels
-            if (config.bridgeSysOut) {
-                builder.add(builder.newLogger(config.sysOutLoggerName, Level.INFO)
-                    .add(builder.newAppenderRef(appenderName))
-                    .addAttribute("additivity", false))
-            }
-
-            if (config.bridgeSysError) {
-                builder.add(builder.newLogger(config.sysErrorLoggerName, Level.ERROR)
-                    .add(builder.newAppenderRef(appenderName))
-                    .addAttribute("additivity", false))
-            }
-
+            isDebugMode.let { config.rootLevel = Level.DEBUG }
             builder.add(builder.newRootLogger(config.rootLevel).add(builder.newAppenderRef(appenderName)))
 
             config.applySystemProperties()
             config.applyStreams()
 
-            isDebugMode.let { Configurator.setRootLevel(Level.DEBUG) }
-            Configurator.reconfigure(builder.build())
             isDebugMode.let { logger.info("Debug mode detected: Root level set to DEBUG.") }
         }
 
