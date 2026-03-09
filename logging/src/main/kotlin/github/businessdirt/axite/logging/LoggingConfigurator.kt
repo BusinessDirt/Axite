@@ -3,6 +3,7 @@ package github.businessdirt.axite.logging
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.core.config.Configurator
+import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilder
 import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory
 import org.apache.logging.log4j.io.IoBuilder
 import java.lang.management.ManagementFactory
@@ -37,6 +38,16 @@ class LoggingConfigurator private constructor() {
      */
     var rootLevel: Level = Level.INFO
 
+    private val appenderConfigs = mutableListOf<ConfigurationBuilder<*>.() -> String>()
+
+    /**
+     * Adds a custom appender to the configuration.
+     * The block should return the name of the appender so it can be attached to the Root logger.
+     */
+    fun appender(block: ConfigurationBuilder<*>.() -> String) {
+        appenderConfigs.add(block)
+    }
+
     companion object {
         private val logger by lazy { LogManager.getLogger(LoggingConfigurator::class.java) }
 
@@ -45,21 +56,24 @@ class LoggingConfigurator private constructor() {
          */
         fun configure(block: LoggingConfigurator.() -> Unit) {
             val config = LoggingConfigurator().apply(block)
-
             val builder = ConfigurationBuilderFactory.newConfigurationBuilder()
-            val appenderName = "StdoutAppender"
 
-            val appenderBuilder = builder.newAppender(appenderName, "Console")
-                .addAttribute("target", "SYSTEM_OUT")
-                .addAttribute("follow", false)
-                .add(builder.newLayout("PatternLayout")
-                    .addAttribute("pattern", config.pattern.withColors()))
+            if (config.appenderConfigs.isEmpty()) config.appender {
+                val name = "DefaultStdout"
+                val appenderBuilder = newAppender(name, "Console")
+                    .addAttribute("target", "SYSTEM_OUT")
+                    .addAttribute("follow", false)
+                    .add(newLayout("PatternLayout").addAttribute("pattern", config.pattern.withColors()))
+                add(appenderBuilder)
+                name // Return the name to be referenced by Root
+            }
 
-            builder.add(appenderBuilder)
+            val appenderNames = config.appenderConfigs.map { it(builder) }
 
             if (isDebugMode) config.rootLevel = Level.DEBUG
-            builder.add(builder.newRootLogger(config.rootLevel)
-                .add(builder.newAppenderRef(appenderName)))
+            val root = builder.newRootLogger(config.rootLevel)
+            appenderNames.forEach { name -> root.add(builder.newAppenderRef(name)) }
+            builder.add(root)
 
             Configurator.reconfigure(builder.build())
 
