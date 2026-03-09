@@ -1,8 +1,9 @@
 rootProject.name = "axite"
 
-include(":commands")
 include(":api")
+include(":commands")
 include(":events")
+include(":logging")
 include(":networking")
 include(":vanadium")
 include(":processor")

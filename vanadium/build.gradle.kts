@@ -1,8 +1,6 @@
-import org.gradle.internal.os.OperatingSystem
-
 val lwjglVersion = "3.4.1"
 val jomlVersion = "1.10.8"
-val `joml-primitivesVersion` = "1.10.0"
+val jomlPrimitivesVersion = "1.10.0"
 
 val lwjglNatives = Pair(
     System.getProperty("os.name")!!,
@@ -31,6 +29,9 @@ val lwjglNatives = Pair(
 }
 
 dependencies {
+    implementation(project(":events"))
+    implementation(project(":logging"))
+
     implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
 
     implementation("org.lwjgl", "lwjgl")
@@ -52,5 +53,5 @@ dependencies {
     implementation ("org.lwjgl", "lwjgl-vma", classifier = lwjglNatives)
     if (lwjglNatives == "natives-macos-arm64") implementation ("org.lwjgl", "lwjgl-vulkan", classifier = lwjglNatives)
     implementation("org.joml", "joml", jomlVersion)
-    implementation("org.joml", "joml-primitives", `joml-primitivesVersion`)
+    implementation("org.joml", "joml-primitives", jomlPrimitivesVersion)
 }
