@@ -2,6 +2,7 @@ package github.businessdirt.axite.logging
 
 import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.core.config.Configurator
 import org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory
 import org.apache.logging.log4j.io.IoBuilder
 import java.lang.management.ManagementFactory
@@ -46,21 +47,26 @@ class LoggingConfigurator private constructor() {
             val config = LoggingConfigurator().apply(block)
 
             val builder = ConfigurationBuilderFactory.newConfigurationBuilder()
-
             val appenderName = "StdoutAppender"
+
             val appenderBuilder = builder.newAppender(appenderName, "Console")
                 .addAttribute("target", "SYSTEM_OUT")
-                .add(builder.newLayout("PatternLayout").addAttribute("pattern", config.pattern.withColors()))
+                .addAttribute("follow", false)
+                .add(builder.newLayout("PatternLayout")
+                    .addAttribute("pattern", config.pattern.withColors()))
 
             builder.add(appenderBuilder)
 
-            isDebugMode.let { config.rootLevel = Level.DEBUG }
-            builder.add(builder.newRootLogger(config.rootLevel).add(builder.newAppenderRef(appenderName)))
+            if (isDebugMode) config.rootLevel = Level.DEBUG
+            builder.add(builder.newRootLogger(config.rootLevel)
+                .add(builder.newAppenderRef(appenderName)))
+
+            Configurator.reconfigure(builder.build())
 
             config.applySystemProperties()
             config.applyStreams()
 
-            isDebugMode.let { logger.info("Debug mode detected: Root level set to DEBUG.") }
+            if (isDebugMode) logger.info("Debug mode detected: Root level set to DEBUG.")
         }
 
         private fun LoggingConfigurator.applySystemProperties() {

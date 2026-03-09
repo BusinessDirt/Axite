@@ -4,6 +4,7 @@ package github.businessdirt.axite.logging
  * A builder for Log4j2 patterns using a DSL syntax.
  * Allows for both colored and plain text patterns.
  */
+@Suppress("unused")
 class PatternBuilder {
 
     private val segments = mutableListOf<PatternSegment>()

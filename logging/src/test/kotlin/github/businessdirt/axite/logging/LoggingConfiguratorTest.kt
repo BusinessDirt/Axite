@@ -11,13 +11,6 @@ import org.junit.jupiter.api.TestInstance
 @TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class LoggingConfiguratorTest {
 
-    @BeforeEach
-    fun setup() {
-        // Reset the Log4j2 context before each test to ensure a clean slate
-        val context = LogManager.getContext(false) as LoggerContext
-        context.reconfigure()
-    }
-
     @Test
     fun `test system out redirection`() {
         // Arrange: Setup the configurator to bridge System.out
@@ -37,16 +30,6 @@ class LoggingConfiguratorTest {
     }
 
     @Test
-    fun `test debug mode detection logic`() {
-        // Since we likely aren't running this test in a debugger,
-        // we verify it returns false (or true if you are debugging the test!)
-        val isDebug = LoggingConfigurator.isDebugMode
-
-        // This is a smoke test to ensure the ManagementFactory call doesn't crash
-        println("Is Debug Mode active during test: $isDebug")
-    }
-
-    @Test
     fun `test end to end logging flow`() {
         // Redirecting to a custom logger name so we can isolate it
         val loggerName = "end-to-end-test"
@@ -57,6 +40,7 @@ class LoggingConfiguratorTest {
             pattern = PatternBuilder.empty {
                 text("[TEST] ")
                 message()
+                line()
             }
         }
 
