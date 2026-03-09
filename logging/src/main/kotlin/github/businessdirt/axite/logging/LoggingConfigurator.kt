@@ -42,35 +42,37 @@ class LoggingConfigurator private constructor() {
         fun configure(block: LoggingConfigurator.() -> Unit) {
             val config = LoggingConfigurator().apply(block)
 
-            applyCodeConfiguration(config)
+            // 1. Build the programmatic configuration
+            val builder = ConfigurationBuilderFactory.newConfigurationBuilder()
+
+            val appenderName = "StdoutAppender"
+            val appenderBuilder = builder.newAppender(appenderName, "Console")
+                .addAttribute("target", "SYSTEM_OUT")
+                .add(builder.newLayout("PatternLayout").addAttribute("pattern", config.pattern))
+
+            builder.add(appenderBuilder)
+
+            // Explicitly define loggers for the bridged streams to ensure correct levels
+            if (config.bridgeSysOut) {
+                builder.add(builder.newLogger(config.sysOutLoggerName, Level.INFO)
+                    .add(builder.newAppenderRef(appenderName))
+                    .addAttribute("additivity", false))
+            }
+
+            if (config.bridgeSysError) {
+                builder.add(builder.newLogger(config.sysErrorLoggerName, Level.ERROR)
+                    .add(builder.newAppenderRef(appenderName))
+                    .addAttribute("additivity", false))
+            }
+
+            builder.add(builder.newRootLogger(config.rootLevel).add(builder.newAppenderRef(appenderName)))
 
             config.applySystemProperties()
             config.applyStreams()
 
-            configureLogLevel()
-        }
-
-        /**
-         * Programmatically defines a Console Appender.
-         * This mirrors what you would usually do in log4j2.xml.
-         */
-        private fun applyCodeConfiguration(config: LoggingConfigurator) {
-            val builder = ConfigurationBuilderFactory.newConfigurationBuilder()
-
-            // Define a Console Appender
-            val appenderBuilder = builder.newAppender("Stdout", "Console")
-                .addAttribute("target", "SYSTEM_OUT")
-                .add(builder.newLayout("PatternLayout")
-                    .addAttribute("pattern", config.pattern))
-
-            builder.add(appenderBuilder)
-
-            // Setup Root Logger
-            builder.add(builder.newRootLogger(config.rootLevel)
-                .add(builder.newAppenderRef("Stdout")))
-
-            // Initialize/Override with this configuration
+            isDebugMode.let { Configurator.setRootLevel(Level.DEBUG) }
             Configurator.reconfigure(builder.build())
+            isDebugMode.let { logger.info("Debug mode detected: Root level set to DEBUG.") }
         }
 
         private fun LoggingConfigurator.applySystemProperties() {
@@ -95,15 +97,6 @@ class LoggingConfigurator private constructor() {
                         .buildPrintStream()
                 )
             }
-        }
-
-        /**
-         * Detects if a debugger is attached via JDWP and elevates the console log level to DEBUG.
-         */
-        fun configureLogLevel() = isDebugMode.let {
-            System.setProperty("consoleLevel", "DEBUG")
-            Configurator.reconfigure()
-            logger.info("Debug mode detected via JDWP: Log level set to DEBUG.")
         }
 
         /**
