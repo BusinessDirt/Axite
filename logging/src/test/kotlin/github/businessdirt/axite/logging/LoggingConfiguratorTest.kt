@@ -4,7 +4,6 @@ import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.core.LoggerContext
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 
@@ -50,5 +49,27 @@ class LoggingConfiguratorTest {
 
         val logger = LogManager.getLogger(loggerName)
         assertTrue(logger.isInfoEnabled, "Logger $loggerName should be enabled at INFO level")
+    }
+
+    @Test
+    fun `test custom appenders DSL`() {
+        LoggingConfigurator.configure {
+            appenders {
+                console("TestConsole")
+                file("TestFile", "build/test.log")
+                rollingFile("TestRolling", "build/rolling.log", "build/rolling-%d{MM-dd-yy}.log.gz") {
+                    size("5MB")
+                    time(1)
+                }
+            }
+        }
+
+        val ctx = LogManager.getContext(false) as LoggerContext
+        val config = ctx.configuration
+        val rootLogger = config.rootLogger
+
+        assertTrue(rootLogger.appenders.containsKey("TestConsole"), "Should contain TestConsole appender")
+        assertTrue(rootLogger.appenders.containsKey("TestFile"), "Should contain TestFile appender")
+        assertTrue(rootLogger.appenders.containsKey("TestRolling"), "Should contain TestRolling appender")
     }
 }

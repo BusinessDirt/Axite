@@ -39,13 +39,13 @@ class LoggingConfigurator private constructor() {
     var rootLevel: Level = Level.INFO
 
     private val appenderConfigs = mutableListOf<ConfigurationBuilder<*>.() -> String>()
+    private val appenderBlocks = mutableListOf<AppenderBuilder.() -> Unit>()
 
     /**
-     * Adds a custom appender to the configuration.
-     * The block should return the name of the appender so it can be attached to the Root logger.
+     * Adds custom appenders to the configuration using a DSL.
      */
-    fun appender(block: ConfigurationBuilder<*>.() -> String) {
-        appenderConfigs.add(block)
+    fun appenders(block: AppenderBuilder.() -> Unit) {
+        appenderBlocks.add(block)
     }
 
     companion object {
@@ -58,17 +58,15 @@ class LoggingConfigurator private constructor() {
             val config = LoggingConfigurator().apply(block)
             val builder = ConfigurationBuilderFactory.newConfigurationBuilder()
 
-            if (config.appenderConfigs.isEmpty()) config.appender {
-                val name = "DefaultStdout"
-                val appenderBuilder = newAppender(name, "Console")
-                    .addAttribute("target", "SYSTEM_OUT")
-                    .addAttribute("follow", false)
-                    .add(newLayout("PatternLayout").addAttribute("pattern", config.pattern.withColors()))
-                add(appenderBuilder)
-                name // Return the name to be referenced by Root
+            if (config.appenderConfigs.isEmpty() && config.appenderBlocks.isEmpty()) config.appenders {
+                console("DefaultStdout")
             }
 
-            val appenderNames = config.appenderConfigs.map { it(builder) }
+            val appenderBuilder = AppenderBuilder(builder, config.pattern)
+            config.appenderBlocks.forEach { it(appenderBuilder) }
+
+            val appenderNames = appenderBuilder.appenderNames.toMutableList()
+            appenderNames.addAll(config.appenderConfigs.map { it(builder) })
 
             if (isDebugMode) config.rootLevel = Level.DEBUG
             val root = builder.newRootLogger(config.rootLevel)
