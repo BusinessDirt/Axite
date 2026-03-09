@@ -54,7 +54,10 @@ class LoggingConfiguratorTest {
         LoggingConfigurator.configure {
             bridgeSysOut = true
             sysOutLoggerName = loggerName
-            pattern = "[TEST] %m"
+            pattern = PatternBuilder.empty {
+                text("[TEST] ")
+                message()
+            }
         }
 
         // If configured correctly, this string travels:

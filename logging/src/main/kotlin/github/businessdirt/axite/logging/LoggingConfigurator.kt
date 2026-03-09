@@ -30,7 +30,7 @@ class LoggingConfigurator private constructor() {
     /** The logger name used for System.err redirection. */
     var sysErrorLoggerName: String = "sys::err"
 
-    var pattern = "[%d{HH:mm:ss}] [%t/%level] (%c{1}%notEmpty{/%style{%marker}{bold,magenta}}): %highlight{%msg}{FATAL=red bright, ERROR=red, WARN=yellow, INFO=green, DEBUG=blue, TRACE=white}%n"
+    var pattern: PatternBuilder = PatternBuilder.fancy()
     var rootLevel: Level = Level.INFO
 
     companion object {
@@ -42,13 +42,12 @@ class LoggingConfigurator private constructor() {
         fun configure(block: LoggingConfigurator.() -> Unit) {
             val config = LoggingConfigurator().apply(block)
 
-            // 1. Build the programmatic configuration
             val builder = ConfigurationBuilderFactory.newConfigurationBuilder()
 
             val appenderName = "StdoutAppender"
             val appenderBuilder = builder.newAppender(appenderName, "Console")
                 .addAttribute("target", "SYSTEM_OUT")
-                .add(builder.newLayout("PatternLayout").addAttribute("pattern", config.pattern))
+                .add(builder.newLayout("PatternLayout").addAttribute("pattern", config.pattern.withColors()))
 
             builder.add(appenderBuilder)
 
