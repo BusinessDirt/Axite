@@ -55,3 +55,16 @@ dependencies {
     implementation("org.joml", "joml", jomlVersion)
     implementation("org.joml", "joml-primitives", jomlPrimitivesVersion)
 }
+
+sourceSets {
+    create("sandbox") {
+        kotlin.srcDir("src/sandbox/kotlin")
+        resources.srcDir("src/sandbox/resources")
+        // Allow sandbox to see the engine code
+        compileClasspath += sourceSets.main.get().output
+        runtimeClasspath += sourceSets.main.get().output
+    }
+}
+
+// Ensure sandbox gets the same dependencies as the engine
+configurations.getByName("sandboxImplementation").extendsFrom(configurations.getByName("implementation"))
