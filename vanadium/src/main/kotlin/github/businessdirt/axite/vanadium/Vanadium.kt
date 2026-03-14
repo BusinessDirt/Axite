@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory
 object Vanadium {
 
     private val logger: Logger by lazy { LoggerFactory.getLogger(Vanadium::class.java) }
-    private var window: Window? = null
 
     val time: Double
         get() = GLFW.glfwGetTime()
@@ -27,15 +26,20 @@ object Vanadium {
             configure(config)
             config.log(logger)
 
-            window = Window(config.applicationName)
-
+            val window = Window(config.applicationName)
             ::initialize.profile(logger)
 
-            while (!window!!.shouldClose) {
-                window!!.pollEvents()
+            try {
+                with(window) {
+                    while (!shouldClose) {
+                        pollEvents()
+                        update(0.0f)
+                    }
+                }
+            } finally {
+                ::shutdown.profile(logger)
+                window.shutdown()
             }
-
-            ::shutdown.profile(logger)
         }
     }
 
@@ -59,7 +63,7 @@ object Vanadium {
 }
 
 data class VanadiumConfig(
-    val applicationName: String = "Vanadium Application",
+    var applicationName: String = "Vanadium Application",
 ) {
     fun log(logger: Logger) {
         logger.info("")
@@ -74,6 +78,5 @@ interface VanadiumAdapter {
     fun configure(config: VanadiumConfig) {}
     fun initialize() {}
     fun update(deltaTime: Float) {}
-    fun input(deltaTime: Float) {}
     fun shutdown() {}
 }

@@ -1,8 +1,12 @@
 package github.businessdirt.axite.vanadium
 
 class VanadiumSandbox : VanadiumAdapter {
+
+    override fun configure(config: VanadiumConfig) {
+        config.applicationName = "Sandbox"
+    }
+
     override fun initialize() {}
     override fun update(deltaTime: Float) {}
-    override fun input(deltaTime: Float) {}
     override fun shutdown() {}
 }
