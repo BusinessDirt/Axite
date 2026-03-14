@@ -23,6 +23,9 @@ object Vanadium {
 
         with(gameProvider()) {
             ::initialize.profile(logger)
+
+
+
             ::shutdown.profile(logger)
         }
     }
