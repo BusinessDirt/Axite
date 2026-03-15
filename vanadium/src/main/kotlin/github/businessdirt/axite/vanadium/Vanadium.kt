@@ -3,6 +3,7 @@ package github.businessdirt.axite.vanadium
 import github.businessdirt.axite.events.EventBus
 import github.businessdirt.axite.logging.LoggingConfigurator
 import github.businessdirt.axite.logging.PatternBuilder
+import github.businessdirt.axite.vanadium.math.Resolution
 import github.businessdirt.axite.vanadium.platform.Window
 import github.businessdirt.axite.vanadium.utils.profile
 import org.lwjgl.glfw.GLFW
@@ -26,7 +27,7 @@ object Vanadium {
             configure(config)
             config.log(logger)
 
-            val window = Window(config.applicationName)
+            val window = Window(config)
             ::initialize.profile(logger)
 
             try {
@@ -64,11 +65,13 @@ object Vanadium {
 
 data class VanadiumConfig(
     var applicationName: String = "Vanadium Application",
+    var resolution: Resolution = Resolution(1280, 720),
 ) {
     fun log(logger: Logger) {
         logger.info("")
         logger.info("=== Vanadium Config ===")
         logger.info("Application Name: $applicationName")
+        logger.info("Resolution: $resolution")
         logger.info("=======================")
         logger.info("")
     }

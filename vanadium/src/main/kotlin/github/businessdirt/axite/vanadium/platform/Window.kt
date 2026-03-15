@@ -1,11 +1,13 @@
 package github.businessdirt.axite.vanadium.platform
 
+import github.businessdirt.axite.vanadium.VanadiumConfig
 import github.businessdirt.axite.vanadium.events.glfw.KeyPressedEvent
 import github.businessdirt.axite.vanadium.events.glfw.KeyReleasedEvent
 import github.businessdirt.axite.vanadium.events.glfw.MouseMovedEvent
 import github.businessdirt.axite.vanadium.events.glfw.MousePressedEvent
 import github.businessdirt.axite.vanadium.events.glfw.MouseReleasedEvent
 import github.businessdirt.axite.vanadium.events.glfw.WindowResizedEvent
+import github.businessdirt.axite.vanadium.math.Resolution
 import org.lwjgl.glfw.Callbacks.glfwFreeCallbacks
 import org.lwjgl.glfw.GLFW.GLFW_CLIENT_API
 import org.lwjgl.glfw.GLFW.GLFW_FALSE
@@ -32,7 +34,7 @@ import org.lwjgl.glfw.GLFW.glfwWindowShouldClose
 import org.lwjgl.glfw.GLFWVulkan.glfwVulkanSupported
 import org.lwjgl.system.MemoryUtil.NULL
 
-class Window(title: String) {
+class Window(config: VanadiumConfig) {
 
     val handle: Long
 
@@ -49,18 +51,21 @@ class Window(title: String) {
         check(glfwInit()) { "Unable to initialize GLFW" }
         check(glfwVulkanSupported()) { "Cannot find a compatible Vulkan installable client driver (ICD)" }
 
-        val vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor())
-            ?: error("Error getting primary monitor")
+        if (config.resolution.isInvalid) {
+            val vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor())
+                ?: error("Error getting primary monitor")
+            config.resolution = Resolution(vidMode.width(), vidMode.height())
+        }
 
-        width = vidMode.width()
-        height = vidMode.height()
+        width = config.resolution.width
+        height = config.resolution.height
 
         glfwDefaultWindowHints()
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API)
         glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE)
 
         // Create the window
-        handle = glfwCreateWindow(width, height, title, NULL, NULL)
+        handle = glfwCreateWindow(width, height, config.applicationName, NULL, NULL)
         check(handle != NULL) { "Failed to create the GLFW window" }
 
         // Window Resize
