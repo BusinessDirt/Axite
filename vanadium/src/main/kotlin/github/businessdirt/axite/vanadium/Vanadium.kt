@@ -3,8 +3,10 @@ package github.businessdirt.axite.vanadium
 import github.businessdirt.axite.events.EventBus
 import github.businessdirt.axite.logging.LoggingConfigurator
 import github.businessdirt.axite.logging.PatternBuilder
+import github.businessdirt.axite.vanadium.graph.RenderGraph
 import github.businessdirt.axite.vanadium.math.Resolution
 import github.businessdirt.axite.vanadium.platform.Window
+import github.businessdirt.axite.vanadium.scene.Scene
 import github.businessdirt.axite.vanadium.utils.profile
 import org.lwjgl.glfw.GLFW
 import org.slf4j.Logger
@@ -17,30 +19,50 @@ object Vanadium {
     val time: Double
         get() = GLFW.glfwGetTime()
 
+    var scene: Scene? = null
+
     fun launch(gameProvider: () -> VanadiumAdapter) {
 
         this::configureLogging.profile(logger)
         EventBus::initialize.profile(logger)
 
-        with(gameProvider()) {
-            val config = VanadiumConfig()
-            configure(config)
-            config.log(logger)
+        val config = VanadiumConfig()
+        with(gameProvider()) { run(config) }
+    }
 
-            val window = Window(config)
+    private fun VanadiumAdapter.run(config: VanadiumConfig) {
+        configure(config)
+        config.log(logger)
+
+        val timePerUpdate = 1_000_000_000.0 / config.updatesPerSecond
+        var previousTime = System.nanoTime()
+        var accumulator = 0.0
+
+        Window(config).use { window ->
             ::initialize.profile(logger)
 
-            try {
-                with(window) {
-                    while (!shouldClose) {
-                        pollEvents()
-                        update(0.0f)
-                    }
+            while (!window.shouldClose) {
+                val currentTime = System.nanoTime()
+                val frameTime = currentTime - previousTime
+                previousTime = currentTime
+
+                // Add the fraction of an update that this frame time represents
+                accumulator += frameTime / timePerUpdate
+
+                window.pollEvents()
+
+                while (accumulator >= 1.0) {
+                    val fixedDeltaMillis = (timePerUpdate / 1_000_000).toLong()
+                    update(fixedDeltaMillis)
+
+                    accumulator--
                 }
-            } finally {
-                ::shutdown.profile(logger)
-                window.shutdown()
+
+                RenderGraph.render()
             }
+
+            ::shutdown.profile(logger)
+            RenderGraph.shutdown()
         }
     }
 
@@ -65,7 +87,8 @@ object Vanadium {
 
 data class VanadiumConfig(
     var applicationName: String = "Vanadium Application",
-    var resolution: Resolution = Resolution(1280, 720),
+    var resolution: Resolution = Resolution(0, 0),
+    var updatesPerSecond: Int = 30,
 ) {
     fun log(logger: Logger) {
         logger.info("")
@@ -80,6 +103,6 @@ data class VanadiumConfig(
 interface VanadiumAdapter {
     fun configure(config: VanadiumConfig) {}
     fun initialize() {}
-    fun update(deltaTime: Float) {}
+    fun update(deltaTime: Long) {}
     fun shutdown() {}
 }

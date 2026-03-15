@@ -34,7 +34,7 @@ import org.lwjgl.glfw.GLFW.glfwWindowShouldClose
 import org.lwjgl.glfw.GLFWVulkan.glfwVulkanSupported
 import org.lwjgl.system.MemoryUtil.NULL
 
-class Window(config: VanadiumConfig) {
+class Window(config: VanadiumConfig) : AutoCloseable {
 
     val handle: Long
 
@@ -100,7 +100,7 @@ class Window(config: VanadiumConfig) {
 
     fun pollEvents() = glfwPollEvents()
 
-    fun shutdown() {
+    override fun close() {
         glfwFreeCallbacks(handle)
         glfwDestroyWindow(handle)
         glfwTerminate()

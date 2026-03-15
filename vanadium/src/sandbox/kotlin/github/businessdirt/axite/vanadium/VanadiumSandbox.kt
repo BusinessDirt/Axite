@@ -7,6 +7,6 @@ class VanadiumSandbox : VanadiumAdapter {
     }
 
     override fun initialize() {}
-    override fun update(deltaTime: Float) {}
+    override fun update(deltaTime: Long) {}
     override fun shutdown() {}
 }
