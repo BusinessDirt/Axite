@@ -39,6 +39,7 @@ object Vanadium {
         var accumulator = 0.0
 
         Window(config).use { window ->
+            RenderGraph.initialize(config)
             ::initialize.profile(logger)
 
             while (!window.shouldClose) {
@@ -89,6 +90,7 @@ data class VanadiumConfig(
     var applicationName: String = "Vanadium Application",
     var resolution: Resolution = Resolution(0, 0),
     var updatesPerSecond: Int = 30,
+    var validate: Boolean = true
 ) {
     fun log(logger: Logger) {
         logger.info("")

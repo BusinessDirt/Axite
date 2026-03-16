@@ -1,3 +1,5 @@
+import org.gradle.internal.os.OperatingSystem
+
 val lwjglVersion = "3.4.1"
 val jomlVersion = "1.10.8"
 val jomlPrimitivesVersion = "1.10.0"
@@ -66,5 +68,31 @@ sourceSets {
     }
 }
 
-// Ensure sandbox gets the same dependencies as the engine
-configurations.getByName("sandboxImplementation").extendsFrom(configurations.getByName("implementation"))
+configurations {
+    named("sandboxImplementation") { extendsFrom(configurations.implementation.get()) }
+    named("sandboxRuntimeOnly") { extendsFrom(configurations.runtimeOnly.get()) }
+}
+
+tasks.register<JavaExec>("run") {
+    group = "application"
+    description = "Runs the Vulkan Engine with OS-specific LWJGL and LunarG SDK configurations"
+    mainClass.set("github.businessdirt.axite.vanadium.MainKt")
+    classpath = sourceSets["sandbox"].runtimeClasspath
+
+    if (OperatingSystem.current().isMacOsX) {
+        println("⚙️  Configuring Vulkan Environment for macOS...")
+
+        jvmArgs(
+            "-XstartOnFirstThread",
+            "--enable-native-access=ALL-UNNAMED",
+            "-Dorg.lwjgl.vulkan.libname=libvulkan.1.dylib"
+        )
+
+    } else {
+        println("⚙️  Configuring Vulkan Environment for Windows/Linux...")
+
+        jvmArgs(
+            "--enable-native-access=ALL-UNNAMED"
+        )
+    }
+}
