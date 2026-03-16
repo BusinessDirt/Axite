@@ -7,7 +7,7 @@ import github.businessdirt.axite.vanadium.utils.VulkanUtils.PORTABILITY_EXTENSIO
 import org.lwjgl.PointerBuffer
 import org.lwjgl.glfw.GLFWVulkan
 import org.lwjgl.vulkan.EXTDebugUtils.VK_EXT_DEBUG_UTILS_EXTENSION_NAME
-import org.lwjgl.vulkan.VK10.vkCreateInstance
+import org.lwjgl.vulkan.VK13.vkCreateInstance
 import org.lwjgl.vulkan.VK13.VK_API_VERSION_1_3
 import org.lwjgl.vulkan.VK13.vkDestroyInstance
 import org.lwjgl.vulkan.VkApplicationInfo

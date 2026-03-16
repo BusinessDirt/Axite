@@ -3,7 +3,7 @@ package github.businessdirt.axite.vanadium.platform.vulkan
 import github.businessdirt.axite.vanadium.utils.memoryStack
 import github.businessdirt.axite.vanadium.utils.vkCheck
 import org.lwjgl.vulkan.EXTDebugUtils.*
-import org.lwjgl.vulkan.VK10.VK_FALSE
+import org.lwjgl.vulkan.VK13.VK_FALSE
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCallbackDataEXT
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCallbackEXT
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCreateInfoEXT

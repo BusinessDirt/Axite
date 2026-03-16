@@ -39,7 +39,7 @@ object Vanadium {
         var accumulator = 0.0
 
         Window(config).use { window ->
-            RenderGraph.initialize(config)
+            RenderGraph.initialize(window, config)
             ::initialize.profile(logger)
 
             while (!window.shouldClose) {

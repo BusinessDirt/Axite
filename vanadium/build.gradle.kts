@@ -1,4 +1,5 @@
 import org.gradle.internal.os.OperatingSystem
+import org.gradle.api.NamedDomainObjectContainer
 
 val lwjglVersion = "3.4.1"
 val jomlVersion = "1.10.8"
