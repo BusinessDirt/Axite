@@ -52,7 +52,7 @@ object VulkanUtils {
 
             val supportedLayers = (0 until count).map { i ->
                 val layerName = propsBuf[i].layerNameString()
-                logger.debug("Supported layer [{}]", layerName)
+                logger.debug("{}{}", if (i == count - 1) "└── " else "├── ", layerName)
                 layerName
             }
 
@@ -68,15 +68,37 @@ object VulkanUtils {
             vkEnumerateInstanceExtensionProperties(null as CharSequence?, pPropertyCount, null)
 
             val count = pPropertyCount[0]
-            logger.debug("Instance supports [{}] extensions", count)
+            logger.debug("Instance supports [{}] extensions:", count)
 
             val propsBuf = VkExtensionProperties.malloc(count, stack)
             vkEnumerateInstanceExtensionProperties(null as CharSequence?, pPropertyCount, propsBuf)
 
             return@memoryStack (0 until count).map { i ->
                 val extensionName = propsBuf[i].extensionNameString()
-                logger.debug("Supported instance extension [{}]", extensionName)
+                logger.debug("{}{}", if (i == count - 1) "└── " else "├── ", extensionName)
                 extensionName
             }.toSet()
         }
+}
+
+/**
+ * Decodes a 32-bit Vulkan version integer into a human-readable string.
+ */
+fun Int.decodeVersion(): String {
+    val major = (this shr 22) and 0x7F
+    val minor = (this shr 12) and 0x3FF
+    val patch = this and 0xFFF
+    return "$major.$minor.$patch"
+}
+
+/**
+ * Maps the VkPhysicalDeviceType integer to its readable enum name.
+ */
+fun Int.decodeDeviceType(): String = when (this) {
+    0 -> "OTHER"
+    1 -> "INTEGRATED_GPU"
+    2 -> "DISCRETE_GPU"
+    3 -> "VIRTUAL_GPU"
+    4 -> "CPU"
+    else -> "UNKNOWN_TYPE ($this)"
 }

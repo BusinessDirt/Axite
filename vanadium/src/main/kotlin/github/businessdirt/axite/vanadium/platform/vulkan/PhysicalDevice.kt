@@ -1,6 +1,9 @@
 package github.businessdirt.axite.vanadium.platform.vulkan
 
 import github.businessdirt.axite.vanadium.platform.vulkan.PhysicalDevice.Companion.REQUIRED_EXTENSIONS
+import github.businessdirt.axite.vanadium.utils.debugTree
+import github.businessdirt.axite.vanadium.utils.decodeDeviceType
+import github.businessdirt.axite.vanadium.utils.decodeVersion
 import github.businessdirt.axite.vanadium.utils.memoryStack
 import github.businessdirt.axite.vanadium.utils.vkCheck
 import org.lwjgl.PointerBuffer
@@ -93,9 +96,7 @@ class PhysicalDevice(
 }
 
 fun Instance.pickPhysicalDevice(): PhysicalDevice = memoryStack { stack ->
-    logger.debug("Selecting physical devices")
-
-    val pPhysicalDevices = this.getPhysicalDevices(stack)
+    val pPhysicalDevices: PointerBuffer = this.getPhysicalDevices(stack)
     val allDevices = (0 until pPhysicalDevices.capacity()).map { i ->
         // We pass 'this.vkInstance' directly
         PhysicalDevice(VkPhysicalDevice(pPhysicalDevices[i], this@pickPhysicalDevice.handle))
@@ -113,9 +114,7 @@ fun Instance.pickPhysicalDevice(): PhysicalDevice = memoryStack { stack ->
 
     invalidDevices.forEach { it.destroy() }
 
-    if (validDevices.isEmpty()) {
-        error("No suitable physical devices found")
-    }
+    check(validDevices.isNotEmpty()) { "No suitable physical devices found" }
 
     val sortedDevices = validDevices.sortedByDescending { device ->
         when {
@@ -124,8 +123,19 @@ fun Instance.pickPhysicalDevice(): PhysicalDevice = memoryStack { stack ->
         }
     }
 
-    val winner = sortedDevices.first()
-    logger.debug("Selected device: [{}]", winner.deviceName)
+    val winner: PhysicalDevice = sortedDevices.first()
+    logger.debug("Selected device: {} ({})", winner.deviceName, winner.properties.properties().deviceType().decodeDeviceType())
+    logger.debug("├── API Version: {}", winner.properties.properties().apiVersion().decodeVersion())
+    logger.debug("├── Driver Version: {}", winner.properties.properties().driverVersion().decodeVersion())
+    logger.debug("├── Device ID: {}", winner.properties.properties().deviceID())
+    winner.properties.properties().limits().debugTree("├── Limits") {
+        val prefix = if (it.contains("Limits")) "" else "│   "
+        logger.debug("$prefix$it")
+    }
+    winner.features.debugTree("└── Features") {
+        val prefix = if (it.contains("Features")) "" else "    "
+        logger.debug("$prefix$it")
+    }
 
     sortedDevices.drop(1).forEach { it.destroy() }
 
@@ -140,7 +150,7 @@ private fun Instance.getPhysicalDevices(stack: MemoryStack): PointerBuffer {
     }
 
     val deviceCount = pDeviceCount[0]
-    logger.debug("Detected {} physical device(s)", deviceCount)
+    logger.debug("Detected {} physical device{}", deviceCount, if (deviceCount > 1) "s" else "")
 
     val pPhysicalDevices = stack.mallocPointer(deviceCount)
     vkCheck(vkEnumeratePhysicalDevices(this.handle, pDeviceCount, pPhysicalDevices)) {
