@@ -33,7 +33,7 @@ class CommandBuffer(
 
     }
 
-    fun beginRecording(inheritanceInfo: InheritanceInfo? = null) = memoryStack { stack ->
+    fun begin(inheritanceInfo: InheritanceInfo? = null) = memoryStack { stack ->
         val commandBufferBeginInfo = VkCommandBufferBeginInfo.calloc(stack).`sType$Default`()
         if (oneTimeSubmit) commandBufferBeginInfo.flags(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT)
 
@@ -58,7 +58,7 @@ class CommandBuffer(
         }
     }
 
-    fun endRecording() = vkCheck(vkEndCommandBuffer(handle)) { "Failed to end command buffer" }
+    fun end() = vkCheck(vkEndCommandBuffer(handle)) { "Failed to end command buffer" }
     fun reset() = vkResetCommandBuffer(handle, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT)
 
     /**
@@ -67,13 +67,15 @@ class CommandBuffer(
     inline fun record(
         inheritanceInfo: InheritanceInfo? = null,
         block: CommandBuffer.() -> Unit
-    ) {
-        beginRecording(inheritanceInfo)
+    ): CommandBuffer {
+        begin(inheritanceInfo)
         try {
             this.block()
         } finally {
-            endRecording()
+            end()
         }
+
+        return this
     }
 
     fun submitAndWait(device: Device, queue: DeviceQueue) {

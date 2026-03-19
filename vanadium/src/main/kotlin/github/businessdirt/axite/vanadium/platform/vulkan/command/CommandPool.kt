@@ -9,7 +9,7 @@ import org.lwjgl.vulkan.VkCommandPoolCreateInfo
 
 class CommandPool(
     queueFamilyIndex: Int,
-    supportReset: Boolean,
+    supportReset: Boolean = false,
 ) : VulkanHandle<Long>() {
 
     override val handle: Long = memoryStack { stack ->

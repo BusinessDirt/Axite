@@ -3,6 +3,7 @@ package github.businessdirt.axite.vanadium.utils
 import org.lwjgl.PointerBuffer
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.Struct
+import org.lwjgl.vulkan.VK10.VK_SUCCESS
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.nio.DoubleBuffer
@@ -104,4 +105,13 @@ inline fun MemoryStack.getPointer(
     val pp = mallocPointer(1)
     block(pp)
     return pp[0]
+}
+
+/**
+ * Allocates a temporary IntBuffer, executes a block, and returns the first value.
+ */
+inline fun MemoryStack.getInt(block: (IntBuffer) -> Unit): Int {
+    val ib = this.mallocInt(1)
+    block(ib)
+    return ib[0]
 }

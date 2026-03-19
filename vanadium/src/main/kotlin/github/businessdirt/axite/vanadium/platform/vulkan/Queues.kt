@@ -9,15 +9,14 @@ import org.lwjgl.vulkan.VK13.*
 
 
 sealed class DeviceQueue(
-    deviceHandle: VkDevice,
     queueIndex: Int = 0
 ) : VulkanHandle<VkQueue>() {
 
     abstract val queueFamilyIndex: Int
 
     override val handle: VkQueue = memoryStack { stack ->
-        val queueHandle = stack.getPointer { vkGetDeviceQueue(deviceHandle, queueFamilyIndex, queueIndex, it)  }
-        VkQueue(queueHandle, deviceHandle)
+        val queueHandle = stack.getPointer { vkGetDeviceQueue(Context.device.handle, queueFamilyIndex, queueIndex, it)  }
+        VkQueue(queueHandle, Context.device.handle)
     }
 
     fun submit(
@@ -43,17 +42,34 @@ sealed class DeviceQueue(
 }
 
 class GraphicsQueue(
-    physicalDevice: PhysicalDevice,
-    deviceHandle: VkDevice,
     queueIndex: Int = 0
-) : DeviceQueue(deviceHandle, queueIndex) {
+) : DeviceQueue( queueIndex) {
 
-    override val queueFamilyIndex: Int = physicalDevice.queueFamilyProperties.use { queueProps ->
+    override val queueFamilyIndex: Int = Context.physicalDevice.queueFamilyProperties.use { queueProps ->
         val index = (0 until queueProps.capacity()).indexOfFirst { i ->
             (queueProps[i].queueFlags() and VK_QUEUE_GRAPHICS_BIT) != 0
         }
 
         check(index >= 0) { "Failed to get graphics Queue family index" }
         index
+    }
+}
+
+class PresentQueue(
+    queueIndex: Int = 0
+) : DeviceQueue(queueIndex) {
+    override val queueFamilyIndex: Int = memoryStack { stack ->
+        val physicalDevice = Context.physicalDevice
+        val pSupported = stack.mallocInt(1)
+
+        (0..< physicalDevice.queueFamilyProperties.capacity()).firstOrNull { i ->
+            KHRSurface.vkGetPhysicalDeviceSurfaceSupportKHR(
+                physicalDevice.handle,
+                i,
+                Context.surface.handle,
+                pSupported
+            )
+            pSupported[0] == VK_TRUE
+        } ?: throw RuntimeException("Failed to get Presentation Queue family index")
     }
 }

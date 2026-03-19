@@ -1,8 +1,12 @@
 package github.businessdirt.axite.vanadium.utils
 
+import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.VK13
 import org.lwjgl.vulkan.VK13.*
+import org.lwjgl.vulkan.VkCommandBuffer
+import org.lwjgl.vulkan.VkDependencyInfo
 import org.lwjgl.vulkan.VkExtensionProperties
+import org.lwjgl.vulkan.VkImageMemoryBarrier2
 import org.lwjgl.vulkan.VkLayerProperties
 import org.slf4j.LoggerFactory
 import java.lang.reflect.Modifier
@@ -98,4 +102,37 @@ fun Int.decodeDeviceType(): String = when (this) {
     3 -> "VIRTUAL_GPU"
     4 -> "CPU"
     else -> "UNKNOWN_TYPE ($this)"
+}
+
+fun MemoryStack.imageBarrier(
+    cmdHandle: VkCommandBuffer,
+    image: Long,
+    oldLayout: Int,
+    newLayout: Int,
+    srcStage: Long,
+    dstStage: Long,
+    srcAccess: Long,
+    dstAccess: Long,
+    aspectMask: Int
+) {
+    val imageBarrier = VkImageMemoryBarrier2.calloc(1, this).`sType$Default`()
+        .oldLayout(oldLayout)
+        .newLayout(newLayout)
+        .srcStageMask(srcStage)
+        .dstStageMask(dstStage)
+        .srcAccessMask(srcAccess)
+        .dstAccessMask(dstAccess)
+        .srcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+        .dstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+        .image(image)
+        .subresourceRange { it
+            .aspectMask(aspectMask)
+            .baseMipLevel(0)
+            .levelCount(VK_REMAINING_MIP_LEVELS)
+            .baseArrayLayer(0)
+            .layerCount(VK_REMAINING_ARRAY_LAYERS)
+        }
+
+    val dependencyInfo = VkDependencyInfo.calloc(this).`sType$Default`().pImageMemoryBarriers(imageBarrier)
+    vkCmdPipelineBarrier2(cmdHandle, dependencyInfo)
 }

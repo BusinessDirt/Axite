@@ -11,6 +11,9 @@ import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkDevice
 import org.lwjgl.vulkan.VkDeviceCreateInfo
 import org.lwjgl.vulkan.VkDeviceQueueCreateInfo
+import org.lwjgl.vulkan.VkPhysicalDeviceFeatures
+import org.lwjgl.vulkan.VkPhysicalDeviceFeatures2
+import org.lwjgl.vulkan.VkPhysicalDeviceVulkan13Features
 
 
 class Device(
@@ -27,14 +30,20 @@ class Device(
             val queueCount = queueProps[i].queueCount()
             val priorities = stack.callocFloat(queueCount)
 
-            queueCreationInfos[i]
-                .`sType$Default`()
+            queueCreationInfos[i].`sType$Default`()
                 .queueFamilyIndex(i)
                 .pQueuePriorities(priorities)
         }
 
-        val deviceCreateInfo: VkDeviceCreateInfo = VkDeviceCreateInfo.calloc(stack)
-            .`sType$Default`()
+        val features13 = VkPhysicalDeviceVulkan13Features.calloc(stack).`sType$Default`()
+            .dynamicRendering(true)
+            .synchronization2(true)
+
+        val features2 = VkPhysicalDeviceFeatures2.calloc(stack).`sType$Default`()
+            .pNext(features13.address())
+
+        val deviceCreateInfo: VkDeviceCreateInfo = VkDeviceCreateInfo.calloc(stack).`sType$Default`()
+            .pNext(features2.address())
             .ppEnabledExtensionNames(reqExtensions)
             .pQueueCreateInfos(queueCreationInfos)
 
