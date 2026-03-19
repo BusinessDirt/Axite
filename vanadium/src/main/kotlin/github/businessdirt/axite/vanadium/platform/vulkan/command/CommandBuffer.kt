@@ -78,7 +78,7 @@ class CommandBuffer(
         return this
     }
 
-    fun submitAndWait(device: Device, queue: DeviceQueue) {
+    fun submitAndWait(queue: DeviceQueue) {
         val fence = Fence(false)
 
         memoryStack { stack ->

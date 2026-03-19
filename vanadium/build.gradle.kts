@@ -69,6 +69,10 @@ sourceSets {
     }
 }
 
+tasks.named<ProcessResources>("processSandboxResources") {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
 configurations {
     named("sandboxImplementation") { extendsFrom(configurations.implementation.get()) }
     named("sandboxRuntimeOnly") { extendsFrom(configurations.runtimeOnly.get()) }

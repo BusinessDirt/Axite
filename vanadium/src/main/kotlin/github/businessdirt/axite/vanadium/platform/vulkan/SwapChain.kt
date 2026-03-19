@@ -4,7 +4,6 @@ import github.businessdirt.axite.vanadium.platform.Window
 import github.businessdirt.axite.vanadium.platform.vulkan.resources.ImageView
 import github.businessdirt.axite.vanadium.platform.vulkan.synchronization.Semaphore
 import github.businessdirt.axite.vanadium.utils.createHandle
-import github.businessdirt.axite.vanadium.utils.getInt
 import github.businessdirt.axite.vanadium.utils.memoryStack
 import github.businessdirt.axite.vanadium.utils.vkCheck
 import org.lwjgl.system.MemoryStack
@@ -25,7 +24,7 @@ class SwapChain(
     vsync: Boolean
 ) : VulkanHandle<Long>() {
 
-    val swapChainExtent: VkExtent2D = surface.surfaceCaps.calculateSwapChainExtent(window)
+    val extent: VkExtent2D = surface.surfaceCaps.calculateSwapChainExtent(window)
 
     override val handle: Long = memoryStack { stack ->
         val surfaceCaps = surface.surfaceCaps
@@ -36,7 +35,7 @@ class SwapChain(
             .minImageCount(surfaceCaps.calculateNumberOfImages(requestedImages))
             .imageFormat(surfaceFormat.imageFormat)
             .imageColorSpace(surfaceFormat.colorSpace)
-            .imageExtent(swapChainExtent)
+            .imageExtent(extent)
             .imageArrayLayers(1)
             .imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
             .preTransform(surfaceCaps.currentTransform())
@@ -119,7 +118,7 @@ class SwapChain(
     }
 
     override fun destroy() {
-        swapChainExtent.free()
+        extent.free()
         imageViews.forEach { it.cleanup() }
         vkDestroySwapchainKHR(Context.device.handle, handle, null)
     }

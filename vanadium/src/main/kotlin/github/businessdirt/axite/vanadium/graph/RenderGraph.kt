@@ -1,5 +1,6 @@
 package github.businessdirt.axite.vanadium.graph
 
+import github.businessdirt.axite.vanadium.InitData
 import github.businessdirt.axite.vanadium.VanadiumConfig
 import github.businessdirt.axite.vanadium.graph.scene.SceneRenderGraph
 import github.businessdirt.axite.vanadium.platform.Window
@@ -16,8 +17,11 @@ import org.lwjgl.vulkan.VK13.VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
 import org.lwjgl.vulkan.VK13.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
 import org.lwjgl.vulkan.VkCommandBufferSubmitInfo
 import org.lwjgl.vulkan.VkSemaphoreSubmitInfo
+import org.slf4j.LoggerFactory
 
 object RenderGraph {
+
+    private val logger = LoggerFactory.getLogger(this::class.java)
 
     // Frame-specific synchronization and command resources
     private lateinit var commandPools: List<CommandPool>
@@ -33,8 +37,9 @@ object RenderGraph {
     private var isInitialized = false
 
     private lateinit var sceneRenderGraph: SceneRenderGraph
+    private lateinit var modelCache: ModelCache
 
-    fun initialize(window: Window, config: VanadiumConfig) {
+    fun initialize(window: Window, config: VanadiumConfig, initData: InitData) {
         if (isInitialized) return
 
         Context.initialize(window, config)
@@ -62,7 +67,13 @@ object RenderGraph {
             Semaphore()
         }
 
-        sceneRenderGraph = SceneRenderGraph()
+        sceneRenderGraph = SceneRenderGraph(config)
+
+        modelCache = ModelCache()
+        logger.debug("Loading {} model(s)", initData.models.size)
+        modelCache.loadModels(initData.models, commandPools[0], graphicsQueue)
+        logger.debug("Loaded {} model(s)", initData.models.size)
+
         isInitialized = true
     }
 
@@ -81,7 +92,7 @@ object RenderGraph {
         val commandBuffer = commandBuffers[currentFrame]
 
         commandBuffer.record {
-            sceneRenderGraph.render(this, imageIndex)
+            sceneRenderGraph.render(this, modelCache, imageIndex)
         }
 
         // Submit to Graphics Queue
@@ -116,6 +127,7 @@ object RenderGraph {
 
         Context.device.waitIdle()
 
+        modelCache.cleanup()
         sceneRenderGraph.cleanup()
 
         // Clean up frame resources

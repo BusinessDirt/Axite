@@ -3,6 +3,7 @@ package github.businessdirt.axite.vanadium
 import github.businessdirt.axite.events.EventBus
 import github.businessdirt.axite.logging.LoggingConfigurator
 import github.businessdirt.axite.logging.PatternBuilder
+import github.businessdirt.axite.vanadium.assets.model.ModelData
 import github.businessdirt.axite.vanadium.graph.RenderGraph
 import github.businessdirt.axite.vanadium.math.Resolution
 import github.businessdirt.axite.vanadium.platform.Window
@@ -42,8 +43,9 @@ object Vanadium {
         var accumulator = 0.0
 
         Window(config).use { window ->
-            RenderGraph.initialize(window, config)
-            ::initialize.profile(logger)
+            val initData: InitData = ::initialize.profile(logger)
+            RenderGraph.initialize(window, config, initData)
+
 
             while (!window.shouldClose) {
                 val currentTime = System.nanoTime()
@@ -96,6 +98,7 @@ data class VanadiumConfig(
     var validate: Boolean = true,
     var requestedImages: Int = 3,
     var vsync: Boolean = true,
+    var recompileShaders: Boolean = true,
 ) {
     fun log(logger: Logger) = logger.atInfo().log(title = "Vanadium Configuration") {
         val fields = this@VanadiumConfig.javaClass.declaredFields
@@ -113,7 +116,11 @@ data class VanadiumConfig(
 
 interface VanadiumAdapter {
     fun configure(config: VanadiumConfig) {}
-    fun initialize() {}
+    fun initialize(): InitData
     fun update(deltaTime: Long) {}
     fun shutdown() {}
 }
+
+data class InitData(
+    val models: List<ModelData>
+)

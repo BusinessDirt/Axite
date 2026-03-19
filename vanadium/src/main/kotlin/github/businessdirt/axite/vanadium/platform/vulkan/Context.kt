@@ -2,6 +2,7 @@ package github.businessdirt.axite.vanadium.platform.vulkan
 
 import github.businessdirt.axite.vanadium.VanadiumConfig
 import github.businessdirt.axite.vanadium.platform.Window
+import github.businessdirt.axite.vanadium.platform.vulkan.pipeline.PipelineCache
 
 object Context {
 
@@ -23,6 +24,9 @@ object Context {
     lateinit var swapChain: SwapChain
         private set
 
+    lateinit var pipelineCache: PipelineCache
+        private set
+
     fun initialize(window: Window, config: VanadiumConfig) {
         check(!this::instance.isInitialized) { "Vulkan Context is already initialized!" }
 
@@ -32,11 +36,13 @@ object Context {
         device = Device(physicalDevice)
         surface = Surface(physicalDevice, instance, window.handle)
         swapChain = SwapChain(window, device, surface, config.requestedImages, config.vsync)
+        pipelineCache = PipelineCache(device)
     }
 
     fun shutdown() {
         if (!this::instance.isInitialized) return
 
+        pipelineCache.cleanup()
         swapChain.cleanup()
         surface.cleanup()
         device.cleanup()
