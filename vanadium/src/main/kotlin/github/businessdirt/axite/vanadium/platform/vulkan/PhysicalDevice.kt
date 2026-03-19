@@ -112,7 +112,7 @@ fun Instance.pickPhysicalDevice(): PhysicalDevice = memoryStack { stack ->
         hasGraphics && hasExtensions
     }
 
-    invalidDevices.forEach { it.destroy() }
+    invalidDevices.forEach { it.cleanup() }
 
     check(validDevices.isNotEmpty()) { "No suitable physical devices found" }
 
@@ -137,7 +137,7 @@ fun Instance.pickPhysicalDevice(): PhysicalDevice = memoryStack { stack ->
         logger.debug("$prefix$it")
     }
 
-    sortedDevices.drop(1).forEach { it.destroy() }
+    sortedDevices.drop(1).forEach { it.cleanup() }
 
     return@memoryStack winner
 }

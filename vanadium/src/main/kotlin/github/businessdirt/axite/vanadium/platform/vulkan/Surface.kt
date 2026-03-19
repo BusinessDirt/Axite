@@ -1,5 +1,6 @@
 package github.businessdirt.axite.vanadium.platform.vulkan
 
+import github.businessdirt.axite.vanadium.utils.createHandle
 import github.businessdirt.axite.vanadium.utils.memoryStack
 import github.businessdirt.axite.vanadium.utils.vkCheck
 import org.lwjgl.glfw.GLFWVulkan
@@ -17,12 +18,9 @@ class Surface(
     data class SurfaceFormat(val imageFormat: Int, val colorSpace: Int)
 
     override val handle: Long = memoryStack { stack ->
-        val pSurface = stack.mallocLong(1)
-        vkCheck(GLFWVulkan.glfwCreateWindowSurface(instance.handle, windowHandle, null, pSurface)) {
-            "Failed to create window surface"
+        stack.createHandle({ "Failed to create window surface" }) { longBuffer ->
+            GLFWVulkan.glfwCreateWindowSurface(instance.handle, windowHandle, null, longBuffer)
         }
-
-        pSurface[0]
     }
 
     val surfaceCaps: VkSurfaceCapabilitiesKHR = VkSurfaceCapabilitiesKHR.calloc().also {

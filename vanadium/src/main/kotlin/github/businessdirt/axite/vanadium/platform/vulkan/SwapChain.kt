@@ -2,6 +2,8 @@ package github.businessdirt.axite.vanadium.platform.vulkan
 
 import github.businessdirt.axite.vanadium.platform.Window
 import github.businessdirt.axite.vanadium.platform.vulkan.resources.ImageView
+import github.businessdirt.axite.vanadium.utils.createHandle
+import github.businessdirt.axite.vanadium.utils.memoryStack
 import github.businessdirt.axite.vanadium.utils.vkCheck
 
 import org.lwjgl.system.MemoryStack
@@ -11,28 +13,22 @@ import org.lwjgl.vulkan.KHRSwapchain.*
 import org.lwjgl.vulkan.VK13.*
 
 class SwapChain(
-    val window: Window,
+    window: Window,
     val device: Device,
     val surface: Surface,
     requestedImages: Int,
     vsync: Boolean
 ) : VulkanHandle<Long>() {
 
-    val imageViews: Array<ImageView>
-    val numImages: Int
-    val swapChainExtent: VkExtent2D
+    val swapChainExtent: VkExtent2D = surface.surfaceCaps.calculateSwapChainExtent(window)
 
-    override val handle: Long = MemoryStack.stackPush().use { stack ->
+    override val handle: Long = memoryStack { stack ->
         val surfaceCaps = surface.surfaceCaps
-
-        val reqImages = surfaceCaps.calculateNumberOfImages(requestedImages)
-        swapChainExtent = surfaceCaps.calculateSwapChainExtent(window)
-
         val surfaceFormat = surface.surfaceFormat
         val vkSwapChainCreateInfo = VkSwapchainCreateInfoKHR.calloc(stack)
             .`sType$Default`()
             .surface(surface.handle)
-            .minImageCount(reqImages)
+            .minImageCount(surfaceCaps.calculateNumberOfImages(requestedImages))
             .imageFormat(surfaceFormat.imageFormat)
             .imageColorSpace(surfaceFormat.colorSpace)
             .imageExtent(swapChainExtent)
@@ -43,17 +39,16 @@ class SwapChain(
             .clipped(true)
             .presentMode(if (vsync) VK_PRESENT_MODE_FIFO_KHR else VK_PRESENT_MODE_IMMEDIATE_KHR)
 
-        val lp = stack.mallocLong(1)
-        vkCheck(vkCreateSwapchainKHR(device.handle, vkSwapChainCreateInfo, null, lp)) {
-            "Failed to create swap chain"
+        stack.createHandle({ "Failed to create swap chain" }) { longBuffer ->
+            vkCreateSwapchainKHR(device.handle, vkSwapChainCreateInfo, null, longBuffer)
         }
-        val swapChainHandle = lp[0]
-
-        imageViews = stack.createImageViews(device, swapChainHandle, surfaceFormat.imageFormat)
-        numImages = imageViews.size
-
-        swapChainHandle
     }
+
+    val imageViews: Array<ImageView> = memoryStack { stack ->
+        stack.createImageViews(device, handle, surface.surfaceFormat.imageFormat)
+    }
+
+    val imageCount: Int = imageViews.size
 
     private fun VkSurfaceCapabilitiesKHR.calculateNumberOfImages(requestedImages: Int): Int {
         val max = if (maxImageCount() > 0) maxImageCount() else Int.MAX_VALUE
@@ -94,7 +89,7 @@ class SwapChain(
 
     override fun destroy() {
         swapChainExtent.free()
-        imageViews.forEach { it.destroy() }
+        imageViews.forEach { it.cleanup() }
         vkDestroySwapchainKHR(device.handle, handle, null)
     }
 }

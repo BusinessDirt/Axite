@@ -70,9 +70,10 @@ class Instance(config: VanadiumConfig) : VulkanHandle<VkInstance>() {
             instanceInfo.flags(0x00000001) // VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR
         }
 
-        val pInstance = stack.mallocPointer(1)
-        vkCheck(vkCreateInstance(instanceInfo, null, pInstance)) { "Error creating instance" }
-        VkInstance(pInstance[0], instanceInfo)
+        val instanceHandle = stack.createPointer({ "Error creating instance" }) { pointerBuffer ->
+            vkCreateInstance(instanceInfo, null, pointerBuffer)
+        }
+        VkInstance(instanceHandle, instanceInfo)
     }
 
     override fun destroy() =

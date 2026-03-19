@@ -5,7 +5,13 @@ import org.slf4j.LoggerFactory
 
 abstract class VulkanHandle<T> {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
     abstract val handle: T
 
-    abstract fun destroy()
+    fun cleanup() {
+        logger.debug("Destroying {} [handle: {}]", this::class.simpleName, handle)
+        destroy()
+    }
+
+    protected abstract fun destroy()
 }

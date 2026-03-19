@@ -2,6 +2,7 @@ package github.businessdirt.axite.vanadium.platform.vulkan
 
 import github.businessdirt.axite.vanadium.utils.Platform
 import github.businessdirt.axite.vanadium.utils.PlatformUtils
+import github.businessdirt.axite.vanadium.utils.createPointer
 import github.businessdirt.axite.vanadium.utils.memoryStack
 import github.businessdirt.axite.vanadium.utils.vkCheck
 import org.lwjgl.PointerBuffer
@@ -36,25 +37,21 @@ class Device(
                 .pQueuePriorities(priorities)
         }
 
-        val deviceCreateInfo = VkDeviceCreateInfo.calloc(stack)
+        val deviceCreateInfo: VkDeviceCreateInfo = VkDeviceCreateInfo.calloc(stack)
             .`sType$Default`()
             .ppEnabledExtensionNames(reqExtensions)
             .pQueueCreateInfos(queueCreationInfos)
 
-        val pDevice = stack.mallocPointer(1)
-
-        vkCheck(vkCreateDevice(physicalDevice.handle, deviceCreateInfo, null, pDevice)) {
-            "Failed to create logical device"
+        val deviceHandle: Long = stack.createPointer({ "Failed to create logical device" }) { pointerBuffer ->
+            vkCreateDevice(physicalDevice.handle, deviceCreateInfo, null, pointerBuffer)
         }
 
-        VkDevice(pDevice[0], physicalDevice.handle, deviceCreateInfo)
+        VkDevice(deviceHandle, physicalDevice.handle, deviceCreateInfo)
     }
 
     fun waitIdle() = vkDeviceWaitIdle(handle)
 
-    override fun destroy() {
-        vkDestroyDevice(handle, null);
-    }
+    override fun destroy() = vkDestroyDevice(handle, null)
 }
 
 private fun PhysicalDevice.createReqExtensions(stack: MemoryStack): PointerBuffer {

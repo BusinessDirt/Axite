@@ -2,8 +2,8 @@ package github.businessdirt.axite.vanadium.platform.vulkan.resources
 
 import github.businessdirt.axite.vanadium.platform.vulkan.Device
 import github.businessdirt.axite.vanadium.platform.vulkan.VulkanHandle
+import github.businessdirt.axite.vanadium.utils.createHandle
 import github.businessdirt.axite.vanadium.utils.memoryStack
-import github.businessdirt.axite.vanadium.utils.vkCheck
 import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkImageViewCreateInfo
 
@@ -19,7 +19,6 @@ class ImageView(
     val mipLevels: Int = data.mipLevels
 
     override val handle: Long = memoryStack { stack ->
-        val lp = stack.mallocLong(1)
         val viewCreateInfo = VkImageViewCreateInfo.calloc(stack)
             .`sType$Default`()
             .image(imageHandle)
@@ -33,11 +32,9 @@ class ImageView(
                     .layerCount(data.layerCount)
             }
 
-        vkCheck(vkCreateImageView(device.handle, viewCreateInfo, null, lp)) {
-            "Failed to create image view"
+        stack.createHandle({ "Failed to create image view" }) { longBuffer ->
+            vkCreateImageView(device.handle, viewCreateInfo, null, longBuffer)
         }
-
-        lp[0]
     }
 
     override fun destroy() = vkDestroyImageView(device.handle, handle, null)

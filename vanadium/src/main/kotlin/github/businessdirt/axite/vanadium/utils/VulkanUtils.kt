@@ -1,7 +1,7 @@
 package github.businessdirt.axite.vanadium.utils
 
+import org.lwjgl.PointerBuffer
 import org.lwjgl.system.MemoryStack
-import org.lwjgl.vulkan.EXTDebugUtils.*
 import org.lwjgl.vulkan.VK10.vkEnumerateInstanceExtensionProperties
 import org.lwjgl.vulkan.VK10.vkEnumerateInstanceLayerProperties
 import org.lwjgl.vulkan.VK13
@@ -10,6 +10,7 @@ import org.lwjgl.vulkan.VkExtensionProperties
 import org.lwjgl.vulkan.VkLayerProperties
 import org.slf4j.LoggerFactory
 import java.lang.reflect.Modifier
+import java.nio.LongBuffer
 
 
 object VulkanErrorMapper {

@@ -1,5 +1,7 @@
 package github.businessdirt.axite.vanadium.platform.vulkan
 
+import github.businessdirt.axite.vanadium.utils.createPointer
+import github.businessdirt.axite.vanadium.utils.getPointer
 import github.businessdirt.axite.vanadium.utils.memoryStack
 import org.lwjgl.vulkan.VK13.VK_QUEUE_GRAPHICS_BIT
 import org.lwjgl.vulkan.VK13.vkGetDeviceQueue
@@ -15,12 +17,8 @@ sealed class DeviceQueue(
 ) : VulkanHandle<VkQueue>() {
 
     override val handle: VkQueue = memoryStack { stack ->
-        logger.debug("Creating queue for family index [{}]", queueFamilyIndex)
-
-        val pQueue = stack.mallocPointer(1)
-        vkGetDeviceQueue(vkDevice, queueFamilyIndex, queueIndex, pQueue)
-
-        VkQueue(pQueue[0], vkDevice)
+        val queueHandle = stack.getPointer { vkGetDeviceQueue(vkDevice, queueFamilyIndex, queueIndex, it)  }
+        VkQueue(queueHandle, vkDevice)
     }
 
     fun waitIdle() = vkQueueWaitIdle(handle)

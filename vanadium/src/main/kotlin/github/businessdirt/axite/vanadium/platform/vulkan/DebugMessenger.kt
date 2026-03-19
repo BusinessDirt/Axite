@@ -1,7 +1,7 @@
 package github.businessdirt.axite.vanadium.platform.vulkan
 
+import github.businessdirt.axite.vanadium.utils.createHandle
 import github.businessdirt.axite.vanadium.utils.memoryStack
-import github.businessdirt.axite.vanadium.utils.vkCheck
 import org.lwjgl.vulkan.EXTDebugUtils.*
 import org.lwjgl.vulkan.VK13.VK_FALSE
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCallbackDataEXT
@@ -37,13 +37,9 @@ class DebugMessenger(private val vkInstance: VkInstance) : VulkanHandle<Long>() 
             )
             .pfnUserCallback(debugCallback)
 
-        val pDebugHandle = stack.mallocLong(1)
-
-        vkCheck(vkCreateDebugUtilsMessengerEXT(vkInstance, debugCreateInfo, null, pDebugHandle)) {
-            "Failed to create Vulkan Debug Messenger"
+        stack.createHandle({ "Failed to create Vulkan Debug Messenger" }) { longBuffer ->
+            vkCreateDebugUtilsMessengerEXT(vkInstance, debugCreateInfo, null, longBuffer)
         }
-
-        pDebugHandle[0]
     }
 
     override fun destroy() {

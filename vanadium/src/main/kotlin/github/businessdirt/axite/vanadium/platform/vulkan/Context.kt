@@ -37,12 +37,12 @@ object Context {
     fun shutdown() {
         if (!this::instance.isInitialized) return
 
-        swapChain.destroy()
-        surface.destroy()
-        device.destroy()
-        physicalDevice.destroy()
-        debugMessenger?.destroy()
-        instance.destroy()
+        swapChain.cleanup()
+        surface.cleanup()
+        device.cleanup()
+        physicalDevice.cleanup()
+        debugMessenger?.cleanup()
+        instance.cleanup()
 
         debugMessenger = null
     }

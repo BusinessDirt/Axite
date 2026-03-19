@@ -1,5 +1,7 @@
 package github.businessdirt.axite.vanadium.utils
 
+import org.lwjgl.PointerBuffer
+import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.Struct
 import org.slf4j.Logger
 import java.lang.reflect.Method
@@ -74,3 +76,34 @@ fun Struct<*>.debugTree(
 
 private fun contentToString(limit: Int, supplier: (Int) -> String): String =
     (0 until limit).joinToString(prefix = "[", postfix = "]") { supplier(it) }
+
+/**
+ * Executes a Vulkan creation function that returns a single Long handle.
+ * @param errorMessage The error message to throw if the vkCheck fails.
+ * @param block A lambda that takes the LongBuffer and returns the VkResult.
+ */
+inline fun MemoryStack.createHandle(
+    errorMessage: () -> String,
+    block: (LongBuffer) -> Int
+): Long {
+    val longBuffer = this.mallocLong(1)
+    vkCheck(block(longBuffer), errorMessage)
+    return longBuffer[0]
+}
+
+inline fun MemoryStack.createPointer(
+    errorMessage: () -> String,
+    block: (PointerBuffer) -> Int
+): Long {
+    val pp = mallocPointer(1)
+    vkCheck(block(pp), errorMessage)
+    return pp[0]
+}
+
+inline fun MemoryStack.getPointer(
+    block: (PointerBuffer) -> Unit
+): Long {
+    val pp = mallocPointer(1)
+    block(pp)
+    return pp[0]
+}
