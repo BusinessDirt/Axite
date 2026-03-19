@@ -20,6 +20,9 @@ object Context {
     lateinit var surface: Surface
         private set
 
+    lateinit var swapChain: SwapChain
+        private set
+
     fun initialize(window: Window, config: VanadiumConfig) {
         check(!this::instance.isInitialized) { "Vulkan Context is already initialized!" }
 
@@ -28,11 +31,13 @@ object Context {
         physicalDevice = instance.pickPhysicalDevice()
         device = Device(physicalDevice)
         surface = Surface(physicalDevice, instance, window.handle)
+        swapChain = SwapChain(window, device, surface, config.requestedImages, config.vsync)
     }
 
     fun shutdown() {
         if (!this::instance.isInitialized) return
 
+        swapChain.destroy()
         surface.destroy()
         device.destroy()
         physicalDevice.destroy()

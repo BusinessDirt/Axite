@@ -7,10 +7,13 @@ import github.businessdirt.axite.vanadium.graph.RenderGraph
 import github.businessdirt.axite.vanadium.math.Resolution
 import github.businessdirt.axite.vanadium.platform.Window
 import github.businessdirt.axite.vanadium.scene.Scene
+import github.businessdirt.axite.vanadium.utils.camelToTitleCase
+import github.businessdirt.axite.vanadium.utils.log
 import github.businessdirt.axite.vanadium.utils.profile
 import org.lwjgl.glfw.GLFW
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.lang.reflect.Modifier
 
 object Vanadium {
 
@@ -89,16 +92,22 @@ object Vanadium {
 data class VanadiumConfig(
     var applicationName: String = "Vanadium Application",
     var resolution: Resolution = Resolution(0, 0),
-    var updatesPerSecond: Int = 30,
-    var validate: Boolean = true
+    var updatesPerSecond: Int = 60,
+    var validate: Boolean = true,
+    var requestedImages: Int = 3,
+    var vsync: Boolean = true,
 ) {
-    fun log(logger: Logger) {
-        logger.info("")
-        logger.info("=== Vanadium Config ===")
-        logger.info("Application Name: $applicationName")
-        logger.info("Resolution: $resolution")
-        logger.info("=======================")
-        logger.info("")
+    fun log(logger: Logger) = logger.atInfo().log(title = "Vanadium Configuration") {
+        val fields = this@VanadiumConfig.javaClass.declaredFields
+        for (field in fields) {
+            if (Modifier.isStatic(field.modifiers) || field.isSynthetic) continue
+
+            field.isAccessible = true
+            val formattedName = field.name.camelToTitleCase()
+            val value = field.get(this@VanadiumConfig)
+
+            append(formattedName).append(": ").append(value).appendLine()
+        }
     }
 }
 
