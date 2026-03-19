@@ -40,11 +40,11 @@ class SceneRenderGraph {
     }
 
     fun render(cmdBuffer: CommandBuffer, imageIndex: Int) {
-        val swapChainImage = Context.swapChain.imageViews[imageIndex].handle
+        val swapChainImage = Context.swapChain.imageViews[imageIndex].imageHandle
         val cmdHandle = cmdBuffer.handle
 
         memoryStack { stack ->
-            // Transition Image to Color Attachment Optimal
+            // Transition Image to Colour Attachment Optimal
             stack.imageBarrier(
                 cmdHandle, swapChainImage,
                 VK_IMAGE_LAYOUT_UNDEFINED,

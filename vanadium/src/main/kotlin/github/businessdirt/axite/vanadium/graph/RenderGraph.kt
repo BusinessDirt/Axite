@@ -71,7 +71,7 @@ object RenderGraph {
 
         fence.wait()
 
-        // This blocks until the semaphore is ready to be signaled by the Swap Chain
+        // This blocks until the semaphore is ready to be signalled by the Swap Chain
         val imageIndex = Context.swapChain.acquireNextImage(imageAvailable)
         if (imageIndex < 0) return // Handle resize/recreation
 

@@ -8,6 +8,7 @@ import github.businessdirt.axite.vanadium.utils.getInt
 import github.businessdirt.axite.vanadium.utils.memoryStack
 import github.businessdirt.axite.vanadium.utils.vkCheck
 import org.lwjgl.system.MemoryStack
+import org.lwjgl.system.MemoryUtil
 import org.lwjgl.vulkan.KHRSurface.*
 import org.lwjgl.vulkan.KHRSwapchain.*
 import org.lwjgl.vulkan.VK13.*
@@ -57,7 +58,7 @@ class SwapChain(
     fun acquireNextImage(imageAvailableSemaphore: Semaphore, timeout: Long = Long.MAX_VALUE): Int = memoryStack { stack ->
         val pIndex = stack.mallocInt(1)
         val err = vkAcquireNextImageKHR(Context.device.handle, handle, timeout,
-            imageAvailableSemaphore.handle, 0L, pIndex)
+            imageAvailableSemaphore.handle, MemoryUtil.NULL, pIndex)
 
         when (err) {
             VK_SUCCESS, VK_SUBOPTIMAL_KHR -> pIndex[0]
