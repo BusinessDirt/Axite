@@ -1,16 +1,11 @@
 package github.businessdirt.axite.vanadium.utils
 
-import org.lwjgl.PointerBuffer
-import org.lwjgl.system.MemoryStack
-import org.lwjgl.vulkan.VK10.vkEnumerateInstanceExtensionProperties
-import org.lwjgl.vulkan.VK10.vkEnumerateInstanceLayerProperties
 import org.lwjgl.vulkan.VK13
-import org.lwjgl.vulkan.VK13.VK_SUCCESS
+import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkExtensionProperties
 import org.lwjgl.vulkan.VkLayerProperties
 import org.slf4j.LoggerFactory
 import java.lang.reflect.Modifier
-import java.nio.LongBuffer
 
 
 object VulkanErrorMapper {
@@ -39,6 +34,7 @@ object VulkanUtils {
 
     const val PORTABILITY_EXTENSION: String = "VK_KHR_portability_enumeration"
     const val VALIDATION_LAYER: String = "VK_LAYER_KHRONOS_validation"
+    const val MAX_FRAMES_IN_FLIGHT: Int = 2
 
     val supportedValidationLayers: List<String>
         get() = memoryStack { stack ->

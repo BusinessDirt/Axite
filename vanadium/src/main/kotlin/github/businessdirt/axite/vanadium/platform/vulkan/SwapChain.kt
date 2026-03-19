@@ -5,17 +5,19 @@ import github.businessdirt.axite.vanadium.platform.vulkan.resources.ImageView
 import github.businessdirt.axite.vanadium.utils.createHandle
 import github.businessdirt.axite.vanadium.utils.memoryStack
 import github.businessdirt.axite.vanadium.utils.vkCheck
-
 import org.lwjgl.system.MemoryStack
-import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.KHRSurface.*
 import org.lwjgl.vulkan.KHRSwapchain.*
-import org.lwjgl.vulkan.VK13.*
+import org.lwjgl.vulkan.VK13.VK_IMAGE_ASPECT_COLOR_BIT
+import org.lwjgl.vulkan.VK13.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
+import org.lwjgl.vulkan.VkExtent2D
+import org.lwjgl.vulkan.VkSurfaceCapabilitiesKHR
+import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR
 
 class SwapChain(
     window: Window,
-    val device: Device,
-    val surface: Surface,
+    device: Device,
+    surface: Surface,
     requestedImages: Int,
     vsync: Boolean
 ) : VulkanHandle<Long>() {
@@ -80,7 +82,7 @@ class SwapChain(
         }
 
         return Array(count) { i ->
-            ImageView(device, swapChainImages[i]) {
+            ImageView(swapChainImages[i]) {
                 this.format = format
                 this.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT
             }
@@ -90,6 +92,6 @@ class SwapChain(
     override fun destroy() {
         swapChainExtent.free()
         imageViews.forEach { it.cleanup() }
-        vkDestroySwapchainKHR(device.handle, handle, null)
+        vkDestroySwapchainKHR(Context.device.handle, handle, null)
     }
 }

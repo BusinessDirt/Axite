@@ -4,17 +4,13 @@ import github.businessdirt.axite.vanadium.utils.Platform
 import github.businessdirt.axite.vanadium.utils.PlatformUtils
 import github.businessdirt.axite.vanadium.utils.createPointer
 import github.businessdirt.axite.vanadium.utils.memoryStack
-import github.businessdirt.axite.vanadium.utils.vkCheck
 import org.lwjgl.PointerBuffer
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.KHRPortabilitySubset.VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
-import org.lwjgl.vulkan.VK13.vkCreateDevice
-import org.lwjgl.vulkan.VK13.vkDestroyDevice
-import org.lwjgl.vulkan.VK13.vkDeviceWaitIdle
+import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkDevice
 import org.lwjgl.vulkan.VkDeviceCreateInfo
 import org.lwjgl.vulkan.VkDeviceQueueCreateInfo
-import kotlin.collections.forEach
 
 
 class Device(

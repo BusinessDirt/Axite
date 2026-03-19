@@ -1,22 +1,11 @@
 package github.businessdirt.axite.vanadium.platform.vulkan
 
 import github.businessdirt.axite.vanadium.platform.vulkan.PhysicalDevice.Companion.REQUIRED_EXTENSIONS
-import github.businessdirt.axite.vanadium.utils.debugTree
-import github.businessdirt.axite.vanadium.utils.decodeDeviceType
-import github.businessdirt.axite.vanadium.utils.decodeVersion
-import github.businessdirt.axite.vanadium.utils.memoryStack
-import github.businessdirt.axite.vanadium.utils.vkCheck
+import github.businessdirt.axite.vanadium.utils.*
 import org.lwjgl.PointerBuffer
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.*
-import org.lwjgl.vulkan.VK13.VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
-import org.lwjgl.vulkan.VK13.VK_QUEUE_GRAPHICS_BIT
-import org.lwjgl.vulkan.VK13.vkEnumerateDeviceExtensionProperties
-import org.lwjgl.vulkan.VK13.vkGetPhysicalDeviceFeatures
-import org.lwjgl.vulkan.VK13.vkGetPhysicalDeviceMemoryProperties
-import org.lwjgl.vulkan.VK13.vkGetPhysicalDeviceQueueFamilyProperties
-import org.lwjgl.vulkan.VK13.vkGetPhysicalDeviceProperties2
-import org.lwjgl.vulkan.VK13.vkEnumeratePhysicalDevices
+import org.lwjgl.vulkan.VK13.*
 
 
 class PhysicalDevice(

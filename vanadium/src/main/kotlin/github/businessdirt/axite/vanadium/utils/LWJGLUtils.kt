@@ -3,14 +3,12 @@ package github.businessdirt.axite.vanadium.utils
 import org.lwjgl.PointerBuffer
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.Struct
-import org.slf4j.Logger
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
 import java.nio.DoubleBuffer
 import java.nio.FloatBuffer
 import java.nio.IntBuffer
 import java.nio.LongBuffer
-import kotlin.jvm.java
 
 fun Struct<*>.extractMembers(): List<Method> = this::class.java.declaredMethods
     .asSequence()

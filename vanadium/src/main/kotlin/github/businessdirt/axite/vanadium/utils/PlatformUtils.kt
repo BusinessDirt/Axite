@@ -1,7 +1,5 @@
 package github.businessdirt.axite.vanadium.utils
 
-import org.lwjgl.vulkan.VK13.*
-
 
 enum class Platform(
     val displayName: String,

@@ -1,24 +1,41 @@
 package github.businessdirt.axite.vanadium.platform.vulkan
 
-import github.businessdirt.axite.vanadium.utils.createPointer
+import github.businessdirt.axite.vanadium.platform.vulkan.synchronization.Fence
 import github.businessdirt.axite.vanadium.utils.getPointer
 import github.businessdirt.axite.vanadium.utils.memoryStack
-import org.lwjgl.vulkan.VK13.VK_QUEUE_GRAPHICS_BIT
-import org.lwjgl.vulkan.VK13.vkGetDeviceQueue
-import org.lwjgl.vulkan.VK13.vkQueueWaitIdle
-import org.lwjgl.vulkan.VkDevice
-import org.lwjgl.vulkan.VkQueue
-import kotlin.collections.indexOfFirst
+import github.businessdirt.axite.vanadium.utils.vkCheck
+import org.lwjgl.vulkan.*
+import org.lwjgl.vulkan.VK13.*
+
 
 sealed class DeviceQueue(
-    val queueFamilyIndex: Int,
-    vkDevice: VkDevice,
+    deviceHandle: VkDevice,
     queueIndex: Int = 0
 ) : VulkanHandle<VkQueue>() {
 
+    abstract val queueFamilyIndex: Int
+
     override val handle: VkQueue = memoryStack { stack ->
-        val queueHandle = stack.getPointer { vkGetDeviceQueue(vkDevice, queueFamilyIndex, queueIndex, it)  }
-        VkQueue(queueHandle, vkDevice)
+        val queueHandle = stack.getPointer { vkGetDeviceQueue(deviceHandle, queueFamilyIndex, queueIndex, it)  }
+        VkQueue(queueHandle, deviceHandle)
+    }
+
+    fun submit(
+        commandBuffers: VkCommandBufferSubmitInfo.Buffer,
+        waitSemaphores: VkSemaphoreSubmitInfo.Buffer? = null,
+        signalSemaphores: VkSemaphoreSubmitInfo.Buffer? = null,
+        fence: Fence? = null
+    ) = memoryStack { stack ->
+        val submitInfo = VkSubmitInfo2.calloc(1, stack)
+            .`sType$Default`()
+            .pCommandBufferInfos(commandBuffers)
+            .pSignalSemaphoreInfos(signalSemaphores) // LWJGL handles null Buffers gracefully here
+            .pWaitSemaphoreInfos(waitSemaphores)
+
+        val fenceHandle = fence?.handle ?: VK_NULL_HANDLE
+        vkCheck(vkQueueSubmit2(handle, submitInfo, fenceHandle)) {
+            "Failed to submit command to queue"
+        }
     }
 
     fun waitIdle() = vkQueueWaitIdle(handle)
@@ -27,19 +44,16 @@ sealed class DeviceQueue(
 
 class GraphicsQueue(
     physicalDevice: PhysicalDevice,
-    vkDevice: VkDevice,
+    deviceHandle: VkDevice,
     queueIndex: Int = 0
-) : DeviceQueue(getGraphicsQueueFamilyIndex(physicalDevice), vkDevice, queueIndex) {
+) : DeviceQueue(deviceHandle, queueIndex) {
 
-    companion object {
-        private fun getGraphicsQueueFamilyIndex(physicalDevice: PhysicalDevice): Int {
-            val queueProps = physicalDevice.queueFamilyProperties
-            val index = (0 until queueProps.capacity()).indexOfFirst { i ->
-                (queueProps[i].queueFlags() and VK_QUEUE_GRAPHICS_BIT) != 0
-            }
-
-            check(index >= 0) { "Failed to get graphics Queue family index" }
-            return index
+    override val queueFamilyIndex: Int = physicalDevice.queueFamilyProperties.use { queueProps ->
+        val index = (0 until queueProps.capacity()).indexOfFirst { i ->
+            (queueProps[i].queueFlags() and VK_QUEUE_GRAPHICS_BIT) != 0
         }
+
+        check(index >= 0) { "Failed to get graphics Queue family index" }
+        index
     }
 }

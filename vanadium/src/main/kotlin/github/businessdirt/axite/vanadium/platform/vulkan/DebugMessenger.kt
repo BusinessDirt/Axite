@@ -9,7 +9,7 @@ import org.lwjgl.vulkan.VkDebugUtilsMessengerCallbackEXT
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCreateInfoEXT
 import org.lwjgl.vulkan.VkInstance
 
-class DebugMessenger(private val vkInstance: VkInstance) : VulkanHandle<Long>() {
+class DebugMessenger(instanceHandle: VkInstance) : VulkanHandle<Long>() {
 
     private val debugCallback = VkDebugUtilsMessengerCallbackEXT.create { messageSeverity, _, pCallbackData, _ ->
         val message = VkDebugUtilsMessengerCallbackDataEXT.create(pCallbackData).pMessageString()
@@ -38,12 +38,12 @@ class DebugMessenger(private val vkInstance: VkInstance) : VulkanHandle<Long>() 
             .pfnUserCallback(debugCallback)
 
         stack.createHandle({ "Failed to create Vulkan Debug Messenger" }) { longBuffer ->
-            vkCreateDebugUtilsMessengerEXT(vkInstance, debugCreateInfo, null, longBuffer)
+            vkCreateDebugUtilsMessengerEXT(instanceHandle, debugCreateInfo, null, longBuffer)
         }
     }
 
     override fun destroy() {
-        vkDestroyDebugUtilsMessengerEXT(vkInstance, handle, null)
+        vkDestroyDebugUtilsMessengerEXT(Context.instance.handle, handle, null)
         debugCallback.free()
     }
 }
