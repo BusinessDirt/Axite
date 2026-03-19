@@ -1,11 +1,12 @@
-package github.businessdirt.axite.vanadium.graph
+package github.businessdirt.axite.vanadium.graph.scene
 
 import github.businessdirt.axite.vanadium.platform.vulkan.Context
 import github.businessdirt.axite.vanadium.platform.vulkan.command.CommandBuffer
 import github.businessdirt.axite.vanadium.utils.imageBarrier
 import github.businessdirt.axite.vanadium.utils.memoryStack
-import org.lwjgl.vulkan.KHRSwapchain.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-import org.lwjgl.vulkan.VK13.*
+import org.lwjgl.vulkan.KHRSwapchain
+import org.lwjgl.vulkan.VK10
+import org.lwjgl.vulkan.VK13
 import org.lwjgl.vulkan.VkClearValue
 import org.lwjgl.vulkan.VkRect2D
 import org.lwjgl.vulkan.VkRenderingAttachmentInfo
@@ -22,9 +23,9 @@ class SceneRenderGraph {
     private val attInfoColor: List<VkRenderingAttachmentInfo.Buffer> = List(Context.swapChain.imageCount) { i ->
         VkRenderingAttachmentInfo.calloc(1).`sType$Default`()
             .imageView(Context.swapChain.imageViews[i].handle)
-            .imageLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-            .loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR)
-            .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
+            .imageLayout(VK10.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+            .loadOp(VK10.VK_ATTACHMENT_LOAD_OP_CLEAR)
+            .storeOp(VK10.VK_ATTACHMENT_STORE_OP_STORE)
             .clearValue(clrValueColor)
     }
 
@@ -47,33 +48,33 @@ class SceneRenderGraph {
             // Transition Image to Colour Attachment Optimal
             stack.imageBarrier(
                 cmdHandle, swapChainImage,
-                VK_IMAGE_LAYOUT_UNDEFINED,
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VK_ACCESS_2_NONE,
-                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                VK_IMAGE_ASPECT_COLOR_BIT
+                VK10.VK_IMAGE_LAYOUT_UNDEFINED,
+                VK10.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK13.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK13.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK13.VK_ACCESS_2_NONE,
+                VK13.VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                VK10.VK_IMAGE_ASPECT_COLOR_BIT
             )
 
             // Begin Dynamic Rendering
-            vkCmdBeginRendering(cmdHandle, renderInfo[imageIndex])
+            VK13.vkCmdBeginRendering(cmdHandle, renderInfo[imageIndex])
 
             // TODO: ** PUT DRAW CALLS HERE **
 
             // End Dynamic Rendering
-            vkCmdEndRendering(cmdHandle)
+            VK13.vkCmdEndRendering(cmdHandle)
 
             // Transition Image for Presentation
             stack.imageBarrier(
                 cmdHandle, swapChainImage,
-                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
-                VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
-                VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
-                VK_ACCESS_2_NONE,
-                VK_IMAGE_ASPECT_COLOR_BIT
+                VK10.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                KHRSwapchain.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                VK13.VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                VK13.VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+                VK13.VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                VK13.VK_ACCESS_2_NONE,
+                VK10.VK_IMAGE_ASPECT_COLOR_BIT
             )
         }
     }

@@ -1,6 +1,8 @@
 package github.businessdirt.axite.vanadium.utils
 
+import github.businessdirt.axite.vanadium.platform.vulkan.Context
 import org.lwjgl.system.MemoryStack
+import org.lwjgl.system.MemoryUtil
 import org.lwjgl.vulkan.VK13
 import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkCommandBuffer
@@ -80,6 +82,16 @@ object VulkanUtils {
                 extensionName
             }.toSet()
         }
+
+    fun memoryTypeFromProperties(typeBits: Int, reqsMask: Int): Int {
+        val memoryTypes = Context.physicalDevice.memoryProperties.memoryTypes()
+
+        return (0..<VK_MAX_MEMORY_TYPES).firstOrNull { i ->
+            val isTypeSupported = (typeBits and (1 shl i)) != 0
+            val hasRequiredProperties = (memoryTypes.get(i).propertyFlags() and reqsMask) == reqsMask
+            isTypeSupported && hasRequiredProperties
+        } ?: throw RuntimeException("Failed to find suitable memory type (typeBits: $typeBits, reqsMask: $reqsMask)")
+    }
 }
 
 /**
@@ -102,6 +114,11 @@ fun Int.decodeDeviceType(): String = when (this) {
     3 -> "VIRTUAL_GPU"
     4 -> "CPU"
     else -> "UNKNOWN_TYPE ($this)"
+}
+
+fun Long.runIfNonNull(block: Long.() -> Unit): Long {
+    if (this != MemoryUtil.NULL) this.run(block)
+    return this
 }
 
 fun MemoryStack.imageBarrier(
