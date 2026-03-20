@@ -54,9 +54,28 @@ class ModelCache {
     }
 
     private fun MeshData.createVertexBuffers(): TransferBuffer {
-        val bufferSize = (positions.size * Float.SIZE_BYTES).toLong()
+        val uvs = if (textureCoordinates.isEmpty()) FloatArray((positions.size / 3) * 2) else textureCoordinates
+
+        val totalElements = positions.size + uvs.size
+        val bufferSize = (totalElements * Float.SIZE_BYTES).toLong()
+
         return createTransferBuffers(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT) { ptr ->
-            MemoryUtil.memFloatBuffer(ptr, positions.size).put(positions)
+            val data = MemoryUtil.memFloatBuffer(ptr, totalElements)
+            val vertexCount = positions.size / 3
+
+            for (i in 0 until vertexCount) {
+                val posIndex = i * 3
+                val uvIndex = i * 2
+
+                // Write 3 Position Floats
+                data.put(positions[posIndex])
+                data.put(positions[posIndex + 1])
+                data.put(positions[posIndex + 2])
+
+                // Write 2 UV Floats
+                data.put(uvs[uvIndex])
+                data.put(uvs[uvIndex + 1])
+            }
         }
     }
 

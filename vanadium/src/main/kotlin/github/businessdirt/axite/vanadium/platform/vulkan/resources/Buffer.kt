@@ -2,22 +2,14 @@ package github.businessdirt.axite.vanadium.platform.vulkan.resources
 
 import github.businessdirt.axite.vanadium.platform.vulkan.Context
 import github.businessdirt.axite.vanadium.platform.vulkan.VulkanHandle
-import github.businessdirt.axite.vanadium.utils.VulkanUtils
 import github.businessdirt.axite.vanadium.utils.createHandle
 import github.businessdirt.axite.vanadium.utils.createPointer
+import github.businessdirt.axite.vanadium.utils.findMemoryTypeIndex
 import github.businessdirt.axite.vanadium.utils.memoryStack
 import github.businessdirt.axite.vanadium.utils.runIfNonNull
 import github.businessdirt.axite.vanadium.utils.vkCheck
 import org.lwjgl.system.MemoryUtil.NULL
-import org.lwjgl.vulkan.VK10.VK_SHARING_MODE_EXCLUSIVE
-import org.lwjgl.vulkan.VK10.vkAllocateMemory
-import org.lwjgl.vulkan.VK10.vkBindBufferMemory
-import org.lwjgl.vulkan.VK10.vkCreateBuffer
-import org.lwjgl.vulkan.VK10.vkDestroyBuffer
-import org.lwjgl.vulkan.VK10.vkFreeMemory
-import org.lwjgl.vulkan.VK10.vkGetBufferMemoryRequirements
-import org.lwjgl.vulkan.VK10.vkMapMemory
-import org.lwjgl.vulkan.VK10.vkUnmapMemory
+import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkBufferCreateInfo
 import org.lwjgl.vulkan.VkMemoryAllocateInfo
 import org.lwjgl.vulkan.VkMemoryRequirements
@@ -29,8 +21,7 @@ class Buffer(
     reqMask: Int
 ) : VulkanHandle<Long>() {
     override val handle: Long = memoryStack { stack ->
-        val bufferCreateInfo = VkBufferCreateInfo.calloc(stack)
-            .`sType$Default`()
+        val bufferCreateInfo = VkBufferCreateInfo.calloc(stack).`sType$Default`()
             .size(requestedSize)
             .usage(usage)
             .sharingMode(VK_SHARING_MODE_EXCLUSIVE)
@@ -45,31 +36,26 @@ class Buffer(
 
     val memory: Long = memoryStack { stack ->
         // Get Memory Requirements
-        val memReqs = VkMemoryRequirements.calloc(stack)
-        vkGetBufferMemoryRequirements(Context.device.handle, handle, memReqs)
+        val memoryRequirements = VkMemoryRequirements.calloc(stack)
+        vkGetBufferMemoryRequirements(Context.device.handle, handle, memoryRequirements)
 
         // Allocate Memory
-        val memAlloc = VkMemoryAllocateInfo.calloc(stack)
-            .`sType$Default`()
-            .allocationSize(memReqs.size())
-            .memoryTypeIndex(
-                VulkanUtils.memoryTypeFromProperties(memReqs.memoryTypeBits(), reqMask)
-            )
+        val memoryAllocationInfo = VkMemoryAllocateInfo.calloc(stack).`sType$Default`()
+            .allocationSize(memoryRequirements.size())
+            .findMemoryTypeIndex(memoryRequirements.memoryTypeBits(), reqMask)
 
-        allocationSize = memAlloc.allocationSize()
+        allocationSize = memoryAllocationInfo.allocationSize()
         stack.createHandle({ "Failed to allocate memory" }) {
-            vkAllocateMemory(Context.device.handle, memAlloc, null, it)
+            vkAllocateMemory(Context.device.handle, memoryAllocationInfo, null, it)
+        }.also {
+            vkCheck(vkBindBufferMemory(Context.device.handle, handle, it, 0)) {
+                "Failed to bind buffer memory"
+            }
         }
     }
 
     var mappedMemory: Long = NULL
         private set
-
-    init {
-        vkCheck(vkBindBufferMemory(Context.device.handle, handle, memory, 0)) {
-            "Failed to bind buffer memory"
-        }
-    }
 
     fun map(): Long = when {
         mappedMemory != NULL -> mappedMemory

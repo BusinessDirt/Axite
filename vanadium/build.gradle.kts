@@ -90,14 +90,16 @@ tasks.register<JavaExec>("run") {
         jvmArgs(
             "-XstartOnFirstThread",
             "--enable-native-access=ALL-UNNAMED",
-            "-Dorg.lwjgl.vulkan.libname=libvulkan.1.dylib"
+            "-Dorg.lwjgl.vulkan.libname=libvulkan.1.dylib",
+            "-Djoml.nounsafe=true"
         )
 
     } else {
         println("⚙️  Configuring Vulkan Environment for Windows/Linux...")
 
         jvmArgs(
-            "--enable-native-access=ALL-UNNAMED"
+            "--enable-native-access=ALL-UNNAMED",
+            "-Djoml.nounsafe=true"
         )
     }
 }

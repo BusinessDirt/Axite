@@ -10,6 +10,7 @@ import org.lwjgl.vulkan.VkDependencyInfo
 import org.lwjgl.vulkan.VkExtensionProperties
 import org.lwjgl.vulkan.VkImageMemoryBarrier2
 import org.lwjgl.vulkan.VkLayerProperties
+import org.lwjgl.vulkan.VkMemoryAllocateInfo
 import org.slf4j.LoggerFactory
 import java.lang.reflect.Modifier
 
@@ -92,6 +93,10 @@ object VulkanUtils {
             isTypeSupported && hasRequiredProperties
         } ?: throw RuntimeException("Failed to find suitable memory type (typeBits: $typeBits, reqsMask: $reqsMask)")
     }
+}
+
+fun VkMemoryAllocateInfo.findMemoryTypeIndex(typeBits: Int, reqsMask: Int): VkMemoryAllocateInfo = apply {
+    memoryTypeIndex(VulkanUtils.memoryTypeFromProperties(typeBits, reqsMask))
 }
 
 /**

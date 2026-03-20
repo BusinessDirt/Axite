@@ -23,7 +23,7 @@ object Vanadium {
     val time: Double
         get() = GLFW.glfwGetTime()
 
-    var scene: Scene? = null
+    lateinit var scene: Scene
 
     fun launch(gameProvider: () -> VanadiumAdapter) {
 
@@ -43,6 +43,7 @@ object Vanadium {
         var accumulator = 0.0
 
         Window(config).use { window ->
+            scene = Scene(window, config)
             val initData: InitData = ::initialize.profile(logger)
             RenderGraph.initialize(window, config, initData)
 
@@ -99,6 +100,9 @@ data class VanadiumConfig(
     var requestedImages: Int = 3,
     var vsync: Boolean = true,
     var recompileShaders: Boolean = true,
+    var fov: Float = 30.0f,
+    var zNear: Float = 1.0f,
+    var zFar: Float = 100.0f,
 ) {
     fun log(logger: Logger) = logger.atInfo().log(title = "Vanadium Configuration") {
         val fields = this@VanadiumConfig.javaClass.declaredFields

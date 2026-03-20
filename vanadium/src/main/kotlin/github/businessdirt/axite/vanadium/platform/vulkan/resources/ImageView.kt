@@ -9,10 +9,10 @@ import org.lwjgl.vulkan.VkImageViewCreateInfo
 
 class ImageView(
     val imageHandle: Long,
-    block: ImageViewData.() -> Unit
+    block: Data.() -> Unit
 ) : VulkanHandle<Long>() {
 
-    private val data = ImageViewData().apply(block)
+    private val data = Data().apply(block)
 
     val aspectMask: Int = data.aspectMask
     val mipLevels: Int = data.mipLevels
@@ -38,7 +38,7 @@ class ImageView(
 
     override fun destroy() = vkDestroyImageView(Context.device.handle, handle, null)
 
-    class ImageViewData {
+    class Data {
         var aspectMask: Int = 0
         var baseArrayLayer: Int = 0
         var format: Int = 0

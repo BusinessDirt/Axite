@@ -1,17 +1,25 @@
 package github.businessdirt.axite.vanadium.graph.scene
 
+import github.businessdirt.axite.vanadium.Vanadium
 import github.businessdirt.axite.vanadium.VanadiumConfig
 import github.businessdirt.axite.vanadium.assets.ShaderCompiler
 import github.businessdirt.axite.vanadium.graph.ModelCache
 import github.businessdirt.axite.vanadium.platform.vulkan.Context
 import github.businessdirt.axite.vanadium.platform.vulkan.command.CommandBuffer
 import github.businessdirt.axite.vanadium.platform.vulkan.pipeline.Pipeline
+import github.businessdirt.axite.vanadium.platform.vulkan.pipeline.PushConstantRange
 import github.businessdirt.axite.vanadium.platform.vulkan.pipeline.ShaderModule
+import github.businessdirt.axite.vanadium.platform.vulkan.resources.Attachment
 import github.businessdirt.axite.vanadium.utils.imageBarrier
 import github.businessdirt.axite.vanadium.utils.memoryStack
+import org.joml.Matrix4f
+import org.lwjgl.system.MemoryUtil
 import org.lwjgl.util.shaderc.Shaderc
 import org.lwjgl.vulkan.*
+import org.lwjgl.vulkan.VK10.vkCmdPushConstants
 import org.lwjgl.vulkan.VK13.*
+import java.util.*
+
 
 class SceneRenderGraph(config: VanadiumConfig) {
 
@@ -20,6 +28,7 @@ class SceneRenderGraph(config: VanadiumConfig) {
         const val FRAGMENT_SHADER_FILE_SPV: String = "$FRAGMENT_SHADER_FILE_GLSL.spv"
         const val VERTEX_SHADER_FILE_GLSL: String = "src/sandbox/resources/shaders/scene_vert.glsl"
         const val VERTEX_SHADER_FILE_SPV: String = "$VERTEX_SHADER_FILE_GLSL.spv"
+        const val DEPTH_FORMAT = VK_FORMAT_D16_UNORM
     }
 
     private val clrValueColor: VkClearValue = VkClearValue.calloc().apply {
@@ -27,6 +36,8 @@ class SceneRenderGraph(config: VanadiumConfig) {
             c.float32(0, 0.5f).float32(1, 0.7f).float32(2, 0.9f).float32(3, 1.0f)
         }
     }
+
+    private val clrValueDepth = VkClearValue.calloc().color { c: VkClearColorValue? -> c!!.float32(0, 1.0f) };
 
     private val pipeline: Pipeline = Pipeline { stack ->
         if (config.recompileShaders) {
@@ -39,28 +50,53 @@ class SceneRenderGraph(config: VanadiumConfig) {
 
         colorFormat = Context.surface.surfaceFormat.imageFormat
         vertexInputState = VertexDefinition.createInputState(stack)
+        depthFormat = DEPTH_FORMAT
         shaders(vertShader, fragShader)
+        pushConstantRanges(PushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, 0, Float.SIZE_BYTES * 32))
     }
 
-    private val attachmentInfoColor: List<VkRenderingAttachmentInfo.Buffer> = List(Context.swapChain.imageCount) { i ->
-        VkRenderingAttachmentInfo.calloc(1).`sType$Default`()
-            .imageView(Context.swapChain.imageViews[i].handle)
-            .imageLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-            .loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR)
-            .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
-            .clearValue(clrValueColor)
-    }
+    private val pushConstantBuffer = MemoryUtil.memAlloc(Float.SIZE_BYTES * 32);
 
-    private val renderInfo: List<VkRenderingInfo> = List(Context.swapChain.imageCount) { i ->
-        val renderArea = VkRect2D.calloc()
-            .extent(Context.swapChain.extent)
-            .offset { it.set(0, 0) }
+    private var depthAttachments: List<Attachment> = createDepthAttachments()
+    private fun createDepthAttachments(): List<Attachment> = List(Context.swapChain.imageCount) {
+            Attachment(
+                Context.swapChain.extent.width(), Context.swapChain.extent.height(),
+                DEPTH_FORMAT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+            )
+        }
 
-        VkRenderingInfo.calloc().`sType$Default`()
-            .renderArea(renderArea)
-            .layerCount(1)
-            .pColorAttachments(attachmentInfoColor[i])
-    }
+    private var colorAttachmentInfos: List<VkRenderingAttachmentInfo.Buffer> = createColorAttachmentInfos()
+    private fun createColorAttachmentInfos(): List<VkRenderingAttachmentInfo.Buffer> = List(Context.swapChain.imageCount) { i ->
+            VkRenderingAttachmentInfo.calloc(1).`sType$Default`()
+                .imageView(Context.swapChain.imageViews[i].handle)
+                .imageLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                .loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR)
+                .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
+                .clearValue(clrValueColor)
+        }
+
+    private var depthAttachmentInfos: List<VkRenderingAttachmentInfo> = createDepthAttachmentInfos()
+    private fun createDepthAttachmentInfos(): List<VkRenderingAttachmentInfo> = List(Context.swapChain.imageCount) { i ->
+            VkRenderingAttachmentInfo.calloc().`sType$Default`()
+                .imageView(depthAttachments[i].imageView.handle)
+                .imageLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+                .loadOp(VK_ATTACHMENT_LOAD_OP_CLEAR)
+                .storeOp(VK_ATTACHMENT_STORE_OP_DONT_CARE)
+                .clearValue(clrValueDepth)
+        }
+
+    private var renderInfos: List<VkRenderingInfo> = createRenderInfos()
+    private fun createRenderInfos(): List<VkRenderingInfo> = List(Context.swapChain.imageCount) { i ->
+            val renderArea = VkRect2D.calloc()
+                .extent(Context.swapChain.extent)
+                .offset { it.set(0, 0) }
+
+            VkRenderingInfo.calloc().`sType$Default`()
+                .renderArea(renderArea)
+                .layerCount(1)
+                .pColorAttachments(colorAttachmentInfos[i])
+                .pDepthAttachment(depthAttachmentInfos[i])
+        }
 
     fun render(cmdBuffer: CommandBuffer, modelCache: ModelCache, imageIndex: Int) {
         val swapChainImage = Context.swapChain.imageViews[imageIndex].imageHandle
@@ -77,9 +113,20 @@ class SceneRenderGraph(config: VanadiumConfig) {
                 VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                 VK_IMAGE_ASPECT_COLOR_BIT
             )
+            stack.imageBarrier(
+                cmdHandle,
+                depthAttachments[imageIndex].image.handle,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL,
+                VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT or VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT or VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT or VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                VK_IMAGE_ASPECT_DEPTH_BIT
+            )
 
             // Begin Dynamic Rendering
-            vkCmdBeginRendering(cmdHandle, renderInfo[imageIndex])
+            vkCmdBeginRendering(cmdHandle, renderInfos[imageIndex])
 
             vkCmdBindPipeline(cmdHandle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.handle)
 
@@ -102,19 +149,16 @@ class SceneRenderGraph(config: VanadiumConfig) {
             vkCmdSetScissor(cmdHandle, 0, scissor)
 
             val offsets = stack.longs(0L)
-            val pBuffer = stack.mallocLong(1)
+            val pVertexBuffer = stack.mallocLong(1)
+            val projectionMatrix = Vanadium.scene.projection.matrix
 
-            modelCache.modelMap.values.forEach { model ->
-                model.meshList.forEach { mesh ->
-
-                    // Bind Vertex Buffer
-                    pBuffer.put(0, mesh.vertexBuffer.handle)
-                    vkCmdBindVertexBuffers(cmdHandle, 0, pBuffer, offsets)
-
-                    // Bind Index Buffer
+            for (entity in Vanadium.scene.entities) {
+                val model = modelCache[entity.modelId] ?: continue
+                setPushConstants(cmdHandle, projectionMatrix, entity.modelMatrix)
+                for (mesh in model.meshList) {
+                    pVertexBuffer.put(0, mesh.vertexBuffer.handle)
+                    vkCmdBindVertexBuffers(cmdHandle, 0, pVertexBuffer, offsets)
                     vkCmdBindIndexBuffer(cmdHandle, mesh.indexBuffer.handle, 0, VK_INDEX_TYPE_UINT32)
-
-                    // Draw
                     vkCmdDrawIndexed(cmdHandle, mesh.indexCount, 1, 0, 0, 0)
                 }
             }
@@ -135,12 +179,34 @@ class SceneRenderGraph(config: VanadiumConfig) {
         }
     }
 
+    private fun setPushConstants(cmdHandle: VkCommandBuffer, projMatrix: Matrix4f, modelMatrix: Matrix4f) {
+        projMatrix.get(pushConstantBuffer)
+        modelMatrix.get(Float.SIZE_BYTES * 16, pushConstantBuffer)
+        vkCmdPushConstants(cmdHandle, pipeline.layoutHandle, VK_SHADER_STAGE_VERTEX_BIT, 0, pushConstantBuffer)
+    }
+
+    fun resize() {
+        renderInfos.forEach(VkRenderingInfo::free)
+        depthAttachmentInfos.forEach(VkRenderingAttachmentInfo::free)
+        colorAttachmentInfos.forEach(VkRenderingAttachmentInfo.Buffer::free)
+        depthAttachments.forEach(Attachment::cleanup)
+
+        depthAttachments = createDepthAttachments()
+        colorAttachmentInfos = createColorAttachmentInfos()
+        depthAttachmentInfos = createDepthAttachmentInfos()
+        renderInfos = createRenderInfos()
+    }
+
     fun cleanup() {
-        renderInfo.forEach {
+        renderInfos.forEach {
             it.renderArea().free() // Free the inner rect we allocated
             it.free()
         }
-        attachmentInfoColor.forEach { it.free() }
+        colorAttachmentInfos.forEach { it.free() }
+        depthAttachmentInfos.forEach { it.free() }
+        depthAttachments.forEach { it.cleanup() }
+        MemoryUtil.memFree(pushConstantBuffer)
         clrValueColor.free()
+        clrValueDepth.free()
     }
 }

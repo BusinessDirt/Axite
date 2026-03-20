@@ -52,4 +52,11 @@ object Context {
 
         debugMessenger = null
     }
+
+    fun resize(window: Window, config: VanadiumConfig) {
+        swapChain.cleanup()
+        surface.cleanup()
+        surface = Surface(physicalDevice, instance, window.handle)
+        swapChain = SwapChain(window, device, surface, config.requestedImages, config.vsync)
+    }
 }
