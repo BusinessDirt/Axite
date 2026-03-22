@@ -5,6 +5,10 @@ val lwjglVersion = "3.4.1"
 val jomlVersion = "1.10.8"
 val jomlPrimitivesVersion = "1.10.0"
 
+plugins {
+    kotlin("plugin.serialization")
+}
+
 val lwjglNatives = Pair(
     System.getProperty("os.name")!!,
     System.getProperty("os.arch")!!
@@ -57,6 +61,8 @@ dependencies {
     if (lwjglNatives == "natives-macos-arm64") implementation ("org.lwjgl", "lwjgl-vulkan", classifier = lwjglNatives)
     implementation("org.joml", "joml", jomlVersion)
     implementation("org.joml", "joml-primitives", jomlPrimitivesVersion)
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
 }
 
 sourceSets {

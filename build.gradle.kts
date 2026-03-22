@@ -3,10 +3,12 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 import org.gradle.api.plugins.JavaPluginExtension
 
 plugins {
-    kotlin("jvm") version "2.3.0" apply false
+    val kotlinVersion = "2.3.0"
+
+    kotlin("jvm") version kotlinVersion apply false
     id("com.google.devtools.ksp") version "2.3.3" apply false
-    kotlin("plugin.allopen") version "2.3.0" apply false
-    kotlin("plugin.serialization") version "2.3.0" apply false
+    kotlin("plugin.allopen") version kotlinVersion apply false
+    kotlin("plugin.serialization") version kotlinVersion apply false
     id("org.jetbrains.kotlinx.benchmark") version "0.4.13" apply false
 }
 
