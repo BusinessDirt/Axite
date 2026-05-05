@@ -3,17 +3,18 @@ package github.businessdirt.axite.vanadium
 import github.businessdirt.axite.logging.LoggingConfigurator
 import github.businessdirt.axite.logging.PatternBuilder
 import github.businessdirt.axite.vanadium.core.math.Clock
+import github.businessdirt.axite.vanadium.core.profiling.Profiler
 import github.businessdirt.axite.vanadium.platform.Window
 import github.businessdirt.axite.vanadium.vulkan.device.VulkanContext
 import kotlinx.coroutines.*
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
 import org.lwjgl.glfw.GLFW.*
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 object Vanadium {
-    private val logger: Logger = LoggerFactory.getLogger(Vanadium::class.java)
+    private val logger: Logger = LogManager.getLogger(Vanadium::class.java)
 
     @OptIn(ExperimentalAtomicApi::class)
     private val isRunning = AtomicBoolean(false)
@@ -30,15 +31,17 @@ object Vanadium {
         val adapter = adapterProvider()
 
         runBlocking {
-            // Initialize System Systems (GLFW, Logging, etc.)
-            initCoreSystems(config)
+            Profiler.profile("Initialization") {
+                // Initialize System Systems (GLFW, Logging, etc.)
+                initCoreSystems(config)
 
-            window = Window(config).also { it.initialize(adapter) }
-            vulkanContext = VulkanContext(config).also { it.initialize(window) }
+                window = Window(config).also { it.initialize(adapter) }
+                vulkanContext = VulkanContext(config).also { it.initialize(window) }
 
-            // Initialize Adapter (Suspendable for async asset loading)
-            adapter.configure(config)
-            adapter.initialize(this)
+                // Initialize Adapter (Suspendable for async asset loading)
+                adapter.configure(config)
+                Profiler.profile("Adapter Initialization") { adapter.initialize(this) }
+            }
 
             // Start the Engine Loop
             runEngineLoop(adapter, config)
@@ -67,17 +70,13 @@ object Vanadium {
         shutdown(adapter)
     }
 
-    private fun initCoreSystems(config: VanadiumConfig) {
+    private fun initCoreSystems(config: VanadiumConfig) = Profiler.profile("Core Systems Initialization") {
         if (!glfwInit()) throw IllegalStateException("Unable to initialize GLFW")
         configureLogging()
-        logger.info("Vanadium Infrastructure Initialized: ${config.applicationName}")
     }
 
-    private fun shutdown(adapter: VanadiumAdapter) {
-        logger.info("Shutting down Vanadium...")
-
-        adapter.shutdown()
-
+    private fun shutdown(adapter: VanadiumAdapter) = Profiler.profile("Shutdown") {
+        Profiler.profile("Adapter Shutdown") { adapter.shutdown() }
         vulkanContext.shutdown()
         window.shutdown()
 
