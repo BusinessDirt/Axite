@@ -5,7 +5,7 @@ import github.businessdirt.axite.logging.PatternBuilder
 import github.businessdirt.axite.vanadium.core.math.Clock
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
 import github.businessdirt.axite.vanadium.platform.Window
-import github.businessdirt.axite.vanadium.vulkan.device.VulkanContext
+import github.businessdirt.axite.vanadium.vulkan.Context
 import kotlinx.coroutines.*
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -24,7 +24,7 @@ object Vanadium {
     val engineScope = CoroutineScope(Dispatchers.Default + engineJob)
 
     lateinit var window: Window
-    lateinit var vulkanContext: VulkanContext
+    lateinit var context: Context
 
     fun launch(adapterProvider: () -> VanadiumAdapter) {
         val config = VanadiumConfig()
@@ -36,7 +36,7 @@ object Vanadium {
                 initCoreSystems(config)
 
                 window = Window(config).also { it.initialize(adapter) }
-                vulkanContext = VulkanContext(config).also { it.initialize(window) }
+                context = Context(config).also { it.initialize(window) }
 
                 // Initialize Adapter (Suspendable for async asset loading)
                 adapter.configure(config)
@@ -77,7 +77,7 @@ object Vanadium {
 
     private fun shutdown(adapter: VanadiumAdapter) = Profiler.profile("Shutdown") {
         Profiler.profile("Adapter Shutdown") { adapter.shutdown() }
-        vulkanContext.shutdown()
+        context.shutdown()
         window.shutdown()
 
         engineJob.cancel()

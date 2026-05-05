@@ -4,16 +4,39 @@ import github.businessdirt.axite.vanadium.VanadiumAdapter
 import github.businessdirt.axite.vanadium.VanadiumConfig
 import github.businessdirt.axite.vanadium.core.events.*
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
+import github.businessdirt.axite.vanadium.core.utils.memoryStack
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
+import org.apache.logging.log4j.MarkerManager
 import org.lwjgl.glfw.Callbacks.glfwFreeCallbacks
 import org.lwjgl.glfw.GLFW.*
+import org.lwjgl.glfw.GLFWErrorCallback
 import org.lwjgl.system.MemoryUtil.NULL
-import org.slf4j.LoggerFactory
+import kotlin.properties.Delegates
+
+data class WindowData(
+    val width: Int,
+    val height: Int,
+    val framebufferWidth: Int,
+    val framebufferHeight: Int,
+    val monitorName: String,
+    val refreshRate: Int,
+    val isResizable: Boolean,
+    val isDecorated: Boolean
+) {
+    val aspectRatio: Float
+        get() = width.toFloat() / height.toFloat()
+
+    val contentScale: Float
+        get() = framebufferWidth.toFloat() / width.toFloat()
+}
 
 class Window(private val config: VanadiumConfig) {
-    private val logger = LoggerFactory.getLogger(Window::class.java)
+    private val logger: Logger = LogManager.getLogger(Window::class.java)
 
-    var handle: Long = NULL
-        private set
+
+    lateinit var data: WindowData
+    var handle by Delegates.notNull<Long>()
 
     /**
      * Initializes the window on the current thread.
@@ -39,6 +62,11 @@ class Window(private val config: VanadiumConfig) {
         }
 
         Profiler.profile("Event Callbacks Setup") {
+            glfwSetErrorCallback { error, description ->
+                val message = GLFWErrorCallback.getDescription(description)
+                logger.atError().withMarker(MarkerManager.getMarker("GLFW")).log("[$error] $message")
+            }
+
             // --- Window / App Events ---
             glfwSetWindowSizeCallback(handle) { _, w, h ->
                 adapter.onEvent(WindowResizedEvent(w, h))
@@ -92,6 +120,17 @@ class Window(private val config: VanadiumConfig) {
 
         centerWindow()
         glfwShowWindow(handle)
+
+        data = handle.getWindowData()
+        with(logger) {
+            debug("-------- [ GLFW Initialized ] --------")
+            debug("Screen Resolution: {}x{}", data.width, data.height)
+            debug("Actual Framebuffer: {}x{}", data.framebufferWidth, data.framebufferHeight)
+            debug("Content Scale: {}x", "%.2f".format(data.contentScale))
+            debug("Monitor: {} @ {}Hz", data.monitorName, data.refreshRate)
+            debug("Resizable: {}, Decorated: {}", data.isResizable, data.isDecorated)
+            debug("--------------------------------------")
+        }
     }
 
     private fun centerWindow() {
@@ -111,7 +150,30 @@ class Window(private val config: VanadiumConfig) {
             glfwFreeCallbacks(handle)
             glfwDestroyWindow(handle)
             handle = NULL
-            logger.info("Window destroyed")
         }
     }
+}
+
+fun Long.getWindowData(): WindowData = memoryStack { stack ->
+    val w = stack.mallocInt(1)
+    val h = stack.mallocInt(1)
+    val fw = stack.mallocInt(1)
+    val fh = stack.mallocInt(1)
+
+    glfwGetWindowSize(this, w, h)
+    glfwGetFramebufferSize(this, fw, fh)
+
+    val monitor = glfwGetPrimaryMonitor()
+    val videoMode = glfwGetVideoMode(monitor)
+
+    WindowData(
+        width = w[0],
+        height = h[0],
+        framebufferWidth = fw[0],
+        framebufferHeight = fh[0],
+        monitorName = glfwGetMonitorName(monitor) ?: "Generic",
+        refreshRate = videoMode?.refreshRate() ?: 0,
+        isResizable = glfwGetWindowAttrib(this, GLFW_RESIZABLE) == GLFW_TRUE,
+        isDecorated = glfwGetWindowAttrib(this, GLFW_DECORATED) == GLFW_TRUE
+    )
 }
