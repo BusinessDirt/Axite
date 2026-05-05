@@ -37,12 +37,6 @@ subprojects {
         "implementation"(kotlin("reflect"))
         "api"("org.slf4j:slf4j-api:2.0.12")
 
-        // KSP (except for processor itself)
-        if (project.name != "processor") {
-            "ksp"(project(":processor"))
-            "kspTest"(project(":processor"))
-        }
-
         // Test Dependencies
         "testImplementation"(kotlin("test"))
         "testImplementation"("org.slf4j:slf4j-simple:2.0.12")

@@ -1,82 +1,115 @@
 package github.businessdirt.axite.vanadium.platform
 
+import github.businessdirt.axite.vanadium.VanadiumAdapter
 import github.businessdirt.axite.vanadium.VanadiumConfig
-import github.businessdirt.axite.vanadium.events.glfw.*
-import github.businessdirt.axite.vanadium.math.Resolution
+import github.businessdirt.axite.vanadium.events.*
 import org.lwjgl.glfw.Callbacks.glfwFreeCallbacks
 import org.lwjgl.glfw.GLFW.*
-import org.lwjgl.glfw.GLFWVulkan.glfwVulkanSupported
 import org.lwjgl.system.MemoryUtil.NULL
+import org.slf4j.LoggerFactory
 
-class Window(config: VanadiumConfig) : AutoCloseable {
+class Window(private val config: VanadiumConfig) {
+    private val logger = LoggerFactory.getLogger(Window::class.java)
 
-    val handle: Long
-
-    var width: Int
-        private set
-    var height: Int
+    var handle: Long = NULL
         private set
 
-    var shouldClose: Boolean
-        get() = glfwWindowShouldClose(handle)
-        set(value) = glfwSetWindowShouldClose(handle, value)
-
-    init {
-        check(glfwInit()) { "Unable to initialize GLFW" }
-        check(glfwVulkanSupported()) { "Cannot find a compatible Vulkan installable client driver (ICD)" }
-
-        if (config.resolution.isInvalid) {
-            val vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor())
-                ?: error("Error getting primary monitor")
-            config.resolution = Resolution(vidMode.width(), vidMode.height())
-        }
-
-        width = config.resolution.width
-        height = config.resolution.height
-
+    /**
+     * Initializes the window on the current thread.
+     * MUST be called from the main thread.
+     */
+    fun create(adapter: VanadiumAdapter) {
+        // Configure Window Hints for Vulkan
         glfwDefaultWindowHints()
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API)
-        glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE)
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE)
 
         // Create the window
-        handle = glfwCreateWindow(width, height, config.applicationName, NULL, NULL)
-        check(handle != NULL) { "Failed to create the GLFW window" }
+        handle = glfwCreateWindow(
+            config.resolution.width,
+            config.resolution.height,
+            config.applicationName,
+            NULL,
+            NULL
+        )
 
-        // Window Resize
-        glfwSetFramebufferSizeCallback(handle) { _, w, h ->
-            width = w
-            height = h
-            WindowResizedEvent(w, h).post()
+        if (handle == NULL) throw RuntimeException("Failed to create the GLFW window")
+        
+        // --- Window / App Events ---
+        glfwSetWindowSizeCallback(handle) { _, w, h ->
+            adapter.onEvent(WindowResizedEvent(w, h))
         }
 
-        // Keyboard Input
-        glfwSetKeyCallback(handle) { _, key, _, action, mods ->
-            // Using Kotlin's 'when' expression for clean control flow
-            when (action) {
-                GLFW_PRESS, GLFW_REPEAT -> KeyPressedEvent(key, mods).post()
-                GLFW_RELEASE -> KeyReleasedEvent(key, mods).post()
+        glfwSetWindowCloseCallback(handle) { _ ->
+            val event = WindowClosedEvent()
+            adapter.onEvent(event)
+            if (event.isCancelled) {
+                glfwSetWindowShouldClose(handle, false)
             }
         }
 
-        // Mouse Position
+        glfwSetWindowFocusCallback(handle) { _, focused ->
+            adapter.onEvent(WindowFocusEvent(focused))
+        }
+
+        glfwSetWindowPosCallback(handle) { _, x, y ->
+            adapter.onEvent(WindowMovedEvent(x, y))
+        }
+
+        // --- Keyboard Events ---
+        glfwSetKeyCallback(handle) { _, key, _, action, _ ->
+            when (action) {
+                GLFW_PRESS -> adapter.onEvent(KeyPressedEvent(key, 0))
+                GLFW_REPEAT -> adapter.onEvent(KeyPressedEvent(key, 1))
+                GLFW_RELEASE -> adapter.onEvent(KeyReleasedEvent(key))
+            }
+        }
+
+        glfwSetCharCallback(handle) { _, codepoint ->
+            adapter.onEvent(KeyTypedEvent(codepoint.toChar()))
+        }
+
+        // --- Mouse Events ---
         glfwSetCursorPosCallback(handle) { _, x, y ->
-            MouseMovedEvent(x, y).post()
+            adapter.onEvent(MouseMovedEvent(x, y))
         }
 
-        // Mouse Buttons
-        glfwSetMouseButtonCallback(handle) { _, button, action, mods ->
+        glfwSetMouseButtonCallback(handle) { _, button, action, _ ->
             when (action) {
-                GLFW_PRESS -> MousePressedEvent(button, mods).post()
-                GLFW_RELEASE -> MouseReleasedEvent(button, mods).post()
+                GLFW_PRESS -> adapter.onEvent(MouseButtonPressedEvent(button))
+                GLFW_RELEASE -> adapter.onEvent(MouseButtonReleasedEvent(button))
             }
         }
+
+        glfwSetScrollCallback(handle) { _, xOffset, yOffset ->
+            adapter.onEvent(MouseScrolledEvent(xOffset, yOffset))
+        }
+
+        centerWindow()
+        glfwShowWindow(handle)
+
+        logger.info("Window created successfully: ${config.resolution.width}x${config.resolution.height}")
     }
 
+    private fun centerWindow() {
+        val vidMode = glfwGetVideoMode(glfwGetPrimaryMonitor()) ?: return
+        glfwSetWindowPos(
+            handle,
+            (vidMode.width() - config.resolution.width) / 2,
+            (vidMode.height() - config.resolution.height) / 2
+        )
+    }
+
+    fun shouldClose(): Boolean = glfwWindowShouldClose(handle)
     fun pollEvents() = glfwPollEvents()
 
-    override fun close() {
-        glfwFreeCallbacks(handle)
-        glfwDestroyWindow(handle)
-        glfwTerminate()
+    fun destroy() {
+        if (handle != NULL) {
+            glfwFreeCallbacks(handle)
+            glfwDestroyWindow(handle)
+            handle = NULL
+            logger.info("Window destroyed")
+        }
     }
 }

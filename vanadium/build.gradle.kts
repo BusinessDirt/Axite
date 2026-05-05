@@ -36,7 +36,6 @@ val lwjglNatives = Pair(
 }
 
 dependencies {
-    implementation(project(":events"))
     implementation(project(":logging"))
 
     implementation(platform("org.lwjgl:lwjgl-bom:$lwjglVersion"))
@@ -63,6 +62,7 @@ dependencies {
     implementation("org.joml", "joml-primitives", jomlPrimitivesVersion)
 
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 }
 
 sourceSets {

@@ -1,79 +1,85 @@
 package github.businessdirt.axite.vanadium
 
-import github.businessdirt.axite.events.EventBus
 import github.businessdirt.axite.logging.LoggingConfigurator
 import github.businessdirt.axite.logging.PatternBuilder
-import github.businessdirt.axite.vanadium.assets.model.ModelData
-import github.businessdirt.axite.vanadium.graph.RenderGraph
-import github.businessdirt.axite.vanadium.math.Resolution
+import github.businessdirt.axite.vanadium.math.Clock
 import github.businessdirt.axite.vanadium.platform.Window
-import github.businessdirt.axite.vanadium.scene.Scene
-import github.businessdirt.axite.vanadium.utils.camelToTitleCase
-import github.businessdirt.axite.vanadium.utils.log
-import github.businessdirt.axite.vanadium.utils.profile
-import org.lwjgl.glfw.GLFW
+import kotlinx.coroutines.*
+import org.lwjgl.glfw.GLFW.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.lang.reflect.Modifier
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 object Vanadium {
+    private val logger: Logger = LoggerFactory.getLogger(Vanadium::class.java)
 
-    private val logger: Logger by lazy { LoggerFactory.getLogger(Vanadium::class.java) }
+    @OptIn(ExperimentalAtomicApi::class)
+    private val isRunning = AtomicBoolean(false)
 
-    val time: Double
-        get() = GLFW.glfwGetTime()
+    // Structured Concurrency: Scope for the entire application lifecycle
+    private val engineJob = SupervisorJob()
+    val engineScope = CoroutineScope(Dispatchers.Default + engineJob)
 
-    lateinit var scene: Scene
+    private lateinit var window: Window
 
-    fun launch(gameProvider: () -> VanadiumAdapter) {
-
-        this::configureLogging.profile(logger)
-        EventBus::initialize.profile(logger)
-
+    fun launch(adapterProvider: () -> VanadiumAdapter) {
         val config = VanadiumConfig()
-        with(gameProvider()) { run(config) }
-    }
+        val adapter = adapterProvider()
 
-    private fun VanadiumAdapter.run(config: VanadiumConfig) {
-        configure(config)
-        config.log(logger)
+        runBlocking {
+            // Initialize System Systems (GLFW, Logging, etc.)
+            initCoreSystems(config)
 
-        val timePerUpdate = 1_000_000_000.0 / config.updatesPerSecond
-        var previousTime = System.nanoTime()
-        var accumulator = 0.0
+            window = Window(config)
+            window.create(adapter)
 
-        Window(config).use { window ->
-            scene = Scene(window, config)
-            val initData: InitData = ::initialize.profile(logger)
-            RenderGraph.initialize(window, config, initData)
+            // Initialize Adapter (Suspendable for async asset loading)
+            adapter.configure(config)
+            adapter.initialize(this)
 
-
-            while (!window.shouldClose) {
-                val currentTime = System.nanoTime()
-                val frameTime = currentTime - previousTime
-                previousTime = currentTime
-
-                // Add the fraction of an update that this frame time represents
-                accumulator += frameTime / timePerUpdate
-
-                window.pollEvents()
-
-                while (accumulator >= 1.0) {
-                    val fixedDeltaMillis = (timePerUpdate / 1_000_000).toLong()
-                    update(fixedDeltaMillis)
-
-                    accumulator--
-                }
-
-                RenderGraph.render()
-            }
-
-            ::shutdown.profile(logger)
-            RenderGraph.shutdown()
+            // Start the Engine Loop
+            runEngineLoop(adapter, config)
         }
     }
 
-    fun configureLogging() {
+    @OptIn(ExperimentalAtomicApi::class)
+    private suspend fun runEngineLoop(adapter: VanadiumAdapter, config: VanadiumConfig) {
+        isRunning.store(true)
+
+        val clock = Clock(config.updatesPerSecond)
+
+        // Main Loop must remain on the thread that initialized GLFW
+        while (isRunning.load() && !window.shouldClose()) {
+            clock.tick()
+            window.pollEvents()
+
+            // Fixed Timestep Logic Updates & Variable Rate Rendering with interpolation
+            while (clock.shouldUpdate()) adapter.update(clock.frameInfo)
+            adapter.render(clock.interpolation)
+
+            // Yield to allow other coroutines to work if needed
+            yield()
+        }
+
+        cleanup(adapter)
+    }
+
+    private fun initCoreSystems(config: VanadiumConfig) {
+        if (!glfwInit()) throw IllegalStateException("Unable to initialize GLFW")
+        configureLogging()
+        logger.info("Vanadium Infrastructure Initialized: ${config.applicationName}")
+    }
+
+    private fun cleanup(adapter: VanadiumAdapter) {
+        logger.info("Shutting down Vanadium...")
+        adapter.shutdown()
+        window.destroy()
+        engineJob.cancel()
+        glfwTerminate()
+    }
+
+    private fun configureLogging() {
         LoggingConfigurator.configure {
             bridgeSysOut = true
             bridgeSysError = true
@@ -91,40 +97,3 @@ object Vanadium {
         }
     }
 }
-
-data class VanadiumConfig(
-    var applicationName: String = "Vanadium Application",
-    var resolution: Resolution = Resolution(0, 0),
-    var updatesPerSecond: Int = 60,
-    var validate: Boolean = true,
-    var requestedImages: Int = 3,
-    var vsync: Boolean = true,
-    var recompileShaders: Boolean = true,
-    var fov: Float = 30.0f,
-    var zNear: Float = 1.0f,
-    var zFar: Float = 100.0f,
-) {
-    fun log(logger: Logger) = logger.atInfo().log(title = "Vanadium Configuration") {
-        val fields = this@VanadiumConfig.javaClass.declaredFields
-        for (field in fields) {
-            if (Modifier.isStatic(field.modifiers) || field.isSynthetic) continue
-
-            field.isAccessible = true
-            val formattedName = field.name.camelToTitleCase()
-            val value = field.get(this@VanadiumConfig)
-
-            append(formattedName).append(": ").append(value).appendLine()
-        }
-    }
-}
-
-interface VanadiumAdapter {
-    fun configure(config: VanadiumConfig) {}
-    fun initialize(): InitData
-    fun update(deltaTime: Long) {}
-    fun shutdown() {}
-}
-
-data class InitData(
-    val models: List<ModelData>
-)
