@@ -1,4 +1,4 @@
-package github.businessdirt.axite.vanadium.data.dag
+package github.businessdirt.axite.vanadium.core.dag
 
 /**
  * Represents a node in the Directed Acyclic Graph.

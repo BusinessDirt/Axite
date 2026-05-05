@@ -1,4 +1,4 @@
-package github.businessdirt.axite.vanadium.math
+package github.businessdirt.axite.vanadium.core.math
 
 import github.businessdirt.axite.vanadium.FrameInfo
 

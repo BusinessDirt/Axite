@@ -1,4 +1,4 @@
-package github.businessdirt.axite.vanadium.data.dag
+package github.businessdirt.axite.vanadium.core.dag
 
 /**
  * Interface for objects that use resources, used for lifetime analysis in the DAG.

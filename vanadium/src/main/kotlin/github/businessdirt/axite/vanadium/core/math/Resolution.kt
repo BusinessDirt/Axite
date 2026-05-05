@@ -1,4 +1,4 @@
-package github.businessdirt.axite.vanadium.math
+package github.businessdirt.axite.vanadium.core.math
 
 data class Resolution(
     val width: Int,

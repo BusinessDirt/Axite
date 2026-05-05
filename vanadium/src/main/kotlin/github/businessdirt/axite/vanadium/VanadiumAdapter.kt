@@ -1,7 +1,7 @@
 package github.businessdirt.axite.vanadium
 
-import github.businessdirt.axite.vanadium.events.Event
-import github.businessdirt.axite.vanadium.math.Resolution
+import github.businessdirt.axite.vanadium.core.events.Event
+import github.businessdirt.axite.vanadium.core.math.Resolution
 import kotlinx.coroutines.CoroutineScope
 
 data class VanadiumConfig(

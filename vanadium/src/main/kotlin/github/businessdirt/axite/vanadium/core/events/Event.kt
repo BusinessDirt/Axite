@@ -1,4 +1,4 @@
-package github.businessdirt.axite.vanadium.events
+package github.businessdirt.axite.vanadium.core.events
 
 enum class EventCategory {
     None, Application, Input, Keyboard, Mouse, MouseButton

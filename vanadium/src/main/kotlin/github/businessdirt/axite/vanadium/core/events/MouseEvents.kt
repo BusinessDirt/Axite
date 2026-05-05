@@ -1,4 +1,4 @@
-package github.businessdirt.axite.vanadium.events
+package github.businessdirt.axite.vanadium.core.events
 
 abstract class MouseEvent : Event() {
     override val categoryFlags: Int = (1 shl EventCategory.Input.ordinal) or (1 shl EventCategory.Mouse.ordinal)

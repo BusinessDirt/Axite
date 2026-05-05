@@ -1,4 +1,4 @@
-package github.businessdirt.axite.vanadium.events
+package github.businessdirt.axite.vanadium.core.events
 
 abstract class ApplicationEvent : Event() {
     override val categoryFlags: Int = (1 shl EventCategory.Application.ordinal)

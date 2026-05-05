@@ -1,6 +1,6 @@
 package github.businessdirt.axite.vanadium
 
-import github.businessdirt.axite.vanadium.events.Event
+import github.businessdirt.axite.vanadium.core.events.Event
 import kotlinx.coroutines.CoroutineScope
 import org.slf4j.LoggerFactory
 

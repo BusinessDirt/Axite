@@ -2,7 +2,7 @@ package github.businessdirt.axite.vanadium
 
 import github.businessdirt.axite.logging.LoggingConfigurator
 import github.businessdirt.axite.logging.PatternBuilder
-import github.businessdirt.axite.vanadium.math.Clock
+import github.businessdirt.axite.vanadium.core.math.Clock
 import github.businessdirt.axite.vanadium.platform.Window
 import kotlinx.coroutines.*
 import org.lwjgl.glfw.GLFW.*

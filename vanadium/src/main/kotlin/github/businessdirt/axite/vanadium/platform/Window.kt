@@ -2,7 +2,17 @@ package github.businessdirt.axite.vanadium.platform
 
 import github.businessdirt.axite.vanadium.VanadiumAdapter
 import github.businessdirt.axite.vanadium.VanadiumConfig
-import github.businessdirt.axite.vanadium.events.*
+import github.businessdirt.axite.vanadium.core.events.KeyPressedEvent
+import github.businessdirt.axite.vanadium.core.events.KeyReleasedEvent
+import github.businessdirt.axite.vanadium.core.events.KeyTypedEvent
+import github.businessdirt.axite.vanadium.core.events.MouseButtonPressedEvent
+import github.businessdirt.axite.vanadium.core.events.MouseButtonReleasedEvent
+import github.businessdirt.axite.vanadium.core.events.MouseMovedEvent
+import github.businessdirt.axite.vanadium.core.events.MouseScrolledEvent
+import github.businessdirt.axite.vanadium.core.events.WindowClosedEvent
+import github.businessdirt.axite.vanadium.core.events.WindowFocusEvent
+import github.businessdirt.axite.vanadium.core.events.WindowMovedEvent
+import github.businessdirt.axite.vanadium.core.events.WindowResizedEvent
 import org.lwjgl.glfw.Callbacks.glfwFreeCallbacks
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.system.MemoryUtil.NULL

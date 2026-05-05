@@ -1,5 +1,8 @@
 package github.businessdirt.axite.vanadium.data.dag
 
+import github.businessdirt.axite.vanadium.core.dag.DirectedAcyclicGraph
+import github.businessdirt.axite.vanadium.core.dag.Node
+import github.businessdirt.axite.vanadium.core.dag.ResourceUser
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DisplayName
@@ -7,7 +10,7 @@ import org.junit.jupiter.api.assertThrows
 import kotlin.test.Test
 
 /**
- * A simple test implementation of [Node].
+ * A simple test implementation of [github.businessdirt.axite.vanadium.core.dag.Node].
  */
 class TestNode(name: String) : Node<String>(name) {
     override fun execute() {
@@ -16,7 +19,7 @@ class TestNode(name: String) : Node<String>(name) {
 }
 
 /**
- * A test implementation of [Node] that also implements [ResourceUser].
+ * A test implementation of [Node] that also implements [github.businessdirt.axite.vanadium.core.dag.ResourceUser].
  */
 class ResourceNode(
     name: String,
@@ -27,7 +30,7 @@ class ResourceNode(
 }
 
 /**
- * Tests for [DirectedAcyclicGraph].
+ * Tests for [github.businessdirt.axite.vanadium.core.dag.DirectedAcyclicGraph].
  */
 class DirectedAcyclicGraphTest {
 

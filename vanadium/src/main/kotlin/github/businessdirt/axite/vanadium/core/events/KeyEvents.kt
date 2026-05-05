@@ -1,4 +1,4 @@
-package github.businessdirt.axite.vanadium.events
+package github.businessdirt.axite.vanadium.core.events
 
 abstract class KeyEvent(val keyCode: Int) : Event() {
     override val categoryFlags: Int = (1 shl EventCategory.Input.ordinal) or (1 shl EventCategory.Keyboard.ordinal)
