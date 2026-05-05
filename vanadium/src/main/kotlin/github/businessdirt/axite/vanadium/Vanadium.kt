@@ -4,6 +4,7 @@ import github.businessdirt.axite.logging.LoggingConfigurator
 import github.businessdirt.axite.logging.PatternBuilder
 import github.businessdirt.axite.vanadium.core.math.Clock
 import github.businessdirt.axite.vanadium.platform.Window
+import github.businessdirt.axite.vanadium.vulkan.device.VulkanContext
 import kotlinx.coroutines.*
 import org.lwjgl.glfw.GLFW.*
 import org.slf4j.Logger
@@ -21,7 +22,8 @@ object Vanadium {
     private val engineJob = SupervisorJob()
     val engineScope = CoroutineScope(Dispatchers.Default + engineJob)
 
-    private lateinit var window: Window
+    lateinit var window: Window
+    lateinit var vulkanContext: VulkanContext
 
     fun launch(adapterProvider: () -> VanadiumAdapter) {
         val config = VanadiumConfig()
@@ -31,8 +33,8 @@ object Vanadium {
             // Initialize System Systems (GLFW, Logging, etc.)
             initCoreSystems(config)
 
-            window = Window(config)
-            window.create(adapter)
+            window = Window(config).also { it.initialize(adapter) }
+            vulkanContext = VulkanContext(config).also { it.initialize(window) }
 
             // Initialize Adapter (Suspendable for async asset loading)
             adapter.configure(config)
@@ -62,7 +64,7 @@ object Vanadium {
             yield()
         }
 
-        cleanup(adapter)
+        shutdown(adapter)
     }
 
     private fun initCoreSystems(config: VanadiumConfig) {
@@ -71,10 +73,14 @@ object Vanadium {
         logger.info("Vanadium Infrastructure Initialized: ${config.applicationName}")
     }
 
-    private fun cleanup(adapter: VanadiumAdapter) {
+    private fun shutdown(adapter: VanadiumAdapter) {
         logger.info("Shutting down Vanadium...")
+
         adapter.shutdown()
-        window.destroy()
+
+        vulkanContext.shutdown()
+        window.shutdown()
+
         engineJob.cancel()
         glfwTerminate()
     }

@@ -28,7 +28,7 @@ class Window(private val config: VanadiumConfig) {
      * Initializes the window on the current thread.
      * MUST be called from the main thread.
      */
-    fun create(adapter: VanadiumAdapter) {
+    fun initialize(adapter: VanadiumAdapter) {
         // Configure Window Hints for Vulkan
         glfwDefaultWindowHints()
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API)
@@ -114,7 +114,7 @@ class Window(private val config: VanadiumConfig) {
     fun shouldClose(): Boolean = glfwWindowShouldClose(handle)
     fun pollEvents() = glfwPollEvents()
 
-    fun destroy() {
+    fun shutdown() {
         if (handle != NULL) {
             glfwFreeCallbacks(handle)
             glfwDestroyWindow(handle)
