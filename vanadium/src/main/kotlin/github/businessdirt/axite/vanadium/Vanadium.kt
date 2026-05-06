@@ -9,7 +9,8 @@ import github.businessdirt.axite.vanadium.vulkan.Context
 import kotlinx.coroutines.*
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
-import org.lwjgl.glfw.GLFW.*
+import org.lwjgl.glfw.GLFW.glfwInit
+import org.lwjgl.glfw.GLFW.glfwTerminate
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 

@@ -1,21 +1,11 @@
 package github.businessdirt.axite.vanadium.core.utils
 
-import github.businessdirt.axite.vanadium.core.utils.debugGrid
-import github.businessdirt.axite.vanadium.vulkan.Context
 import org.apache.logging.log4j.LogManager
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil
-import org.lwjgl.vulkan.VK13
+import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK13.*
-import org.lwjgl.vulkan.VkCommandBuffer
-import org.lwjgl.vulkan.VkDependencyInfo
-import org.lwjgl.vulkan.VkExtensionProperties
-import org.lwjgl.vulkan.VkImageMemoryBarrier2
-import org.lwjgl.vulkan.VkLayerProperties
-import org.lwjgl.vulkan.VkMemoryAllocateInfo
-import org.slf4j.LoggerFactory
 import java.lang.reflect.Modifier
-import kotlin.collections.get
 
 
 object VulkanErrorMapper {
@@ -124,6 +114,34 @@ fun Int.decodeDeviceType(): String = when (this) {
     3 -> "VIRTUAL_GPU"
     4 -> "CPU"
     else -> "UNKNOWN_TYPE ($this)"
+}
+
+/**
+ * Maps the VkFormat integer to its readable name.
+ */
+fun Int.decodeFormat(): String = when (this) {
+    0 -> "UNDEFINED"
+    37 -> "R8G8B8A8_UNORM"
+    43 -> "R8G8B8A8_SRGB"
+    44 -> "B8G8R8A8_UNORM"
+    50 -> "B8G8R8A8_SRGB"
+    58 -> "R16G16B16A16_SFLOAT"
+    64 -> "R32G32B32A16_SFLOAT"
+    97 -> "R8G8B8A8_SNORM"
+    1000156000 -> "A2B10G10R10_UNORM_PACK32"
+    else -> "FORMAT_$this"
+}
+
+/**
+ * Maps the VkColorSpaceKHR integer to its readable name.
+ */
+fun Int.decodeColorSpace(): String = when (this) {
+    0 -> "SRGB_NONLINEAR"
+    1000104001 -> "DISPLAY_P3_NONLINEAR"
+    1000104002 -> "EXTENDED_SRGB_LINEAR"
+    1000104010 -> "ADOBERGB_NONLINEAR"
+    1000104014 -> "BT2020_LINEAR"
+    else -> "CS_$this"
 }
 
 fun Long.runIfNonNull(block: Long.() -> Unit): Long {

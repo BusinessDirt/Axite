@@ -3,14 +3,7 @@ package github.businessdirt.axite.vanadium.vulkan
 import github.businessdirt.axite.vanadium.core.utils.createHandle
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import org.apache.logging.log4j.MarkerManager
-import org.lwjgl.vulkan.EXTDebugUtils.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT
-import org.lwjgl.vulkan.EXTDebugUtils.VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
-import org.lwjgl.vulkan.EXTDebugUtils.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
-import org.lwjgl.vulkan.EXTDebugUtils.VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
-import org.lwjgl.vulkan.EXTDebugUtils.VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT
-import org.lwjgl.vulkan.EXTDebugUtils.VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
-import org.lwjgl.vulkan.EXTDebugUtils.vkCreateDebugUtilsMessengerEXT
-import org.lwjgl.vulkan.EXTDebugUtils.vkDestroyDebugUtilsMessengerEXT
+import org.lwjgl.vulkan.EXTDebugUtils.*
 import org.lwjgl.vulkan.VK13.VK_FALSE
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCallbackDataEXT
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCallbackEXT
