@@ -1,10 +1,9 @@
-@file:Suppress("unused")
-
 package github.businessdirt.axite.vanadium.vulkan.device
 
-import org.lwjgl.vulkan.KHRAccelerationStructure
-import org.lwjgl.vulkan.KHRDeferredHostOperations
-import org.lwjgl.vulkan.KHRRayTracingPipeline
+import org.lwjgl.vulkan.KHRAccelerationStructure.VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME
+import org.lwjgl.vulkan.KHRDeferredHostOperations.VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
+import org.lwjgl.vulkan.KHRRayTracingPipeline.VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME
+import org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME
 import org.lwjgl.vulkan.VK13.VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
 
 /**
@@ -16,7 +15,8 @@ import org.lwjgl.vulkan.VK13.VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
 annotation class PhysicalDeviceRequirement(
     val weight: Int = 0,
     val mandatory: Boolean = false,
-    val message: String = ""
+    val message: String = "",
+    val extensions: Array<String> = []
 )
 
 /**
@@ -33,8 +33,12 @@ object DefaultPhysicalDeviceRequirements {
     @PhysicalDeviceRequirement(mandatory = true, message = "Presentation Support missing")
     fun hasPresentationQueue(device: PhysicalDevice) = device.hasPresentationSupport
 
-    @PhysicalDeviceRequirement(mandatory = true, message = "Required Extensions missing")
-    fun supportsExtensions(device: PhysicalDevice) = device.supportsExtensions(PhysicalDevice.REQUIRED_EXTENSIONS)
+    @PhysicalDeviceRequirement(
+        mandatory = true,
+        message = "Required Extensions missing",
+        extensions = [VK_KHR_SWAPCHAIN_EXTENSION_NAME]
+    )
+    fun supportsExtensions(device: PhysicalDevice) = device.supportsExtensions(setOf(VK_KHR_SWAPCHAIN_EXTENSION_NAME))
 
     @PhysicalDeviceRequirement(weight = 1000)
     fun isDiscreteGpu(device: PhysicalDevice) =
@@ -51,11 +55,19 @@ object DefaultPhysicalDeviceRequirements {
 object RaytracingPhysicalDeviceRequirements {
 
     private val RT_EXTENSIONS = setOf(
-        KHRAccelerationStructure.VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-        KHRRayTracingPipeline.VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-        KHRDeferredHostOperations.VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
+        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
     )
 
-    @PhysicalDeviceRequirement(mandatory = true, message = "Raytracing Extensions missing")
+    @PhysicalDeviceRequirement(
+        mandatory = true,
+        message = "Raytracing Extensions missing",
+        extensions = [
+            VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+            VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+            VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
+        ]
+    )
     fun supportsRaytracingExtensions(device: PhysicalDevice) = device.supportsExtensions(RT_EXTENSIONS)
 }

@@ -64,12 +64,20 @@ private fun PhysicalDevice.createReqExtensions(stack: MemoryStack): PointerBuffe
     val usePortability = VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME in supportedExtensions &&
             PlatformUtils.type == Platform.MACOS
 
-    val extensionsToEnable = buildList {
-        addAll(PhysicalDevice.REQUIRED_EXTENSIONS)
-        if (usePortability) {
-            add(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME)
+    val requirements = PhysicalDeviceSelector.getRequirements()
+    val extensionsToEnable = requirements.flatMap { req ->
+        val passed = if (req.mandatory) true else {
+            when (val result = req.check(this)) {
+                is Boolean -> result
+                is Number -> result.toInt() > 0
+                else -> false
+            }
         }
-    }
+
+        if (passed) req.extensions else emptyList()
+    }.toMutableSet()
+
+    if (usePortability) extensionsToEnable.add(VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME)
 
     LogManager.getLogger(Device::class.java).debugGrid(
         "Enabling Logical Device Extensions [${extensionsToEnable.size}]",

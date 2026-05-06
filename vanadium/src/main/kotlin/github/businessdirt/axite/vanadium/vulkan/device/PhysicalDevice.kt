@@ -4,6 +4,7 @@ import github.businessdirt.axite.vanadium.core.utils.*
 import github.businessdirt.axite.vanadium.vulkan.Handle
 import github.businessdirt.axite.vanadium.vulkan.Instance
 import org.apache.logging.log4j.Level
+import org.apache.logging.log4j.LogManager
 import org.lwjgl.PointerBuffer
 import org.lwjgl.glfw.GLFWVulkan
 import org.lwjgl.system.MemoryStack
@@ -89,12 +90,6 @@ class PhysicalDevice(
         extensions.free()
         properties.free()
     }
-
-    companion object {
-        val REQUIRED_EXTENSIONS: Set<String> = setOf(
-            KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME
-        )
-    }
 }
 
 fun Instance.pickPhysicalDevice(): PhysicalDevice = memoryStack { stack ->
@@ -129,9 +124,11 @@ fun Instance.pickPhysicalDevice(): PhysicalDevice = memoryStack { stack ->
             }
         }
 
-        logger.debugGrid("Rejected Physical Devices", rejectionReasons.keys) { deviceName ->
-            rejectionReasons[deviceName] ?: "UNKNOWN"
-        }
+        LogManager.getLogger(PhysicalDevice::class.java)
+            .debugGrid("Rejected Physical Devices", rejectionReasons.keys) { deviceName ->
+                rejectionReasons[deviceName] ?: "UNKNOWN"
+            }
+
         invalidDevices.forEach { it.close() }
     }
 
@@ -171,12 +168,13 @@ fun Instance.pickPhysicalDevice(): PhysicalDevice = memoryStack { stack ->
         appendLine("API: ${props.apiVersion().decodeVersion()}")
         appendLine("VRAM: ${vramBytes / (1024 * 1024)} MB")
         appendLine("ID: 0x${Integer.toHexString(props.deviceID())}")
-    }.log(logger, Level.DEBUG)
+    }.log(LogManager.getLogger(PhysicalDevice::class.java), Level.DEBUG)
 
     // Log extensions for this specific device
-    logger.debugGrid("Device Extensions Supported", deviceExtensions) {
-        it.split("_").getOrNull(1) ?: "OTHER"
-    }
+    LogManager.getLogger(PhysicalDevice::class.java)
+        .debugGrid("Device Extensions Supported", deviceExtensions) {
+            it.split("_").getOrNull(1) ?: "OTHER"
+        }
 
     // Cleanup non-winners
     validDevices.filter { it != winner }.forEach { it.close() }
