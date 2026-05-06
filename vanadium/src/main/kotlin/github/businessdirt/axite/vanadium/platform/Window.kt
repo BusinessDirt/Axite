@@ -4,7 +4,11 @@ import github.businessdirt.axite.vanadium.VanadiumAdapter
 import github.businessdirt.axite.vanadium.VanadiumConfig
 import github.businessdirt.axite.vanadium.core.events.*
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
+import github.businessdirt.axite.vanadium.core.utils.BoxCharset
+import github.businessdirt.axite.vanadium.core.utils.boxedString
+import github.businessdirt.axite.vanadium.core.utils.log
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
+import org.apache.logging.log4j.Level
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import org.apache.logging.log4j.MarkerManager
@@ -122,15 +126,13 @@ class Window(private val config: VanadiumConfig) {
         glfwShowWindow(handle)
 
         data = handle.getWindowData()
-        with(logger) {
-            debug("-------- [ GLFW Initialized ] --------")
-            debug("Screen Resolution: {}x{}", data.width, data.height)
-            debug("Actual Framebuffer: {}x{}", data.framebufferWidth, data.framebufferHeight)
-            debug("Content Scale: {}x", "%.2f".format(data.contentScale))
-            debug("Monitor: {} @ {}Hz", data.monitorName, data.refreshRate)
-            debug("Resizable: {}, Decorated: {}", data.isResizable, data.isDecorated)
-            debug("--------------------------------------")
-        }
+        boxedString(boxCharset = BoxCharset.ROUNDED, title = "GLFW Initialized") {
+            appendLine("Screen Resolution: ${data.width}x${data.height}")
+            appendLine("Actual Framebuffer: ${data.framebufferWidth}x${data.framebufferHeight}")
+            appendLine("Content Scale: ${"%.2f".format(data.contentScale)}x")
+            appendLine("Monitor: ${data.monitorName} @ ${data.refreshRate}Hz")
+            appendLine("Resizable: ${data.isResizable}, Decorated: ${data.isDecorated}")
+        }.log(logger, Level.DEBUG)
     }
 
     private fun centerWindow() {

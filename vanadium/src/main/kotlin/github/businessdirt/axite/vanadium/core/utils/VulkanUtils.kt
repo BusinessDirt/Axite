@@ -1,6 +1,8 @@
 package github.businessdirt.axite.vanadium.core.utils
 
+import github.businessdirt.axite.vanadium.core.utils.debugGrid
 import github.businessdirt.axite.vanadium.vulkan.Context
+import org.apache.logging.log4j.LogManager
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.vulkan.VK13
@@ -38,7 +40,7 @@ inline fun vkCheck(
 }
 
 object VulkanUtils {
-    private val logger = LoggerFactory.getLogger(VulkanUtils::class.java)
+    private val logger = LogManager.getLogger(VulkanUtils::class.java)
 
     const val PORTABILITY_EXTENSION: String = "VK_KHR_portability_enumeration"
     const val VALIDATION_LAYER: String = "VK_LAYER_KHRONOS_validation"
@@ -50,20 +52,22 @@ object VulkanUtils {
             vkEnumerateInstanceLayerProperties(pPropertyCount, null)
 
             val count = pPropertyCount[0]
-            logger.debug("Instance supports [{}] layers", count)
-
             val propsBuf = VkLayerProperties.malloc(count, stack)
             vkEnumerateInstanceLayerProperties(pPropertyCount, propsBuf)
 
-            val supportedLayers = (0 until count).map { i ->
-                val layerName = propsBuf[i].layerNameString()
-                logger.debug("{}{}", if (i == count - 1) "└── " else "├── ", layerName)
-                layerName
+            // Collect all supported names
+            val supportedNames = (0 until count).map { propsBuf[it].layerNameString() }.distinct()
+            logger.debugGrid("Available Validation Layers [${supportedNames.size} total]", supportedNames) { name ->
+                val parts = name.split("_")
+                if (parts.size >= 3) parts[2] else "CORE"
             }
 
             return@memoryStack when (VALIDATION_LAYER) {
-                in supportedLayers -> listOf(VALIDATION_LAYER)
-                else -> emptyList()
+                in supportedNames -> listOf(VALIDATION_LAYER)
+                else -> {
+                    logger.warn("Requested layer '{}' not found!", VALIDATION_LAYER)
+                    emptyList()
+                }
             }
         }
 
@@ -73,16 +77,16 @@ object VulkanUtils {
             vkEnumerateInstanceExtensionProperties(null as CharSequence?, pPropertyCount, null)
 
             val count = pPropertyCount[0]
-            logger.debug("Instance supports [{}] extensions:", count)
-
             val propsBuf = VkExtensionProperties.malloc(count, stack)
             vkEnumerateInstanceExtensionProperties(null as CharSequence?, pPropertyCount, propsBuf)
 
-            return@memoryStack (0 until count).map { i ->
-                val extensionName = propsBuf[i].extensionNameString()
-                logger.debug("{}{}", if (i == count - 1) "└── " else "├── ", extensionName)
-                extensionName
-            }.toSet()
+            val names = (0 until count).map { propsBuf[it].extensionNameString() }.toSet()
+
+            logger.debugGrid("Vulkan Instance Extensions [${names.size} total]", names) {
+                it.split("_").getOrNull(1) ?: "OTHER"
+            }
+
+            return@memoryStack names
         }
 
     /*fun memoryTypeFromProperties(typeBits: Int, reqsMask: Int): Int {
