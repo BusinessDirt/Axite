@@ -26,20 +26,17 @@ object PhysicalDeviceSelector {
         val check: (PhysicalDevice) -> Any
     )
 
-    internal fun getRequirements(): List<Requirement> {
-        return providers.flatMap { provider ->
-            provider::class.memberFunctions
-                .filter { it.hasAnnotation<PhysicalDeviceRequirement>() }
-                .map { func ->
-                    val annotation = func.findAnnotation<PhysicalDeviceRequirement>()!!
-                    Requirement(
-                        name = func.name,
-                        weight = annotation.weight,
-                        mandatory = annotation.mandatory,
-                        message = annotation.message,
-                        check = { device -> func.call(provider, device)!! }
-                    )
-                }
+    internal fun getRequirements(): List<Requirement> = providers.flatMap { provider -> provider::class.memberFunctions
+        .filter { it.hasAnnotation<PhysicalDeviceRequirement>() }
+        .map { func ->
+            val annotation = func.findAnnotation<PhysicalDeviceRequirement>()!!
+            Requirement(
+                name = func.name,
+                weight = annotation.weight,
+                mandatory = annotation.mandatory,
+                message = annotation.message,
+                check = { device -> func.call(provider, device)!! }
+            )
         }
     }
 }

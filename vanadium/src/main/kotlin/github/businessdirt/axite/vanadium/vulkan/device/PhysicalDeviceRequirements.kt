@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package github.businessdirt.axite.vanadium.vulkan.device
 
 import org.lwjgl.vulkan.KHRAccelerationStructure
