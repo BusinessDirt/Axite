@@ -3,19 +3,23 @@ package github.businessdirt.axite.vanadium.vulkan
 import github.businessdirt.axite.vanadium.VanadiumConfig
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
 import github.businessdirt.axite.vanadium.platform.Window
-import org.slf4j.LoggerFactory
+import org.apache.logging.log4j.LogManager
 
 class Context(private val config: VanadiumConfig) {
-    private val logger = LoggerFactory.getLogger(Context::class.java)
+    private val logger = LogManager.getLogger(Context::class.java)
+
+    private val scope = ResourceScope()
 
     lateinit var instance: Instance
+    lateinit var debugMessenger: DebugMessenger
 
     fun initialize(window: Window) = Profiler.profile("Vulkan Context Initialization") {
-        instance = Instance(config)
+        instance = scope.use(Instance(config))
+        if (config.validate) debugMessenger = scope.use(DebugMessenger(instance.handle))
     }
 
     fun shutdown() = Profiler.profile("Vulkan Context Initialization") {
-        instance.cleanup()
+        scope.close()
     }
 }
 
