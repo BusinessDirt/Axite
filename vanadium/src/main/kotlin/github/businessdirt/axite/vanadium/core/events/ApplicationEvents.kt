@@ -20,3 +20,7 @@ class WindowFocusEvent(val hasFocus: Boolean) : ApplicationEvent() {
 class WindowMovedEvent(val x: Int, val y: Int) : ApplicationEvent() {
     override val name = "WindowMovedEvent"
 }
+
+class FramebufferResizedEvent(val width: Int, val height: Int) : ApplicationEvent() {
+    override val name = "FramebufferResizedEvent"
+}

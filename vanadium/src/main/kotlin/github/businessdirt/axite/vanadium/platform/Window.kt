@@ -19,10 +19,10 @@ import org.lwjgl.system.MemoryUtil.NULL
 import kotlin.properties.Delegates
 
 data class WindowData(
-    val width: Int,
-    val height: Int,
-    val framebufferWidth: Int,
-    val framebufferHeight: Int,
+    var width: Int,
+    var height: Int,
+    var framebufferWidth: Int,
+    var framebufferHeight: Int,
     val monitorName: String,
     val refreshRate: Int,
     val isResizable: Boolean,
@@ -73,7 +73,15 @@ class Window(private val config: VanadiumConfig) {
 
             // --- Window / App Events ---
             glfwSetWindowSizeCallback(handle) { _, w, h ->
+                data.width = w
+                data.height = h
                 adapter.onEvent(WindowResizedEvent(w, h))
+            }
+
+            glfwSetFramebufferSizeCallback(handle) { _, w, h ->
+                data.framebufferWidth = w
+                data.framebufferHeight = h
+                adapter.onEvent(FramebufferResizedEvent(w, h))
             }
 
             glfwSetWindowCloseCallback(handle) { _ ->
