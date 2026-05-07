@@ -2,6 +2,9 @@ package github.businessdirt.axite.vanadium
 
 import github.businessdirt.axite.logging.LoggingConfigurator
 import github.businessdirt.axite.logging.PatternBuilder
+import github.businessdirt.axite.vanadium.core.events.Event
+import github.businessdirt.axite.vanadium.core.events.EventDispatcher
+import github.businessdirt.axite.vanadium.core.events.FramebufferResizedEvent
 import github.businessdirt.axite.vanadium.core.math.Clock
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
 import github.businessdirt.axite.vanadium.platform.Window
@@ -24,19 +27,22 @@ object Vanadium {
     private val engineJob = SupervisorJob()
     val engineScope = CoroutineScope(Dispatchers.Default + engineJob)
 
+    private lateinit var adapter: VanadiumAdapter
+    private lateinit var config: VanadiumConfig
+
     lateinit var window: Window
     lateinit var context: Context
 
     fun launch(adapterProvider: () -> VanadiumAdapter) {
-        val config = VanadiumConfig()
-        val adapter = adapterProvider()
+        config = VanadiumConfig()
+        adapter = adapterProvider()
 
         runBlocking {
             Profiler.profile("Initialization") {
                 // Initialize System Systems (GLFW, Logging, etc.)
-                initCoreSystems(config)
+                initCoreSystems()
 
-                window = Window(config).also { it.initialize(adapter) }
+                window = Window(config).also { it.initialize() }
                 context = Context(config).also { it.initialize(window) }
 
                 // Initialize Adapter (Suspendable for async asset loading)
@@ -45,12 +51,12 @@ object Vanadium {
             }
 
             // Start the Engine Loop
-            runEngineLoop(adapter, config)
+            runEngineLoop()
         }
     }
 
     @OptIn(ExperimentalAtomicApi::class)
-    private suspend fun runEngineLoop(adapter: VanadiumAdapter, config: VanadiumConfig) {
+    private suspend fun runEngineLoop() {
         isRunning.store(true)
 
         val clock = Clock(config.updatesPerSecond)
@@ -71,7 +77,14 @@ object Vanadium {
         shutdown(adapter)
     }
 
-    private fun initCoreSystems(config: VanadiumConfig) = Profiler.profile("Core Systems Initialization") {
+    fun onEvent(event: Event) {
+        val dispatcher = EventDispatcher(event)
+        dispatcher.dispatch<FramebufferResizedEvent> { context.resize(window, config) }
+
+        adapter.onEvent(event)
+    }
+
+    private fun initCoreSystems() = Profiler.profile("Core Systems Initialization") {
         if (!glfwInit()) throw IllegalStateException("Unable to initialize GLFW")
         configureLogging()
     }

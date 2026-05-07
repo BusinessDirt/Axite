@@ -25,10 +25,15 @@ class Surface(
         }
     }
 
-    val surfaceCaps: VkSurfaceCapabilitiesKHR = VkSurfaceCapabilitiesKHR.calloc().also {
+    var surfaceCaps: VkSurfaceCapabilitiesKHR = VkSurfaceCapabilitiesKHR.calloc().also {
         vkCheck(KHRSurface.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice.handle, handle, it)) {
             "Failed to get surface capabilities"
         }
+    }
+
+    fun updateCaps(physicalDevice: PhysicalDevice) {
+        val result = KHRSurface.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice.handle, handle, surfaceCaps)
+        vkCheck(result) { "Failed to update surface capabilities" }
     }
 
     val surfaceFormat: SurfaceFormat = memoryStack { stack ->

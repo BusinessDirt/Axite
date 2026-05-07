@@ -6,6 +6,7 @@ import github.businessdirt.axite.vanadium.core.utils.vkCheck
 import github.businessdirt.axite.vanadium.platform.Window
 import github.businessdirt.axite.vanadium.vulkan.Handle
 import github.businessdirt.axite.vanadium.vulkan.device.Device
+import github.businessdirt.axite.vanadium.vulkan.device.PhysicalDevice
 import github.businessdirt.axite.vanadium.vulkan.device.PresentQueue
 import github.businessdirt.axite.vanadium.vulkan.resources.ImageView
 import github.businessdirt.axite.vanadium.vulkan.surface.Surface
@@ -20,42 +21,60 @@ import org.lwjgl.vulkan.VkPresentInfoKHR
 import org.lwjgl.vulkan.VkSurfaceCapabilitiesKHR
 import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR
 
-class SwapChain(
+class Swapchain(
     private val device: Device,
-    window: Window,
-    surface: Surface,
-    requestedImages: Int,
-    vsync: Boolean
+    private val physicalDevice: PhysicalDevice,
+    private val window: Window,
+    private val surface: Surface,
+    private var requestedImages: Int,
+    private var vsync: Boolean
 ) : Handle<Long>() {
 
-    val extent: VkExtent2D = surface.surfaceCaps.calculateSwapChainExtent(window)
+    override var handle: Long = 0L
+        private set
 
-    override val handle: Long = memoryStack { stack ->
-        val surfaceCaps = surface.surfaceCaps
-        val surfaceFormat = surface.surfaceFormat
-        val vkSwapChainCreateInfo = VkSwapchainCreateInfoKHR.calloc(stack).`sType$Default`()
-            .surface(surface.handle)
-            .minImageCount(surfaceCaps.calculateNumberOfImages(requestedImages))
-            .imageFormat(surfaceFormat.imageFormat)
-            .imageColorSpace(surfaceFormat.colorSpace)
-            .imageExtent(extent)
-            .imageArrayLayers(1)
-            .imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-            .preTransform(surfaceCaps.currentTransform())
-            .compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
-            .clipped(true)
-            .presentMode(if (vsync) VK_PRESENT_MODE_FIFO_KHR else VK_PRESENT_MODE_IMMEDIATE_KHR)
+    lateinit var extent: VkExtent2D
+        private set
 
-        stack.createHandle({ "Failed to create swap chain" }) { longBuffer ->
-            vkCreateSwapchainKHR(device.handle, vkSwapChainCreateInfo, null, longBuffer)
+    lateinit var imageViews: Array<ImageView>
+        private set
+
+    var imageCount: Int = 0
+        private set
+
+    init {
+        create()
+    }
+
+    private fun create() {
+        extent = surface.surfaceCaps.calculateSwapChainExtent(window)
+        handle = memoryStack { stack ->
+            val surfaceCaps = surface.surfaceCaps
+            val surfaceFormat = surface.surfaceFormat
+            val vkSwapChainCreateInfo = VkSwapchainCreateInfoKHR.calloc(stack).`sType$Default`()
+                .surface(surface.handle)
+                .minImageCount(surfaceCaps.calculateNumberOfImages(requestedImages))
+                .imageFormat(surfaceFormat.imageFormat)
+                .imageColorSpace(surfaceFormat.colorSpace)
+                .imageExtent(extent)
+                .imageArrayLayers(1)
+                .imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+                .preTransform(surfaceCaps.currentTransform())
+                .compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
+                .clipped(true)
+                .presentMode(if (vsync) VK_PRESENT_MODE_FIFO_KHR else VK_PRESENT_MODE_IMMEDIATE_KHR)
+
+            stack.createHandle({ "Failed to create swap chain" }) { longBuffer ->
+                vkCreateSwapchainKHR(device.handle, vkSwapChainCreateInfo, null, longBuffer)
+            }
         }
-    }
 
-    val imageViews: Array<ImageView> = memoryStack { stack ->
-        stack.createImageViews(device, handle, surface.surfaceFormat.imageFormat)
-    }
+        imageViews = memoryStack { stack ->
+            stack.createImageViews(device, handle, surface.surfaceFormat.imageFormat)
+        }
 
-    val imageCount: Int = imageViews.size
+        imageCount = imageViews.size
+    }
 
     fun acquireNextImage(imageAvailableSemaphore: Semaphore, timeout: Long = Long.MAX_VALUE): Int = memoryStack { stack ->
         val pIndex = stack.mallocInt(1)
@@ -90,15 +109,14 @@ class SwapChain(
         }
     }
 
-    private fun VkSurfaceCapabilitiesKHR.calculateSwapChainExtent(window: Window): VkExtent2D =
-        VkExtent2D.calloc().apply {
-            if (currentExtent().width() != -1) {
-                set(currentExtent())
-            } else {
-                width(window.data.framebufferWidth.coerceIn(minImageExtent().width(), maxImageExtent().width()))
-                height(window.data.framebufferHeight.coerceIn(minImageExtent().height(), maxImageExtent().height()))
-            }
+    private fun VkSurfaceCapabilitiesKHR.calculateSwapChainExtent(window: Window): VkExtent2D = VkExtent2D.calloc().apply {
+        if (currentExtent().width() != -1) {
+            set(currentExtent())
+        } else {
+            width(window.data.framebufferWidth.coerceIn(minImageExtent().width(), maxImageExtent().width()))
+            height(window.data.framebufferHeight.coerceIn(minImageExtent().height(), maxImageExtent().height()))
         }
+    }
 
     private fun MemoryStack.createImageViews(device: Device, swapChain: Long, format: Int): Array<ImageView> {
         val ip = mallocInt(1)
@@ -120,9 +138,26 @@ class SwapChain(
         }
     }
 
+    fun recreate(
+        requestedImages: Int = this.requestedImages,
+        vsync: Boolean = this.vsync
+    ) {
+        this.requestedImages = requestedImages
+        this.vsync = vsync
+
+        device.waitIdle()
+        destroy()
+
+        surface.updateCaps(physicalDevice)
+        create()
+    }
+
     override fun destroy() {
-        extent.free()
+        if (handle == 0L) return
+
         imageViews.forEach { it.close() }
+        extent.free()
         vkDestroySwapchainKHR(device.handle, handle, null)
+        handle = 0L
     }
 }

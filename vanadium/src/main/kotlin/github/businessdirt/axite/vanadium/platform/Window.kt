@@ -1,6 +1,6 @@
 package github.businessdirt.axite.vanadium.platform
 
-import github.businessdirt.axite.vanadium.VanadiumAdapter
+import github.businessdirt.axite.vanadium.Vanadium
 import github.businessdirt.axite.vanadium.VanadiumConfig
 import github.businessdirt.axite.vanadium.core.events.*
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
@@ -46,7 +46,7 @@ class Window(private val config: VanadiumConfig) {
      * Initializes the window on the current thread.
      * MUST be called from the main thread.
      */
-    fun initialize(adapter: VanadiumAdapter) = Profiler.profile("Window Initialization") {
+    fun initialize() = Profiler.profile("Window Initialization") {
         Profiler.profile("GLFW Window Creation") {
             // Configure Window Hints for Vulkan
             glfwDefaultWindowHints()
@@ -65,6 +65,15 @@ class Window(private val config: VanadiumConfig) {
             if (handle == NULL) throw RuntimeException("Failed to create the GLFW window")
         }
 
+        data = handle.getWindowData()
+        boxedString(boxCharset = BoxCharset.ROUNDED, title = "GLFW Initialized") {
+            appendLine("Screen Resolution: ${data.width}x${data.height}")
+            appendLine("Actual Framebuffer: ${data.framebufferWidth}x${data.framebufferHeight}")
+            appendLine("Content Scale: ${"%.2f".format(data.contentScale)}x")
+            appendLine("Monitor: ${data.monitorName} @ ${data.refreshRate}Hz")
+            appendLine("Resizable: ${data.isResizable}, Decorated: ${data.isDecorated}")
+        }.log(logger, Level.DEBUG)
+
         Profiler.profile("Event Callbacks Setup") {
             glfwSetErrorCallback { error, description ->
                 val message = GLFWErrorCallback.getDescription(description)
@@ -75,72 +84,63 @@ class Window(private val config: VanadiumConfig) {
             glfwSetWindowSizeCallback(handle) { _, w, h ->
                 data.width = w
                 data.height = h
-                adapter.onEvent(WindowResizedEvent(w, h))
+                Vanadium.onEvent(WindowResizedEvent(w, h))
             }
 
             glfwSetFramebufferSizeCallback(handle) { _, w, h ->
                 data.framebufferWidth = w
                 data.framebufferHeight = h
-                adapter.onEvent(FramebufferResizedEvent(w, h))
+                Vanadium.onEvent(FramebufferResizedEvent(w, h))
             }
 
             glfwSetWindowCloseCallback(handle) { _ ->
                 val event = WindowClosedEvent()
-                adapter.onEvent(event)
+                Vanadium.onEvent(event)
                 if (event.isCancelled) {
                     glfwSetWindowShouldClose(handle, false)
                 }
             }
 
             glfwSetWindowFocusCallback(handle) { _, focused ->
-                adapter.onEvent(WindowFocusEvent(focused))
+                Vanadium.onEvent(WindowFocusEvent(focused))
             }
 
             glfwSetWindowPosCallback(handle) { _, x, y ->
-                adapter.onEvent(WindowMovedEvent(x, y))
+                Vanadium.onEvent(WindowMovedEvent(x, y))
             }
 
             // --- Keyboard Events ---
             glfwSetKeyCallback(handle) { _, key, _, action, _ ->
                 when (action) {
-                    GLFW_PRESS -> adapter.onEvent(KeyPressedEvent(key, 0))
-                    GLFW_REPEAT -> adapter.onEvent(KeyPressedEvent(key, 1))
-                    GLFW_RELEASE -> adapter.onEvent(KeyReleasedEvent(key))
+                    GLFW_PRESS -> Vanadium.onEvent(KeyPressedEvent(key, 0))
+                    GLFW_REPEAT -> Vanadium.onEvent(KeyPressedEvent(key, 1))
+                    GLFW_RELEASE -> Vanadium.onEvent(KeyReleasedEvent(key))
                 }
             }
 
             glfwSetCharCallback(handle) { _, codepoint ->
-                adapter.onEvent(KeyTypedEvent(codepoint.toChar()))
+                Vanadium.onEvent(KeyTypedEvent(codepoint.toChar()))
             }
 
             // --- Mouse Events ---
             glfwSetCursorPosCallback(handle) { _, x, y ->
-                adapter.onEvent(MouseMovedEvent(x, y))
+                Vanadium.onEvent(MouseMovedEvent(x, y))
             }
 
             glfwSetMouseButtonCallback(handle) { _, button, action, _ ->
                 when (action) {
-                    GLFW_PRESS -> adapter.onEvent(MouseButtonPressedEvent(button))
-                    GLFW_RELEASE -> adapter.onEvent(MouseButtonReleasedEvent(button))
+                    GLFW_PRESS -> Vanadium.onEvent(MouseButtonPressedEvent(button))
+                    GLFW_RELEASE -> Vanadium.onEvent(MouseButtonReleasedEvent(button))
                 }
             }
 
             glfwSetScrollCallback(handle) { _, xOffset, yOffset ->
-                adapter.onEvent(MouseScrolledEvent(xOffset, yOffset))
+                Vanadium.onEvent(MouseScrolledEvent(xOffset, yOffset))
             }
         }
 
         centerWindow()
         glfwShowWindow(handle)
-
-        data = handle.getWindowData()
-        boxedString(boxCharset = BoxCharset.ROUNDED, title = "GLFW Initialized") {
-            appendLine("Screen Resolution: ${data.width}x${data.height}")
-            appendLine("Actual Framebuffer: ${data.framebufferWidth}x${data.framebufferHeight}")
-            appendLine("Content Scale: ${"%.2f".format(data.contentScale)}x")
-            appendLine("Monitor: ${data.monitorName} @ ${data.refreshRate}Hz")
-            appendLine("Resizable: ${data.isResizable}, Decorated: ${data.isDecorated}")
-        }.log(logger, Level.DEBUG)
     }
 
     private fun centerWindow() {
