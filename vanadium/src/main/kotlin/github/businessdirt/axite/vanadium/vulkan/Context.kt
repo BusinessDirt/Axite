@@ -2,37 +2,84 @@ package github.businessdirt.axite.vanadium.vulkan
 
 import github.businessdirt.axite.vanadium.VanadiumConfig
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
-import github.businessdirt.axite.vanadium.core.utils.VulkanUtils
+import github.businessdirt.axite.vanadium.core.utils.VulkanUtils.coerceRequestedImageCount
 import github.businessdirt.axite.vanadium.platform.Window
 import github.businessdirt.axite.vanadium.vulkan.device.Device
+import github.businessdirt.axite.vanadium.vulkan.device.GraphicsQueue
 import github.businessdirt.axite.vanadium.vulkan.device.PhysicalDevice
 import github.businessdirt.axite.vanadium.vulkan.device.pickPhysicalDevice
+import github.businessdirt.axite.vanadium.vulkan.pipeline.PipelineCache
 import github.businessdirt.axite.vanadium.vulkan.surface.Surface
 import github.businessdirt.axite.vanadium.vulkan.swapchain.Swapchain
 import org.apache.logging.log4j.LogManager
-import java.lang.Math.clamp
+import kotlin.math.min
 
 class Context(private val config: VanadiumConfig) {
-    private val logger = LogManager.getLogger(Context::class.java)
 
     private val scope = ResourceScope()
 
     lateinit var instance: Instance
+        private set
+
     lateinit var debugMessenger: DebugMessenger
+        private set
+
     lateinit var physicalDevice: PhysicalDevice
+        private set
+
     lateinit var device: Device
+        private set
+
+    lateinit var graphicsQueue: GraphicsQueue
+        private set
+
     lateinit var surface: Surface
+        private set
+
     lateinit var swapchain: Swapchain
+        private set
+
+    lateinit var pipelineCache: PipelineCache
+        private set
+
+    lateinit var frames: Array<Frame>
+        private set
+
+    var maxFramesInFlight: Int = 0
+        private set
+
+    var currentFrameIndex: Int = 0
+        private set
+
+    val currentFrame: Frame
+        get() = frames[currentFrameIndex]
 
     fun initialize(window: Window) = Profiler.profile("Vulkan Context Initialization") {
         instance = scope.use(Instance(config))
         if (config.validate) debugMessenger = scope.use(DebugMessenger(instance.handle))
         physicalDevice = scope.use(instance.pickPhysicalDevice())
         device = scope.use(Device(physicalDevice))
+
+        graphicsQueue = scope.use(GraphicsQueue(device.handle, physicalDevice))
         surface = scope.use(Surface(physicalDevice, instance, window.handle))
 
-        // TODO: parse from config and also clamp requested images to surface capabilities
-        swapchain = scope.use(Swapchain(device, physicalDevice, window, surface, VulkanUtils.MAX_FRAMES_IN_FLIGHT, false))
+        val requestedImages = surface.surfaceCaps.coerceRequestedImageCount(config.requestedImages)
+        swapchain = scope.use(Swapchain(device, physicalDevice, window, surface, requestedImages, config.vsync))
+
+        pipelineCache = scope.use(PipelineCache(device.handle))
+
+        // Determine max frames in flight. Standard is 2, but we must not exceed (imageCount - 1)
+        // to avoid stalling on image acquisition.
+        maxFramesInFlight = min(2, swapchain.imageCount - 1)
+
+        // Initialize frames in flight
+        frames = Array(maxFramesInFlight) {
+            scope.use(Frame(device, graphicsQueue.queueFamilyIndex))
+        }
+    }
+
+    fun nextFrame() {
+        currentFrameIndex = (currentFrameIndex + 1) % maxFramesInFlight
     }
 
     fun shutdown() = Profiler.profile("Vulkan Context Initialization") {
@@ -43,4 +90,3 @@ class Context(private val config: VanadiumConfig) {
         swapchain.recreate()
     }
 }
-

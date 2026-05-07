@@ -1,5 +1,7 @@
 package github.businessdirt.axite.vanadium.core.utils
 
+import github.businessdirt.axite.vanadium.core.utils.VulkanUtils.memoryTypeFromProperties
+import github.businessdirt.axite.vanadium.vulkan.device.PhysicalDevice
 import org.apache.logging.log4j.LogManager
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil
@@ -34,7 +36,6 @@ object VulkanUtils {
 
     const val PORTABILITY_EXTENSION: String = "VK_KHR_portability_enumeration"
     const val VALIDATION_LAYER: String = "VK_LAYER_KHRONOS_validation"
-    const val MAX_FRAMES_IN_FLIGHT: Int = 2
 
     val supportedValidationLayers: List<String>
         get() = memoryStack { stack ->
@@ -79,20 +80,29 @@ object VulkanUtils {
             return@memoryStack names
         }
 
-    /*fun memoryTypeFromProperties(typeBits: Int, reqsMask: Int): Int {
-        val memoryTypes = Context.physicalDevice.memoryProperties.memoryTypes()
+    fun VkSurfaceCapabilitiesKHR.coerceRequestedImageCount(requestedImages: Int): Int {
+        val min = minImageCount()
+        val max = if (maxImageCount() > 0) maxImageCount() else Int.MAX_VALUE
 
-        return (0..<VK_MAX_MEMORY_TYPES).firstOrNull { i ->
+        // If user didn't specify, try triple buffering (3) or min + 1
+        val target = if (requestedImages <= 0) 3 else requestedImages
+        val result = target.coerceIn(min, max)
+
+        logger.debug("Surface Image Count: [min: $min, max: ${if (maxImageCount() == 0) "unlimited" else max}]. Requested: $target, Coerced: $result")
+        return result
+    }
+
+    fun PhysicalDevice.memoryTypeFromProperties(typeBits: Int, reqsMask: Int): Int =
+        (0..<VK_MAX_MEMORY_TYPES).firstOrNull { i ->
             val isTypeSupported = (typeBits and (1 shl i)) != 0
-            val hasRequiredProperties = (memoryTypes.get(i).propertyFlags() and reqsMask) == reqsMask
+            val hasRequiredProperties = (memoryProperties.memoryTypes().get(i).propertyFlags() and reqsMask) == reqsMask
             isTypeSupported && hasRequiredProperties
         } ?: throw RuntimeException("Failed to find suitable memory type (typeBits: $typeBits, reqsMask: $reqsMask)")
-    }*/
 }
 
-/*fun VkMemoryAllocateInfo.findMemoryTypeIndex(typeBits: Int, reqsMask: Int): VkMemoryAllocateInfo = apply {
-    memoryTypeIndex(VulkanUtils.memoryTypeFromProperties(typeBits, reqsMask))
-}*/
+fun VkMemoryAllocateInfo.findMemoryTypeIndex(physicalDevice: PhysicalDevice, typeBits: Int, reqsMask: Int): VkMemoryAllocateInfo = apply {
+    memoryTypeIndex(physicalDevice.memoryTypeFromProperties(typeBits, reqsMask))
+}
 
 /**
  * Decodes a 32-bit Vulkan version integer into a human-readable string.

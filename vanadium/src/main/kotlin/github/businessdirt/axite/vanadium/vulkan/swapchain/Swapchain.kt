@@ -1,5 +1,6 @@
 package github.businessdirt.axite.vanadium.vulkan.swapchain
 
+import github.businessdirt.axite.vanadium.core.utils.VulkanUtils.coerceRequestedImageCount
 import github.businessdirt.axite.vanadium.core.utils.createHandle
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import github.businessdirt.axite.vanadium.core.utils.vkCheck
@@ -53,7 +54,7 @@ class Swapchain(
             val surfaceFormat = surface.surfaceFormat
             val vkSwapChainCreateInfo = VkSwapchainCreateInfoKHR.calloc(stack).`sType$Default`()
                 .surface(surface.handle)
-                .minImageCount(surfaceCaps.calculateNumberOfImages(requestedImages))
+                .minImageCount(requestedImages)
                 .imageFormat(surfaceFormat.imageFormat)
                 .imageColorSpace(surfaceFormat.colorSpace)
                 .imageExtent(extent)
@@ -102,13 +103,6 @@ class Swapchain(
         }
     }
 
-    private fun VkSurfaceCapabilitiesKHR.calculateNumberOfImages(requestedImages: Int): Int {
-        val max = if (maxImageCount() > 0) maxImageCount() else Int.MAX_VALUE
-        return requestedImages.coerceIn(minImageCount(), max).also { result ->
-            logger.debug("Requested [$requestedImages] images, got [$result] images. Max: [${maxImageCount()}], Min: [${minImageCount()}]")
-        }
-    }
-
     private fun VkSurfaceCapabilitiesKHR.calculateSwapChainExtent(window: Window): VkExtent2D = VkExtent2D.calloc().apply {
         if (currentExtent().width() != -1) {
             set(currentExtent())
@@ -142,7 +136,11 @@ class Swapchain(
         requestedImages: Int = this.requestedImages,
         vsync: Boolean = this.vsync
     ) {
-        this.requestedImages = requestedImages
+        when {
+            this.requestedImages != requestedImages -> this.requestedImages = surface.surfaceCaps.coerceRequestedImageCount(requestedImages)
+            else -> this.requestedImages = requestedImages
+        }
+
         this.vsync = vsync
 
         device.waitIdle()
@@ -150,6 +148,8 @@ class Swapchain(
 
         surface.updateCaps(physicalDevice)
         create()
+
+        logger.atDebug().log("Recreated swapchain with [$requestedImages] requested images]")
     }
 
     override fun destroy() {

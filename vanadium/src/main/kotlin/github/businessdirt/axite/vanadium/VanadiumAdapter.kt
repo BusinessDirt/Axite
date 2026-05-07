@@ -9,7 +9,9 @@ data class VanadiumConfig(
     var resolution: Resolution = Resolution(1920, 1080),
     var updatesPerSecond: Int = 60,
     var validate: Boolean = true,
-    var ioParallelism: Int = 4
+    var ioParallelism: Int = 4,
+    var requestedImages: Int = 2,
+    var vsync: Boolean = true,
 )
 
 data class FrameInfo(
