@@ -11,7 +11,6 @@ import github.businessdirt.axite.vanadium.vulkan.device.pickPhysicalDevice
 import github.businessdirt.axite.vanadium.vulkan.pipeline.PipelineCache
 import github.businessdirt.axite.vanadium.vulkan.surface.Surface
 import github.businessdirt.axite.vanadium.vulkan.swapchain.Swapchain
-import org.apache.logging.log4j.LogManager
 import kotlin.math.min
 
 class Context(private val config: VanadiumConfig) {
@@ -42,7 +41,7 @@ class Context(private val config: VanadiumConfig) {
     lateinit var pipelineCache: PipelineCache
         private set
 
-    lateinit var frames: Array<Frame>
+    lateinit var frameData: Array<FrameData>
         private set
 
     var maxFramesInFlight: Int = 0
@@ -51,8 +50,8 @@ class Context(private val config: VanadiumConfig) {
     var currentFrameIndex: Int = 0
         private set
 
-    val currentFrame: Frame
-        get() = frames[currentFrameIndex]
+    val currentFrameData: FrameData
+        get() = frameData[currentFrameIndex]
 
     fun initialize(window: Window) = Profiler.profile("Vulkan Context Initialization") {
         instance = scope.use(Instance(config))
@@ -73,12 +72,13 @@ class Context(private val config: VanadiumConfig) {
         maxFramesInFlight = min(2, swapchain.imageCount - 1)
 
         // Initialize frames in flight
-        frames = Array(maxFramesInFlight) {
-            scope.use(Frame(device, graphicsQueue.queueFamilyIndex))
+        frameData = Array(maxFramesInFlight) {
+            scope.use(FrameData(device, graphicsQueue.queueFamilyIndex))
         }
     }
 
     fun nextFrame() {
+        currentFrameData.destroyTransientResources()
         currentFrameIndex = (currentFrameIndex + 1) % maxFramesInFlight
     }
 
@@ -86,7 +86,8 @@ class Context(private val config: VanadiumConfig) {
         scope.close()
     }
 
-    fun resize(window: Window, config: VanadiumConfig) {
+    fun resize() {
+        device.waitIdle()
         swapchain.recreate()
     }
 }

@@ -5,12 +5,11 @@ import github.businessdirt.axite.vanadium.vulkan.commands.CommandPool
 import github.businessdirt.axite.vanadium.vulkan.device.Device
 import github.businessdirt.axite.vanadium.vulkan.synchronization.Fence
 import github.businessdirt.axite.vanadium.vulkan.synchronization.Semaphore
-import org.lwjgl.vulkan.VkDevice
 
 /**
  * Encapsulates all resources required for a single "frame in flight".
  */
-class Frame(
+class FrameData(
     device: Device,
     queueFamilyIndex: Int
 ) : Handle<Unit>() {
@@ -44,7 +43,21 @@ class Frame(
      */
     val inFlightFence = Fence(device.handle, signaled = true)
 
+    private val transientResources = mutableListOf<AutoCloseable>()
+
+    fun <T : AutoCloseable> track(resource: T): T {
+        transientResources.add(resource)
+        return resource
+    }
+
+    fun destroyTransientResources() {
+        transientResources.reversed().forEach { it.close() }
+        transientResources.clear()
+    }
+
     override fun destroy() {
+        destroyTransientResources()
+
         commandPool.close()
         imageAvailableSemaphore.close()
         renderFinishedSemaphore.close()

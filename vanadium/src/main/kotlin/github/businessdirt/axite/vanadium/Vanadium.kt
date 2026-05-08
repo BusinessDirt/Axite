@@ -79,7 +79,7 @@ object Vanadium {
 
     fun onEvent(event: Event) {
         val dispatcher = EventDispatcher(event)
-        dispatcher.dispatch<FramebufferResizedEvent> { context.resize(window, config) }
+        dispatcher.dispatch<FramebufferResizedEvent> { context.resize() }
 
         adapter.onEvent(event)
     }
