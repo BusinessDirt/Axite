@@ -17,7 +17,7 @@ class Renderer(val context: Context) {
         renderGraph.reset()
 
         // SceneRenderer adds its passes to the graph
-        // TODO: sceneRenderer.recordPasses(renderGraph, scene)
+        sceneRenderer.recordPasses(renderGraph, scene)
 
         // Add a UI pass maybe?
 
