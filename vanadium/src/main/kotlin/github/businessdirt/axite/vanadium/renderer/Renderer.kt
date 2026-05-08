@@ -12,7 +12,7 @@ import org.lwjgl.vulkan.VkSemaphoreSubmitInfo
 
 class Renderer(val context: Context) {
 
-    private val renderGraph = RenderGraph()
+    private val renderGraph = RenderGraph(context)
     private val sceneRenderer = SceneRenderer(context)
     private var resize = false
 
@@ -35,7 +35,9 @@ class Renderer(val context: Context) {
 
         // Record/Build the frame
         currentFrameData.commandBuffer.record {
-            renderGraph.use(this) { adapter.onRecord(it, sceneRenderer, interpolation) }
+            renderGraph.use(this) {
+                adapter.onRecord(it, sceneRenderer, this, interpolation)
+            }
         }
 
         memoryStack { stack ->
@@ -56,7 +58,7 @@ class Renderer(val context: Context) {
         }
 
         resize = context.swapchain.present(context.presentQueue, currentFrameData.renderFinishedSemaphore, imageIndex)
-        
+
         context.nextFrame()
     }
 }

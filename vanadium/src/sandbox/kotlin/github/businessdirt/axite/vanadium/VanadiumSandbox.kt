@@ -4,6 +4,7 @@ import github.businessdirt.axite.vanadium.core.events.Event
 import github.businessdirt.axite.vanadium.renderer.SceneRenderer
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
 import github.businessdirt.axite.vanadium.renderer.scene.Scene
+import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
 import kotlinx.coroutines.CoroutineScope
 
 
@@ -19,13 +20,13 @@ class VanadiumSandbox : VanadiumAdapter {
 
     }
 
-    override fun onRecord(graph: RenderGraph, sceneRenderer: SceneRenderer, interpolation: Double) {
+    override fun onRecord(graph: RenderGraph, sceneRenderer: SceneRenderer, commandBuffer: CommandBuffer, interpolation: Double) {
 
         graph.addPass(
             name = "MainScenePass",
             writes = setOf("SwapChainImage", "DepthBuffer")
         ) {
-            sceneRenderer.drawScene(scene)
+            sceneRenderer.drawScene(scene, commandBuffer, interpolation)
         }
     }
 

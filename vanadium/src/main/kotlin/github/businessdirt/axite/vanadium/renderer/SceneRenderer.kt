@@ -3,6 +3,7 @@ package github.businessdirt.axite.vanadium.renderer
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
 import github.businessdirt.axite.vanadium.renderer.scene.Scene
 import github.businessdirt.axite.vanadium.vulkan.Context
+import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
 
 class SceneRenderer(val context: Context) {
 
@@ -14,7 +15,7 @@ class SceneRenderer(val context: Context) {
 
     }
 
-    fun drawScene(scene: Scene) {
+    fun drawScene(scene: Scene, commandBuffer: CommandBuffer, interpolation: Double) {
 
     }
 }
