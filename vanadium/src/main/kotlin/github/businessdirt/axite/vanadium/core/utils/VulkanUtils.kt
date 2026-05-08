@@ -88,7 +88,13 @@ object VulkanUtils {
         val target = if (requestedImages <= 0) 3 else requestedImages
         val result = target.coerceIn(min, max)
 
-        logger.debug("Surface Image Count: [min: $min, max: ${if (maxImageCount() == 0) "unlimited" else max}]. Requested: $target, Coerced: $result")
+        logger.debug(
+            "Surface Image Count: [min: {}, max: {}]. Requested: {}, Coerced: {}",
+            min,
+            if (maxImageCount() == 0) "unlimited" else max,
+            target,
+            result
+        )
         return result
     }
 
