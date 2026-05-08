@@ -149,11 +149,16 @@ fun Instance.pickPhysicalDevice(): PhysicalDevice = memoryStack { stack ->
     val deviceExtensions = memoryStack { stack ->
         val pPropertyCount = stack.mallocInt(1)
         vkEnumerateDeviceExtensionProperties(winner.handle, null as CharSequence?, pPropertyCount, null)
+        val count = pPropertyCount[0]
 
-        val props = VkExtensionProperties.malloc(pPropertyCount[0], stack)
-        vkEnumerateDeviceExtensionProperties(winner.handle, null as CharSequence?, pPropertyCount, props)
+        val props = VkExtensionProperties.malloc(count)
 
-        (0 until pPropertyCount[0]).map { props[it].extensionNameString() }.toSet()
+        try {
+            vkEnumerateDeviceExtensionProperties(winner.handle, null as CharSequence?, pPropertyCount, props)
+            (0 until count).map { props[it].extensionNameString() }.toSet()
+        } finally {
+            props.free()
+        }
     }
 
     val props = winner.properties.properties()

@@ -14,7 +14,7 @@ import java.util.*
  * Represents a Directed Acyclic Graph (DAG) used for task scheduling and resource lifetime analysis.
  * @param T The type of data stored in each node.
  */
-class DirectedAcyclicGraph<T> {
+open class DirectedAcyclicGraph<T> {
 
     val nodes: MutableList<Node<T>> = arrayListOf()
     val layers = mutableListOf<List<Node<T>>>()
