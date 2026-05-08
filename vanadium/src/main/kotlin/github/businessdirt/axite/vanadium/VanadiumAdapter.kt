@@ -2,6 +2,8 @@ package github.businessdirt.axite.vanadium
 
 import github.businessdirt.axite.vanadium.core.events.Event
 import github.businessdirt.axite.vanadium.core.math.Resolution
+import github.businessdirt.axite.vanadium.renderer.SceneRenderer
+import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
 import kotlinx.coroutines.CoroutineScope
 
 data class VanadiumConfig(
@@ -24,7 +26,15 @@ interface VanadiumAdapter {
     fun configure(config: VanadiumConfig) {}
     suspend fun initialize(scope: CoroutineScope)
     fun update(frameInfo: FrameInfo)
-    fun render(interpolation: Double)
+
+    /**
+     * Instead of raw rendering, the adapter populates the RenderGraph.
+     * @param graph The graph to add RenderPassNodes to.
+     * @param sceneRenderer The scene renderer that can render a scene.
+     * @param interpolation The alpha value for jitter-free rendering.
+     */
+    fun onRecord(graph: RenderGraph, sceneRenderer: SceneRenderer, interpolation: Double)
+
     fun onEvent(event: Event)
     fun shutdown() {}
 }

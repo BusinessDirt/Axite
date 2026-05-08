@@ -7,6 +7,7 @@ import github.businessdirt.axite.vanadium.platform.Window
 import github.businessdirt.axite.vanadium.vulkan.device.Device
 import github.businessdirt.axite.vanadium.vulkan.device.GraphicsQueue
 import github.businessdirt.axite.vanadium.vulkan.device.PhysicalDevice
+import github.businessdirt.axite.vanadium.vulkan.device.PresentQueue
 import github.businessdirt.axite.vanadium.vulkan.device.pickPhysicalDevice
 import github.businessdirt.axite.vanadium.vulkan.pipeline.PipelineCache
 import github.businessdirt.axite.vanadium.vulkan.surface.Surface
@@ -29,10 +30,13 @@ class Context(private val config: VanadiumConfig) {
     lateinit var device: Device
         private set
 
+    lateinit var surface: Surface
+        private set
+
     lateinit var graphicsQueue: GraphicsQueue
         private set
 
-    lateinit var surface: Surface
+    lateinit var presentQueue: PresentQueue
         private set
 
     lateinit var swapchain: Swapchain
@@ -58,9 +62,9 @@ class Context(private val config: VanadiumConfig) {
         if (config.validate) debugMessenger = scope.use(DebugMessenger(instance.handle))
         physicalDevice = scope.use(instance.pickPhysicalDevice())
         device = scope.use(Device(physicalDevice))
-
-        graphicsQueue = scope.use(GraphicsQueue(device.handle, physicalDevice))
         surface = scope.use(Surface(physicalDevice, instance, window.handle))
+        graphicsQueue = scope.use(GraphicsQueue(device.handle, physicalDevice))
+        presentQueue = scope.use(PresentQueue(device.handle, physicalDevice, surface))
 
         val requestedImages = surface.surfaceCaps.coerceRequestedImageCount(config.requestedImages)
         swapchain = scope.use(Swapchain(device, physicalDevice, window, surface, requestedImages, config.vsync))
@@ -83,6 +87,7 @@ class Context(private val config: VanadiumConfig) {
     }
 
     fun shutdown() = Profiler.profile("Vulkan Context Initialization") {
+        device.waitIdle()
         scope.close()
     }
 

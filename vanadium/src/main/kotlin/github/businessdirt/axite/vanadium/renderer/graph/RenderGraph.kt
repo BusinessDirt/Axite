@@ -1,6 +1,7 @@
 package github.businessdirt.axite.vanadium.renderer.graph
 
 import github.businessdirt.axite.vanadium.core.dag.DirectedAcyclicGraph
+import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
 
 class RenderGraph : DirectedAcyclicGraph<RenderPassData>() {
 
@@ -18,13 +19,14 @@ class RenderGraph : DirectedAcyclicGraph<RenderPassData>() {
         nodes.add(this)
     }
 
-    /**
-     * Clears the graph structure and all compiled metadata.
-     * Use this if you need to rebuild the graph every frame.
-     */
-    fun reset() {
+    fun use(commandBuffer: CommandBuffer, action: (RenderGraph) -> Unit) {
         nodes.clear()
         layers.clear()
         resourceLifetimes.clear()
+
+        action(this)
+
+        compile()
+        execute()
     }
 }

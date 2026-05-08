@@ -8,6 +8,7 @@ import github.businessdirt.axite.vanadium.core.events.FramebufferResizedEvent
 import github.businessdirt.axite.vanadium.core.math.Clock
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
 import github.businessdirt.axite.vanadium.platform.Window
+import github.businessdirt.axite.vanadium.renderer.Renderer
 import github.businessdirt.axite.vanadium.vulkan.Context
 import kotlinx.coroutines.*
 import org.apache.logging.log4j.LogManager
@@ -32,6 +33,7 @@ object Vanadium {
 
     lateinit var window: Window
     lateinit var context: Context
+    lateinit var renderer: Renderer
 
     fun launch(adapterProvider: () -> VanadiumAdapter) {
         config = VanadiumConfig()
@@ -44,6 +46,7 @@ object Vanadium {
 
                 window = Window(config).also { it.initialize() }
                 context = Context(config).also { it.initialize(window) }
+                renderer = Renderer(context).also { it.initialize() }
 
                 // Initialize Adapter (Suspendable for async asset loading)
                 adapter.configure(config)
@@ -68,7 +71,7 @@ object Vanadium {
 
             // Fixed Timestep Logic Updates & Variable Rate Rendering with interpolation
             while (clock.shouldUpdate()) adapter.update(clock.frameInfo)
-            adapter.render(clock.interpolation)
+            renderer.render(adapter, clock.interpolation)
 
             // Yield to allow other coroutines to work if needed
             yield()
@@ -91,6 +94,7 @@ object Vanadium {
 
     private fun shutdown(adapter: VanadiumAdapter) = Profiler.profile("Shutdown") {
         Profiler.profile("Adapter Shutdown") { adapter.shutdown() }
+        renderer.shutdown()
         context.shutdown()
         window.shutdown()
 

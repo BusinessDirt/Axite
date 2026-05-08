@@ -33,7 +33,8 @@ open class DirectedAcyclicGraph<T> {
         groupIntoLayers()
         analyzeResourceLifetimes()
 
-        if (LoggingConfigurator.isDebugMode) logger.debug(toJson())
+        // TODO: add like a keybind to do this once or something
+        //if (LoggingConfigurator.isDebugMode) logger.debug(toJson())
     }
 
     /**
