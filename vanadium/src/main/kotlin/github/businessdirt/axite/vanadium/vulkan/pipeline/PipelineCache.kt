@@ -8,7 +8,7 @@ import org.lwjgl.vulkan.VK13.vkDestroyPipelineCache
 import org.lwjgl.vulkan.VkDevice
 import org.lwjgl.vulkan.VkPipelineCacheCreateInfo
 
-class PipelineCache(private val device: VkDevice) : Handle<Long>(){
+class PipelineCache(private val device: VkDevice) : Handle<Long>() {
     override val handle: Long = memoryStack { stack ->
         val createInfo = VkPipelineCacheCreateInfo.calloc(stack).`sType$Default`()
         stack.createHandle({ "Error creating pipeline cache" }) {
