@@ -13,7 +13,7 @@ data class VanadiumConfig(
     var updatesPerSecond: Int = 60,
     var validate: Boolean = true,
     var ioParallelism: Int = 4,
-    var requestedImages: Int = 2,
+    var requestedImages: Int = 3,
     var vsync: Boolean = true,
 )
 
