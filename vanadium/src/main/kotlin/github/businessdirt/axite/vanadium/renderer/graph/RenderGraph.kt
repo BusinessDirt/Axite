@@ -14,22 +14,10 @@ class RenderGraph(
     val registry = ResourceRegistry(context)
     val frameContext = RenderFrameContext()
 
-    /**
-     * Creates a RenderPassNode, sets up dependencies, and registers it to the graph.
-     */
-    fun addPass(
-        name: String,
-        reads: Set<String> = emptySet(),
-        writes: Set<String> = emptySet(),
-        dependencies: List<RenderPassNode> = emptyList(),
-        clearColor: ClearColorValue? = null,
-        clearDepth: Float? = null,
-        action: (CommandBuffer) -> Unit
-    ): RenderPassNode = RenderPassNode(name, reads, writes, action).apply {
-        this.data.clearColorValue = clearColor
-        this.data.clearDepthValue = clearDepth
-        this.dependencies.addAll(dependencies)
-        nodes.add(this)
+    fun build(action: RenderGraphBuilder.() -> Unit) {
+        nodes.clear()
+        val builder = RenderGraphBuilder(this)
+        builder.action()
     }
 
     fun execute(commandBuffer: CommandBuffer) {

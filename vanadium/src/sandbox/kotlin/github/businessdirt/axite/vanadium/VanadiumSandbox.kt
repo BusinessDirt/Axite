@@ -24,14 +24,15 @@ class VanadiumSandbox : VanadiumAdapter {
 
     }
 
-    override fun onRecord(graph: RenderGraph, sceneRenderer: SceneRenderer, commandBuffer: CommandBuffer, interpolation: Double) {
-        graph.addPass(
-            name = "MainScenePass",
-            writes = setOf(RenderResourceNames.BACK_BUFFER, RenderResourceNames.DEPTH_BUFFER),
-            clearColor = ClearColorValue(0.4f, 0.6f, 0.9f, 1.0f),
+    override fun onRecord(graph: RenderGraph, sceneRenderer: SceneRenderer, commandBuffer: CommandBuffer, interpolation: Double) = graph.build {
+        pass("MainScenePass") {
+            writes(RenderResourceNames.BACK_BUFFER, RenderResourceNames.DEPTH_BUFFER)
+            clearColor = ClearColorValue(0.4f, 0.6f, 0.9f, 1.0f)
             clearDepth = 1.0f
-        ) {
-            sceneRenderer.drawScene(scene, it, interpolation)
+
+            pipeline { commandBuffer ->
+                sceneRenderer.drawScene(scene, commandBuffer, interpolation)
+            }
         }
     }
 

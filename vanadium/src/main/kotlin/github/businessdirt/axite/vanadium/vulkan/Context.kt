@@ -86,7 +86,7 @@ class Context(private val config: VanadiumConfig) {
         currentFrameIndex = (currentFrameIndex + 1) % maxFramesInFlight
     }
 
-    fun shutdown() = Profiler.profile("Vulkan Context Initialization") {
+    fun shutdown() = Profiler.profile("Vulkan Context Shutdown") {
         device.waitIdle()
         scope.close()
     }
