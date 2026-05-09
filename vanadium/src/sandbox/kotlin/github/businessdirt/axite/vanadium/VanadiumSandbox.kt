@@ -3,6 +3,7 @@ package github.businessdirt.axite.vanadium
 import github.businessdirt.axite.vanadium.core.events.Event
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import github.businessdirt.axite.vanadium.renderer.SceneRenderer
+import github.businessdirt.axite.vanadium.renderer.graph.ClearColorValue
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
 import github.businessdirt.axite.vanadium.renderer.graph.RenderResourceNames
 import github.businessdirt.axite.vanadium.renderer.scene.Scene
@@ -24,20 +25,11 @@ class VanadiumSandbox : VanadiumAdapter {
     }
 
     override fun onRecord(graph: RenderGraph, sceneRenderer: SceneRenderer, commandBuffer: CommandBuffer, interpolation: Double) {
-        // Note: We are NOT using memoryStack here to keep the clear values alive
-        // until execute() finishes, or we pass them in a way that execute() manages the stack.
-
-        val clearColor = VkClearValue.calloc() // Heap allocation for testing
-            .color { it.float32(0, 0.4f).float32(1, 0.6f).float32(2, 0.9f).float32(3, 1.0f) }
-
-        val clearDepth = VkClearValue.calloc()
-            .depthStencil { it.depth(1.0f) }
-
         graph.addPass(
             name = "MainScenePass",
             writes = setOf(RenderResourceNames.BACK_BUFFER, RenderResourceNames.DEPTH_BUFFER),
-            clearColor = clearColor,
-            clearDepth = clearDepth
+            clearColor = ClearColorValue(0.4f, 0.6f, 0.9f, 1.0f),
+            clearDepth = 1.0f
         ) {
             sceneRenderer.drawScene(scene, it, interpolation)
         }

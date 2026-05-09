@@ -1,6 +1,7 @@
 package github.businessdirt.axite.vanadium.renderer.graph
 
 import github.businessdirt.axite.vanadium.core.dag.DirectedAcyclicGraph
+import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import github.businessdirt.axite.vanadium.vulkan.Context
 import github.businessdirt.axite.vanadium.vulkan.commands.*
 import org.lwjgl.vulkan.VK13.*
@@ -21,12 +22,12 @@ class RenderGraph(
         reads: Set<String> = emptySet(),
         writes: Set<String> = emptySet(),
         dependencies: List<RenderPassNode> = emptyList(),
-        clearColor: VkClearValue? = null,
-        clearDepth: VkClearValue? = null,
+        clearColor: ClearColorValue? = null,
+        clearDepth: Float? = null,
         action: (CommandBuffer) -> Unit
     ): RenderPassNode = RenderPassNode(name, reads, writes, action).apply {
-        this.data.clearColor = clearColor
-        this.data.clearDepth = clearDepth
+        this.data.clearColorValue = clearColor
+        this.data.clearDepthValue = clearDepth
         this.dependencies.addAll(dependencies)
         nodes.add(this)
     }
@@ -61,7 +62,7 @@ class RenderGraph(
                     val isFirst = frameContext.isFirstWrite(res)
 
                     val loadOp = when {
-                        isFirst && passNode.data.clearColor != null -> VK_ATTACHMENT_LOAD_OP_CLEAR
+                        isFirst && passNode.data.clearColorValue != null -> VK_ATTACHMENT_LOAD_OP_CLEAR
                         isFirst -> VK_ATTACHMENT_LOAD_OP_DONT_CARE
                         else -> VK_ATTACHMENT_LOAD_OP_LOAD
                     }
@@ -76,7 +77,7 @@ class RenderGraph(
                 val isFirst = frameContext.isFirstWrite(name)
 
                 val loadOp = when {
-                    isFirst && passNode.data.clearDepth != null -> VK_ATTACHMENT_LOAD_OP_CLEAR
+                    isFirst && passNode.data.clearDepthValue != null -> VK_ATTACHMENT_LOAD_OP_CLEAR
                     isFirst -> VK_ATTACHMENT_LOAD_OP_DONT_CARE // Use DONT_CARE if first use and no clear
                     else -> VK_ATTACHMENT_LOAD_OP_LOAD
                 }
@@ -84,30 +85,37 @@ class RenderGraph(
             }
 
             // Scoped Rendering
-            if (colorAttachments.isNotEmpty() || depthSettings != null) {
-                // Get dimensions from the first available attachment
-                val representative = colorAttachments.firstOrNull()?.attachment ?: depthSettings!!.attachment
-                val width = representative.width
-                val height = representative.height
+            memoryStack { stack ->
+                val vkClearColor = passNode.data.clearColorValue?.createVkClearValue(stack)
+                val vkClearDepth = passNode.data.clearDepthValue?.let { depthValue ->
+                    VkClearValue.calloc(stack).depthStencil { it.depth(depthValue) }
+                }
 
-                commandBuffer.beginRendering(
-                    width, height,
-                    colorAttachments,
-                    depthSettings, // Fixed: passing the settings object we just built
-                    passNode.data.clearColor,
-                    passNode.data.clearDepth
-                )
+                if (colorAttachments.isNotEmpty() || depthSettings != null) {
+                    // Get dimensions from the first available attachment
+                    val representative = colorAttachments.firstOrNull()?.attachment ?: depthSettings!!.attachment
+                    val width = representative.width
+                    val height = representative.height
 
-                commandBuffer.setViewport(width.toFloat(), height.toFloat())
-                commandBuffer.setScissor(width, height)
+                    commandBuffer.beginRendering(
+                        width, height,
+                        colorAttachments,
+                        depthSettings,
+                        vkClearColor,
+                        vkClearDepth
+                    )
 
-                // Execute the actual draw calls
-                passNode.execute(commandBuffer)
+                    commandBuffer.setViewport(width.toFloat(), height.toFloat())
+                    commandBuffer.setScissor(width, height)
 
-                commandBuffer.endRendering()
-            } else {
-                // If it's a compute-only pass or something without attachments
-                passNode.execute(commandBuffer)
+                    // Execute the actual draw calls
+                    passNode.execute(commandBuffer)
+
+                    commandBuffer.endRendering()
+                } else {
+                    // If it's a compute-only pass or something without attachments
+                    passNode.execute(commandBuffer)
+                }
             }
         }
     }
