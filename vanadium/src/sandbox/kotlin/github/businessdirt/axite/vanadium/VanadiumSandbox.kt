@@ -1,11 +1,13 @@
 package github.businessdirt.axite.vanadium
 
 import github.businessdirt.axite.vanadium.core.events.Event
+import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import github.businessdirt.axite.vanadium.renderer.SceneRenderer
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
 import github.businessdirt.axite.vanadium.renderer.scene.Scene
 import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
 import kotlinx.coroutines.CoroutineScope
+import org.lwjgl.vulkan.VkClearValue
 
 
 class VanadiumSandbox : VanadiumAdapter {
@@ -21,12 +23,21 @@ class VanadiumSandbox : VanadiumAdapter {
     }
 
     override fun onRecord(graph: RenderGraph, sceneRenderer: SceneRenderer, commandBuffer: CommandBuffer, interpolation: Double) {
+        memoryStack { stack ->
+            val clearColor = VkClearValue.calloc(stack)
+            clearColor.color().float32(0, 0.4f).float32(1, 0.6f).float32(2, 0.9f).float32(3, 1.0f)
 
-        graph.addPass(
-            name = "MainScenePass",
-            writes = setOf("SwapChainImage", "DepthBuffer")
-        ) {
-            sceneRenderer.drawScene(scene, commandBuffer, interpolation)
+            val clearDepth = VkClearValue.calloc(stack)
+            clearDepth.depthStencil().depth(1.0f)
+
+            graph.addPass(
+                name = "MainScenePass",
+                writes = setOf("SwapChainImage", "DepthBuffer"),
+                clearColor = clearColor,
+                clearDepth = clearDepth
+            ) {
+                sceneRenderer.drawScene(scene, it, interpolation)
+            }
         }
     }
 

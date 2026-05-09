@@ -33,11 +33,6 @@ class FrameData(
     val imageAvailableSemaphore = Semaphore(device.handle)
 
     /**
-     * Semaphore signaled when rendering is complete and the image is ready for presentation.
-     */
-    val renderFinishedSemaphore = Semaphore(device.handle)
-
-    /**
      * Fence used to synchronize the CPU with the GPU.
      * Initialized in the [signaled] state so the first frame doesn't wait indefinitely.
      */
@@ -60,7 +55,6 @@ class FrameData(
 
         commandPool.close()
         imageAvailableSemaphore.close()
-        renderFinishedSemaphore.close()
         inFlightFence.close()
     }
 }

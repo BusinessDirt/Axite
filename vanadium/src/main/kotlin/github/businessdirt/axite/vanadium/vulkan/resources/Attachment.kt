@@ -6,25 +6,38 @@ import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkDevice
 
 class Attachment(
-    device: VkDevice,
-    physicalDevice: PhysicalDevice,
+    private val device: VkDevice,
+    private val physicalDevice: PhysicalDevice,
     val width: Int,
     val height: Int,
     val format: Int,
-    val usage: Int
+    val usage: Int,
+    existingImage: Image? = null
 ) : Handle<Long>() {
 
     val isDepth: Boolean = isDepthFormat(format)
     val isStencil: Boolean = isStencilFormat(format)
 
-    val image: Image = Image(device, physicalDevice) {
+    val image: Image = existingImage ?: Image(device, physicalDevice) {
         this.width = this@Attachment.width
         this.height = this@Attachment.height
         this.format = this@Attachment.format
-        this.usage = usage or VK_IMAGE_USAGE_SAMPLED_BIT
+        this.usage = this@Attachment.usage or VK_IMAGE_USAGE_SAMPLED_BIT
     }
 
     override val handle: Long get() = image.handle
+
+    fun updateImageHandle(newHandle: Long) {
+        if (image.handle == newHandle) return
+        image.handle = newHandle
+        
+        // Recreate image view
+        imageView.close()
+        imageView = ImageView(device, image.handle) {
+            this.format = image.format
+            this.aspectMask = this@Attachment.aspectMask
+        }
+    }
 
     val aspectMask: Int = run {
         var mask = 0
@@ -34,7 +47,7 @@ class Attachment(
         mask
     }
 
-    val imageView: ImageView = ImageView(device, image.handle) {
+    var imageView: ImageView = ImageView(device, image.handle) {
         this.format = image.format
         this.aspectMask = this@Attachment.aspectMask
     }

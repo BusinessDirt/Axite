@@ -38,20 +38,6 @@ open class DirectedAcyclicGraph<T> {
     }
 
     /**
-     * Executes the graph layer by layer. Nodes within each layer are executed in parallel using coroutines.
-     * This method blocks the current thread until all nodes have finished execution.
-     */
-    fun execute() = runBlocking {
-        layers.forEach { layer ->
-            coroutineScope {
-                layer.forEach { node ->
-                    launch(Dispatchers.Default) { node.execute() }
-                }
-            }
-        }
-    }
-
-    /**
      * Performs a topological sort of the nodes in the graph.
      * @return A list of nodes in topological order.
      * @throws IllegalStateException if the graph contains cycles.

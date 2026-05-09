@@ -15,15 +15,17 @@ import org.lwjgl.vulkan.VkMemoryRequirements
 class Image(
     private val device: VkDevice,
     physicalDevice: PhysicalDevice,
+    existingHandle: Long? = null,
     block: Data.() -> Unit
 ) : Handle<Long>() {
 
-    private val data = Data().apply(block)
+    val data = Data().apply(block)
 
     val format: Int = data.format
     val mipLevels: Int = data.mipLevels
 
-    override val handle: Long = memoryStack { stack ->
+    override var handle: Long = existingHandle ?: memoryStack { stack ->
+
         val imageCreateInfo = VkImageCreateInfo.calloc(stack).`sType$Default`()
             .imageType(VK_IMAGE_TYPE_2D)
             .format(format)
@@ -41,7 +43,7 @@ class Image(
         }
     }
 
-    val memoryHandle: Long = memoryStack { stack ->
+    val memoryHandle: Long? = if (existingHandle == null) memoryStack { stack ->
         // Get memory requirements for this object
         val memoryRequirements = VkMemoryRequirements.calloc(stack)
         vkGetImageMemoryRequirements(device, handle, memoryRequirements)
@@ -60,11 +62,13 @@ class Image(
                 "Failed to bind image memory"
             }
         }
-    }
+    } else null
 
     override fun destroy() {
-        vkDestroyImage(device, handle, null);
-        vkFreeMemory(device, memoryHandle, null);
+        if (memoryHandle != null) {
+            vkDestroyImage(device, handle, null);
+            vkFreeMemory(device, memoryHandle, null);
+        }
     }
 
     class Data(

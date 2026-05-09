@@ -26,7 +26,7 @@ class Swapchain(
     private val device: Device,
     private val physicalDevice: PhysicalDevice,
     private val window: Window,
-    private val surface: Surface,
+    val surface: Surface,
     private var requestedImages: Int,
     private var vsync: Boolean
 ) : Handle<Long>() {
@@ -38,6 +38,9 @@ class Swapchain(
         private set
 
     lateinit var imageViews: Array<ImageView>
+        private set
+
+    lateinit var renderFinishedSemaphores: Array<Semaphore>
         private set
 
     var imageCount: Int = 0
@@ -73,6 +76,8 @@ class Swapchain(
         imageViews = memoryStack { stack ->
             stack.createImageViews(device, handle, surface.surfaceFormat.imageFormat)
         }
+
+        renderFinishedSemaphores = Array(imageViews.size) { Semaphore(device.handle) }
 
         imageCount = imageViews.size
     }
@@ -155,6 +160,7 @@ class Swapchain(
     override fun destroy() {
         if (handle == 0L) return
 
+        renderFinishedSemaphores.forEach { it.close() }
         imageViews.forEach { it.close() }
         extent.free()
         vkDestroySwapchainKHR(device.handle, handle, null)

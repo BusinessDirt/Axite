@@ -16,6 +16,6 @@ class SceneRenderer(val context: Context) {
     }
 
     fun drawScene(scene: Scene, commandBuffer: CommandBuffer, interpolation: Double) {
-
+        // Clearing is handled by the RenderGraph's automated beginRendering call
     }
 }
