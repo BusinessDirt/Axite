@@ -1,6 +1,7 @@
 package github.businessdirt.axite.vanadium.vulkan.commands
 
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
+import github.businessdirt.axite.vanadium.renderer.graph.AttachmentRenderSettings
 import github.businessdirt.axite.vanadium.vulkan.resources.Attachment
 import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.KHRSwapchain.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
@@ -8,37 +9,43 @@ import org.lwjgl.vulkan.VK13.*
 
 fun CommandBuffer.beginRendering(
     width: Int, height: Int,
-    colorAttachments: List<Attachment>,
-    depthAttachment: Attachment?,
+    colorAttachments: List<AttachmentRenderSettings>,
+    depthSettings: AttachmentRenderSettings?,
     clearValueColor: VkClearValue? = null,
     clearValueDepth: VkClearValue? = null,
 ) = memoryStack { stack ->
+    // Setup Color Attachments
     val pColorAttachments = VkRenderingAttachmentInfo.calloc(colorAttachments.size, stack)
-    colorAttachments.forEachIndexed { index, attachment ->
-        val loadOp = if (clearValueColor != null) VK_ATTACHMENT_LOAD_OP_CLEAR else VK_ATTACHMENT_LOAD_OP_LOAD
-        pColorAttachments[index].`sType$Default`()
-            .imageView(attachment.imageView.handle)
+    colorAttachments.forEachIndexed { i, settings ->
+        pColorAttachments[i].`sType$Default`()
+            .imageView(settings.attachment.imageView.handle)
             .imageLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-            .loadOp(loadOp)
-            .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
+            .loadOp(settings.loadOp)
+            .storeOp(settings.storeOp)
 
-        if (loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR) pColorAttachments[index].clearValue(clearValueColor!!)
+        if (settings.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR && clearValueColor != null) {
+            pColorAttachments[i].clearValue(clearValueColor)
+        }
     }
 
+    // Base Rendering Info
     val renderInfo = VkRenderingInfo.calloc(stack).`sType$Default`()
         .renderArea { it.extent { e -> e.set(width, height) } }
         .layerCount(1)
         .pColorAttachments(pColorAttachments)
 
-    if (depthAttachment != null) {
-        val loadOp = if (clearValueDepth != null) VK_ATTACHMENT_LOAD_OP_CLEAR else VK_ATTACHMENT_LOAD_OP_LOAD
+    // Setup Depth Attachment
+    if (depthSettings != null) {
         val pDepthAttachment = VkRenderingAttachmentInfo.calloc(stack).`sType$Default`()
-            .imageView(depthAttachment.imageView.handle)
+            .imageView(depthSettings.attachment.imageView.handle)
             .imageLayout(VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL)
-            .loadOp(loadOp)
-            .storeOp(VK_ATTACHMENT_STORE_OP_STORE)
+            .loadOp(depthSettings.loadOp)
+            .storeOp(depthSettings.storeOp)
 
-        if (loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR) pDepthAttachment.clearValue(clearValueDepth!!)
+        // Only clear if the Op says so AND we have a value
+        if (depthSettings.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR && clearValueDepth != null)
+            pDepthAttachment.clearValue(clearValueDepth)
+
         renderInfo.pDepthAttachment(pDepthAttachment)
     }
 
@@ -71,7 +78,8 @@ fun CommandBuffer.transitionLayout(
     attachment: Attachment,
     newLayout: Int
 ) {
-    if (attachment.currentLayout == newLayout) return
+    // Optimization: Skip if already in layout
+    if (attachment.currentLayout == newLayout && newLayout != VK_IMAGE_LAYOUT_UNDEFINED) return
 
     memoryStack { stack ->
         val barrier = VkImageMemoryBarrier2.calloc(1, stack).`sType$Default`()
@@ -100,20 +108,21 @@ fun CommandBuffer.transitionLayout(
 }
 
 private fun getAccessMask(layout: Int): Long = when (layout) {
+    VK_IMAGE_LAYOUT_UNDEFINED -> 0L
     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL -> VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT
-    VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL -> VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
+    VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL -> VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT or VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT
     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL -> VK_ACCESS_2_SHADER_READ_BIT
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL -> VK_ACCESS_2_TRANSFER_READ_BIT
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL -> VK_ACCESS_2_TRANSFER_WRITE_BIT
-    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR -> 0L
     else -> 0L
 }
 
 private fun getStageMask(layout: Int): Long = when (layout) {
+    VK_IMAGE_LAYOUT_UNDEFINED -> VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT
     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL -> VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT
     VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL -> VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT or VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT
     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL -> VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT
     VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL -> VK_PIPELINE_STAGE_2_TRANSFER_BIT
     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR -> VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT
-    else -> VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT
+    else -> VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
 }

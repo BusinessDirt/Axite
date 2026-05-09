@@ -45,8 +45,8 @@ class Renderer(val context: Context) {
 
         // Record/Build the frame
         currentFrameData.commandBuffer.record {
-            renderGraph.use(this) {
-                adapter.onRecord(it, sceneRenderer, this, interpolation)
+            renderGraph.use(this) { rg ->
+                adapter.onRecord(rg, sceneRenderer, this, interpolation)
             }
 
             val swapchainAttachment = renderGraph.registry[RenderResourceNames.BACK_BUFFER]

@@ -24,21 +24,22 @@ class VanadiumSandbox : VanadiumAdapter {
     }
 
     override fun onRecord(graph: RenderGraph, sceneRenderer: SceneRenderer, commandBuffer: CommandBuffer, interpolation: Double) {
-        memoryStack { stack ->
-            val clearColor = VkClearValue.calloc(stack)
-            clearColor.color().float32(0, 0.4f).float32(1, 0.6f).float32(2, 0.9f).float32(3, 1.0f)
+        // Note: We are NOT using memoryStack here to keep the clear values alive
+        // until execute() finishes, or we pass them in a way that execute() manages the stack.
 
-            val clearDepth = VkClearValue.calloc(stack)
-            clearDepth.depthStencil().depth(1.0f)
+        val clearColor = VkClearValue.calloc() // Heap allocation for testing
+            .color { it.float32(0, 0.4f).float32(1, 0.6f).float32(2, 0.9f).float32(3, 1.0f) }
 
-            graph.addPass(
-                name = "MainScenePass",
-                writes = setOf(RenderResourceNames.BACK_BUFFER, RenderResourceNames.DEPTH_BUFFER),
-                clearColor = clearColor,
-                clearDepth = clearDepth
-            ) {
-                sceneRenderer.drawScene(scene, it, interpolation)
-            }
+        val clearDepth = VkClearValue.calloc()
+            .depthStencil { it.depth(1.0f) }
+
+        graph.addPass(
+            name = "MainScenePass",
+            writes = setOf(RenderResourceNames.BACK_BUFFER, RenderResourceNames.DEPTH_BUFFER),
+            clearColor = clearColor,
+            clearDepth = clearDepth
+        ) {
+            sceneRenderer.drawScene(scene, it, interpolation)
         }
     }
 
