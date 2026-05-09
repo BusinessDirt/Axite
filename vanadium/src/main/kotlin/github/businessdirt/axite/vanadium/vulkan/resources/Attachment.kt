@@ -16,6 +16,8 @@ class Attachment(
     existingImage: Image? = null
 ) : Handle<Long>() {
 
+    private val isExternal = existingImage != null
+
     val isDepth: Boolean = isDepthFormat(format)
     val isStencil: Boolean = isStencilFormat(format)
 
@@ -62,7 +64,7 @@ class Attachment(
 
     override fun destroy() {
         imageView.close()
-        image.close()
+        if (!isExternal) image.close()
     }
 
     companion object {

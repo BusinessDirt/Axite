@@ -9,11 +9,11 @@ import github.businessdirt.axite.vanadium.vulkan.Handle
 import github.businessdirt.axite.vanadium.vulkan.device.Device
 import github.businessdirt.axite.vanadium.vulkan.device.PhysicalDevice
 import github.businessdirt.axite.vanadium.vulkan.device.PresentQueue
+import github.businessdirt.axite.vanadium.vulkan.resources.Attachment
 import github.businessdirt.axite.vanadium.vulkan.resources.Image
 import github.businessdirt.axite.vanadium.vulkan.resources.ImageView
 import github.businessdirt.axite.vanadium.vulkan.surface.Surface
 import github.businessdirt.axite.vanadium.vulkan.synchronization.Semaphore
-import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.vulkan.KHRSurface.*
 import org.lwjgl.vulkan.KHRSwapchain.*
@@ -22,6 +22,7 @@ import org.lwjgl.vulkan.VkExtent2D
 import org.lwjgl.vulkan.VkPresentInfoKHR
 import org.lwjgl.vulkan.VkSurfaceCapabilitiesKHR
 import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR
+import kotlin.apply
 
 class Swapchain(
     private val device: Device,
@@ -41,7 +42,10 @@ class Swapchain(
     lateinit var imageViews: Array<ImageView>
         private set
 
-    lateinit var images: Array<Image>
+    lateinit var colorAttachments: Array<Attachment>
+        private set
+
+    lateinit var depthAttachment: Attachment
         private set
 
     lateinit var renderFinishedSemaphores: Array<Semaphore>
@@ -77,9 +81,51 @@ class Swapchain(
             }
         }
 
-        imageViews = memoryStack { stack ->
-            stack.createImageViews(device, handle, surface.surfaceFormat.imageFormat)
+        val imageHandles: LongArray = memoryStack { stack ->
+            val pSwapchainImageCount = stack.mallocInt(1)
+            vkCheck(vkGetSwapchainImagesKHR(device.handle, handle, pSwapchainImageCount, null)) {
+                "Failed to get number of surface images"
+            }
+
+            val swapchainImageCount = pSwapchainImageCount[0]
+            val pSwapchainImages = stack.mallocLong(swapchainImageCount)
+            vkCheck(vkGetSwapchainImagesKHR(device.handle, handle, pSwapchainImageCount, pSwapchainImages)) {
+                "Failed to get surface images"
+            }
+
+            LongArray(swapchainImageCount) { pSwapchainImages[it] }
         }
+
+        imageViews = Array(imageHandles.size) { i ->
+            ImageView(device.handle, imageHandles[i]) {
+                this.format = surface.surfaceFormat.imageFormat
+                this.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT
+            }
+        }
+
+        // Wrap swapchain images in Attachment objects
+        colorAttachments = Array(imageViews.size) { i ->
+            val image = Image(device.handle, physicalDevice, existingHandle = imageHandles[i]) {
+                this.width = extent.width()
+                this.height = extent.height()
+                this.format = surface.surfaceFormat.imageFormat
+            }
+
+            Attachment(
+                device.handle, physicalDevice,
+                extent.width(), extent.height(),
+                surface.surfaceFormat.imageFormat,
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                image
+            )
+        }
+
+        depthAttachment = Attachment(
+            device.handle, physicalDevice,
+            extent.width(), extent.height(),
+            VK_FORMAT_D32_SFLOAT,
+            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
+        )
 
         renderFinishedSemaphores = Array(imageViews.size) { Semaphore(device.handle) }
 
@@ -121,26 +167,6 @@ class Swapchain(
         }
     }
 
-    private fun MemoryStack.createImageViews(device: Device, swapChain: Long, format: Int): Array<ImageView> {
-        val ip = mallocInt(1)
-        vkCheck(vkGetSwapchainImagesKHR(device.handle, swapChain, ip, null)) {
-            "Failed to get number of surface images"
-        }
-
-        val count = ip[0]
-        val swapChainImages = mallocLong(count)
-        vkCheck(vkGetSwapchainImagesKHR(device.handle, swapChain, ip, swapChainImages)) {
-            "Failed to get surface images"
-        }
-
-        return Array(count) { i ->
-            ImageView(device.handle, swapChainImages[i]) {
-                this.format = format
-                this.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT
-            }
-        }
-    }
-
     fun recreate(
         requestedImages: Int = this.requestedImages,
         vsync: Boolean = this.vsync
@@ -163,6 +189,9 @@ class Swapchain(
 
     override fun destroy() {
         if (handle == 0L) return
+
+        if (::colorAttachments.isInitialized) colorAttachments.forEach { it.close() }
+        if (::depthAttachment.isInitialized) depthAttachment.close()
 
         renderFinishedSemaphores.forEach { it.close() }
         imageViews.forEach { it.close() }

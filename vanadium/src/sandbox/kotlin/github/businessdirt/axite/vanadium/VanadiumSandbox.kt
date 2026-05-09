@@ -4,6 +4,7 @@ import github.businessdirt.axite.vanadium.core.events.Event
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import github.businessdirt.axite.vanadium.renderer.SceneRenderer
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
+import github.businessdirt.axite.vanadium.renderer.graph.RenderResourceNames
 import github.businessdirt.axite.vanadium.renderer.scene.Scene
 import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
 import kotlinx.coroutines.CoroutineScope
@@ -32,7 +33,7 @@ class VanadiumSandbox : VanadiumAdapter {
 
             graph.addPass(
                 name = "MainScenePass",
-                writes = setOf("Backbuffer"),
+                writes = setOf(RenderResourceNames.BACK_BUFFER, RenderResourceNames.DEPTH_BUFFER),
                 clearColor = clearColor,
                 clearDepth = clearDepth
             ) {

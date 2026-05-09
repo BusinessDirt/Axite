@@ -4,6 +4,7 @@ import github.businessdirt.axite.vanadium.VanadiumAdapter
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
+import github.businessdirt.axite.vanadium.renderer.graph.RenderResourceNames
 import github.businessdirt.axite.vanadium.vulkan.Context
 import github.businessdirt.axite.vanadium.vulkan.commands.transitionLayout
 import github.businessdirt.axite.vanadium.vulkan.resources.Image
@@ -18,7 +19,7 @@ class Renderer(val context: Context) {
     private val sceneRenderer = SceneRenderer(context)
     private var resize = false
 
-    fun initialize() = Profiler.profile("Renderer Initialization"){
+    fun initialize() = Profiler.profile("Renderer Initialization") {
         sceneRenderer.initialize()
     }
 
@@ -37,8 +38,10 @@ class Renderer(val context: Context) {
 
         currentFrameData.commandPool.reset()
 
-        val backbuffer = context.swapchain.images[imageIndex]
-
+        // Bind swapchain resources to the registry
+        renderGraph.registry.prepareForFrame()
+        renderGraph.registry.bindFrameResource(RenderResourceNames.BACK_BUFFER, context.swapchain.colorAttachments[imageIndex])
+        renderGraph.registry.bindFrameResource(RenderResourceNames.DEPTH_BUFFER, context.swapchain.depthAttachment)
 
         // Record/Build the frame
         currentFrameData.commandBuffer.record {
@@ -46,11 +49,9 @@ class Renderer(val context: Context) {
                 adapter.onRecord(it, sceneRenderer, this, interpolation)
             }
 
-            // Final transition for presentation
-            val swapchainAttachment = renderGraph.registry.get("Backbuffer")
+            val swapchainAttachment = renderGraph.registry[RenderResourceNames.BACK_BUFFER]
             transitionLayout(swapchainAttachment, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
         }
-
 
         memoryStack { stack ->
             currentFrameData.inFlightFence.reset()
