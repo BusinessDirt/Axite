@@ -9,6 +9,7 @@ import github.businessdirt.axite.vanadium.vulkan.Handle
 import github.businessdirt.axite.vanadium.vulkan.device.Device
 import github.businessdirt.axite.vanadium.vulkan.device.PhysicalDevice
 import github.businessdirt.axite.vanadium.vulkan.device.PresentQueue
+import github.businessdirt.axite.vanadium.vulkan.resources.Image
 import github.businessdirt.axite.vanadium.vulkan.resources.ImageView
 import github.businessdirt.axite.vanadium.vulkan.surface.Surface
 import github.businessdirt.axite.vanadium.vulkan.synchronization.Semaphore
@@ -38,6 +39,9 @@ class Swapchain(
         private set
 
     lateinit var imageViews: Array<ImageView>
+        private set
+
+    lateinit var images: Array<Image>
         private set
 
     lateinit var renderFinishedSemaphores: Array<Semaphore>

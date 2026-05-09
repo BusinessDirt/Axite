@@ -32,7 +32,7 @@ class VanadiumSandbox : VanadiumAdapter {
 
             graph.addPass(
                 name = "MainScenePass",
-                writes = setOf("SwapChainImage", "DepthBuffer"),
+                writes = setOf("Backbuffer"),
                 clearColor = clearColor,
                 clearDepth = clearDepth
             ) {

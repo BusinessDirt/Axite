@@ -13,7 +13,7 @@ class ImageView(
     block: Data.() -> Unit
 ) : Handle<Long>() {
 
-    private val data = Data().apply(block)
+    val data = Data().apply(block)
 
     val aspectMask: Int = data.aspectMask
     val mipLevels: Int = data.mipLevels

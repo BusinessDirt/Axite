@@ -1,13 +1,14 @@
 package github.businessdirt.axite.vanadium.vulkan.resources
 
 import github.businessdirt.axite.vanadium.vulkan.Handle
+import github.businessdirt.axite.vanadium.vulkan.device.Device
 import github.businessdirt.axite.vanadium.vulkan.device.PhysicalDevice
 import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkDevice
 
 class Attachment(
     private val device: VkDevice,
-    private val physicalDevice: PhysicalDevice,
+    physicalDevice: PhysicalDevice,
     val width: Int,
     val height: Int,
     val format: Int,
