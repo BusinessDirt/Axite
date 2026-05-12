@@ -2,49 +2,100 @@ package github.businessdirt.axite.vanadium.assets.loaders
 
 import github.businessdirt.axite.vanadium.Vanadium
 import github.businessdirt.axite.vanadium.assets.types.Shader
+import github.businessdirt.axite.vanadium.assets.types.ShaderMetadata
 import github.businessdirt.axite.vanadium.assets.types.ShaderStage
 import github.businessdirt.axite.vanadium.vulkan.resources.ShaderModule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 import org.lwjgl.util.shaderc.Shaderc
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.channels.FileChannel
 import java.nio.file.StandardOpenOption
+import java.security.MessageDigest
 
 /**
  * Loads and compiles shaders.
  * Supports caching compiled SPIR-V on disk.
  */
-class ShaderSerializer : AssetSerializer<Shader> {
+class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata> {
+
+    private val json = Json { prettyPrint = true }
 
     override suspend fun load(path: String): Shader = withContext(Dispatchers.IO) {
         val stage = ShaderStage.fromPath(path)
         val glslFile = File(path)
         val spvFile = File("$path.spv")
 
-        val pCode = when {
-            isCacheValid(glslFile, spvFile) -> loadCachedSpv(spvFile)
-            else -> compileAndCache(glslFile, spvFile, stage)
+        val currentHash = calculateHash(glslFile)
+        var metadata = loadMetadata(path)
+
+        val pCode = if (spvFile.exists() && metadata != null && metadata.hash == currentHash) {
+            logger.debug("Loading cached SPV: [{}]", spvFile.path)
+            loadCachedSpv(spvFile)
+        } else {
+            val finalMetadata = metadata?.copy(
+                hash = currentHash,
+                compilationTime = System.currentTimeMillis(),
+                stage = stage
+            ) ?: ShaderMetadata(
+                hash = currentHash,
+                stage = stage,
+                compilationTime = System.currentTimeMillis()
+            )
+            
+            val pCode = compileAndCache(glslFile, spvFile, stage, finalMetadata)
+            metadata = finalMetadata
+            pCode
         }
 
         val module = ShaderModule(Vanadium.context.device.handle, stage.vulkan, pCode)
-        Shader(path, stage, module)
+        Shader(path, metadata.uuid, metadata, stage, module)
     }
 
-    private fun isCacheValid(glslFile: File, spvFile: File): Boolean =
-        spvFile.exists() && glslFile.lastModified() <= spvFile.lastModified()
+    override fun loadMetadata(path: String): ShaderMetadata? {
+        val file = File("$path.meta")
+        return if (file.exists()) {
+            try {
+                json.decodeFromString<ShaderMetadata>(file.readText())
+            } catch (e: Exception) {
+                logger.warn("Failed to load metadata for [{}]: {}", path, e.message)
+                null
+            }
+        } else null
+    }
+
+    override fun writeMetadata(path: String, metadata: ShaderMetadata) {
+        try {
+            File("$path.meta").writeText(json.encodeToString(metadata))
+        } catch (e: Exception) {
+            logger.warn("Failed to write metadata for [{}]: {}", path, e.message)
+        }
+    }
+
+    private fun calculateHash(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(8192)
+            var read = input.read(buffer)
+            while (read != -1) {
+                digest.update(buffer, 0, read)
+                read = input.read(buffer)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
 
     private fun loadCachedSpv(spvFile: File): ByteBuffer {
-        logger.debug("Loading cached SPV: [{}]", spvFile.path)
         return FileChannel.open(spvFile.toPath(), StandardOpenOption.READ).use { channel ->
             channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size())
         }
     }
 
-    private fun compileAndCache(glslFile: File, spvFile: File, stage: ShaderStage): ByteBuffer {
+    private fun compileAndCache(glslFile: File, spvFile: File, stage: ShaderStage, metadata: ShaderMetadata): ByteBuffer {
         logger.debug("Compiling shader: [{}]", glslFile.path)
 
         val shaderCode = glslFile.readText()
@@ -54,9 +105,10 @@ class ShaderSerializer : AssetSerializer<Shader> {
         Vanadium.engineScope.launch(Dispatchers.IO) {
             try {
                 spvFile.writeBytes(compiledBytes)
-                logger.debug("Cached compiled SPV to [{}]", spvFile.path)
+                writeMetadata(glslFile.path, metadata)
+                logger.debug("Cached compiled SPV and metadata to [{}]", spvFile.path)
             } catch (e: Exception) {
-                logger.warn("Failed to cache SPV for [{}]: {}", glslFile.path, e.message)
+                logger.warn("Failed to cache SPV or metadata for [{}]: {}", glslFile.path, e.message)
             }
         }
 

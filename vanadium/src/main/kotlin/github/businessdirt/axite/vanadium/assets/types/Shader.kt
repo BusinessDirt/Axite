@@ -1,15 +1,14 @@
 package github.businessdirt.axite.vanadium.assets.types
 
-import github.businessdirt.axite.vanadium.assets.types.Asset
 import github.businessdirt.axite.vanadium.vulkan.resources.ShaderModule
 import org.lwjgl.util.shaderc.Shaderc
-import org.lwjgl.vulkan.KHRRayTracingPipeline.VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
-import org.lwjgl.vulkan.KHRRayTracingPipeline.VK_SHADER_STAGE_MISS_BIT_KHR
-import org.lwjgl.vulkan.KHRRayTracingPipeline.VK_SHADER_STAGE_RAYGEN_BIT_KHR
+import org.lwjgl.vulkan.KHRRayTracingPipeline.*
 import org.lwjgl.vulkan.VK13.*
 
 class Shader(
     override val path: String,
+    override val uuid: String,
+    override val metadata: AssetMetadata,
     val stage: ShaderStage,
     val module: ShaderModule
 ) : Asset {

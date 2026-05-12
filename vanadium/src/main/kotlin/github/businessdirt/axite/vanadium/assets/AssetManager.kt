@@ -2,6 +2,7 @@ package github.businessdirt.axite.vanadium.assets
 
 import github.businessdirt.axite.vanadium.assets.loaders.AssetSerializer
 import github.businessdirt.axite.vanadium.assets.types.Asset
+import github.businessdirt.axite.vanadium.assets.types.AssetMetadata
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
 import kotlinx.coroutines.*
 import java.util.concurrent.ConcurrentHashMap
@@ -12,7 +13,7 @@ class AssetManager(private val scope: CoroutineScope) {
     private val cache = ConcurrentHashMap<String, Asset>()
     private val loadingJobs = ConcurrentHashMap<String, Deferred<Asset>>()
 
-    val serializers = ConcurrentHashMap<KClass<out Asset>, AssetSerializer<out Asset>>()
+    val serializers = ConcurrentHashMap<KClass<out Asset>, AssetSerializer<out Asset, out AssetMetadata>>()
 
     fun configure(block: AssetManager.() -> Unit): AssetManager = Profiler.profile("AssetManager Configuration") {
         this.apply { block.invoke(this) }
@@ -21,7 +22,7 @@ class AssetManager(private val scope: CoroutineScope) {
     /**
      * Pre-register how to load a specific type of asset.
      */
-    inline fun <reified T : Asset> registerLoader(loader: AssetSerializer<out Asset>) {
+    inline fun <reified T : Asset> registerLoader(loader: AssetSerializer<out Asset, out AssetMetadata>) {
         serializers[T::class] = loader
     }
 
@@ -37,10 +38,18 @@ class AssetManager(private val scope: CoroutineScope) {
     }
 
     /**
+     * Loads only the metadata for an asset of type T.
+     */
+    inline fun <reified T : Asset> loadMetadata(path: String): AssetMetadata? {
+        val loader = serializers[T::class] ?: return null
+        return loader.loadMetadata(path)
+    }
+
+    /**
      * Internal logic to handle deduplication and async execution.
      */
     @Suppress("UNCHECKED_CAST", "DeferredResultUnused")
-    suspend fun <T : Asset> loadWithLoader(path: String, loader: AssetSerializer<out Asset>): T {
+    suspend fun <T : Asset> loadWithLoader(path: String, loader: AssetSerializer<out Asset, out AssetMetadata>): T {
         // Return from cache if available
         cache[path]?.let { return it as T }
 
