@@ -46,7 +46,6 @@ object Vanadium {
 
         runBlocking {
             Profiler.profile("Initialization") {
-                // Initialize System Systems (GLFW, Logging, etc.)
                 initCoreSystems()
 
                 window = Window(config).also { it.initialize() }

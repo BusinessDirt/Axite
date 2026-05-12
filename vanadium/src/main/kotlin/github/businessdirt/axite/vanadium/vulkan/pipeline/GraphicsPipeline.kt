@@ -1,5 +1,6 @@
 package github.businessdirt.axite.vanadium.vulkan.pipeline
 
+import github.businessdirt.axite.vanadium.assets.types.Shader
 import github.businessdirt.axite.vanadium.core.utils.createHandle
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import github.businessdirt.axite.vanadium.vulkan.resources.ShaderModule
@@ -12,14 +13,14 @@ import org.lwjgl.vulkan.VK13.*
  * Builder for a [GraphicsPipeline].
  */
 class GraphicsPipelineBuilder {
-    val shaderModules = mutableListOf<ShaderModule>()
+    val shaderModules = mutableListOf<Shader>()
     var vertexInputState: VkPipelineVertexInputStateCreateInfo? = null
     var colorFormat: Int = VK_FORMAT_UNDEFINED
     var depthFormat: Int = VK_FORMAT_UNDEFINED
     var pushConstantRanges = mutableListOf<PushConstantRange>()
 
-    fun shaders(vararg modules: ShaderModule) {
-        shaderModules.addAll(modules)
+    fun shaders(vararg shaders: Shader) {
+        shaderModules.addAll(shaders)
     }
 
     fun pushConstantRanges(vararg ranges: PushConstantRange) {
@@ -104,8 +105,8 @@ class GraphicsPipeline(
         private fun createShaderStages(stack: MemoryStack, builder: GraphicsPipelineBuilder): VkPipelineShaderStageCreateInfo.Buffer {
             val stages = VkPipelineShaderStageCreateInfo.calloc(builder.shaderModules.size, stack)
             val mainName = stack.UTF8("main")
-            builder.shaderModules.forEachIndexed { i, module ->
-                stages[i].`sType$Default`().stage(module.stage).module(module.handle).pName(mainName)
+            builder.shaderModules.forEachIndexed { i, shader ->
+                stages[i].`sType$Default`().stage(shader.stage.vulkan).module(shader.module.handle).pName(mainName)
             }
             return stages
         }

@@ -9,7 +9,7 @@ import org.lwjgl.vulkan.KHRRayTracingPipeline.VK_SHADER_STAGE_RAYGEN_BIT_KHR
 import org.lwjgl.vulkan.VK13.*
 
 class Shader(
-    val path: String,
+    override val path: String,
     val stage: ShaderStage,
     val module: ShaderModule
 ) : Asset {

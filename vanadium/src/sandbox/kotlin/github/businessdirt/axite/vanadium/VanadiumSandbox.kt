@@ -1,6 +1,7 @@
 package github.businessdirt.axite.vanadium
 
 import github.businessdirt.axite.vanadium.assets.ShaderCompiler
+import github.businessdirt.axite.vanadium.assets.types.Shader
 import github.businessdirt.axite.vanadium.core.events.Event
 import github.businessdirt.axite.vanadium.renderer.SceneRenderer
 import github.businessdirt.axite.vanadium.renderer.graph.ClearColorValue
@@ -21,24 +22,18 @@ import org.lwjgl.vulkan.VkPipelineVertexInputStateCreateInfo
 class VanadiumSandbox : VanadiumAdapter {
 
     companion object {
-        const val FRAGMENT_SHADER_FILE_GLSL: String = "src/sandbox/resources/shaders/scene_frag.glsl"
-        const val FRAGMENT_SHADER_FILE_SPV: String = "$FRAGMENT_SHADER_FILE_GLSL.spv"
-        const val VERTEX_SHADER_FILE_GLSL: String = "src/sandbox/resources/shaders/scene_vert.glsl"
-        const val VERTEX_SHADER_FILE_SPV: String = "$VERTEX_SHADER_FILE_GLSL.spv"
+        const val FRAGMENT_SHADER_FILE_GLSL: String = "src/sandbox/resources/shaders/scene.frag.glsl"
+        const val VERTEX_SHADER_FILE_GLSL: String = "src/sandbox/resources/shaders/scene.vert.glsl"
         const val DEPTH_FORMAT = VK_FORMAT_D32_SFLOAT
     }
 
     private val scene: Scene = Scene()
 
-
     private var graphicsPipeline: GraphicsPipeline? = null
 
     override suspend fun initialize(scope: CoroutineScope) {
-        ShaderCompiler.compileShaderIfChanged(VERTEX_SHADER_FILE_GLSL, Shaderc.shaderc_vertex_shader)
-        ShaderCompiler.compileShaderIfChanged(FRAGMENT_SHADER_FILE_GLSL, Shaderc.shaderc_fragment_shader)
-
-        val vertexShader = ShaderModule(Vanadium.context.device.handle, VK_SHADER_STAGE_VERTEX_BIT, VERTEX_SHADER_FILE_SPV)
-        val fragmentShader = ShaderModule(Vanadium.context.device.handle, VK_SHADER_STAGE_FRAGMENT_BIT, FRAGMENT_SHADER_FILE_SPV)
+        val vertexShader = Vanadium.assets.load<Shader>(VERTEX_SHADER_FILE_GLSL)
+        val fragmentShader = Vanadium.assets.load<Shader>(FRAGMENT_SHADER_FILE_GLSL)
 
         graphicsPipeline = GraphicsPipeline.create(Vanadium.context.device.handle, Vanadium.context.pipelineCache.handle) {
             shaders(vertexShader, fragmentShader)
