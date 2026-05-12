@@ -30,29 +30,25 @@ sealed class Pipeline(
     }
 
     companion object {
-        fun mergePushConstants(ranges: List<PushConstantRange>): List<PushConstantRange> {
-            return ranges.groupBy { it.offset to it.size }
-                .map { (key, group) ->
-                    PushConstantRange(
-                        stageFlags = group.fold(0) { acc, r -> acc or r.stageFlags },
-                        offset = key.first,
-                        size = key.second
-                    )
-                }
-        }
+        fun mergePushConstants(ranges: List<PushConstantRange>): List<PushConstantRange> = ranges.groupBy { it.offset to it.size }
+            .map { (key, group) ->
+                PushConstantRange(
+                    stageFlags = group.fold(0) { acc, r -> acc or r.stageFlags },
+                    offset = key.first,
+                    size = key.second
+                )
+            }
 
-        fun mergeLayoutBindings(bindings: List<LayoutBinding>): List<LayoutBinding> {
-            return bindings.groupBy { it.binding }
-                .map { (binding, group) ->
-                    val first = group.first()
-                    LayoutBinding(
-                        binding = binding,
-                        descriptorType = first.descriptorType,
-                        descriptorCount = first.descriptorCount,
-                        stageFlags = group.fold(0) { acc, b -> acc or b.stageFlags },
-                        name = first.name
-                    )
-                }
-        }
+        fun mergeLayoutBindings(bindings: List<LayoutBinding>): List<LayoutBinding> = bindings.groupBy { it.binding }
+            .map { (binding, group) ->
+                val first = group.first()
+                LayoutBinding(
+                    binding = binding,
+                    descriptorType = first.descriptorType,
+                    descriptorCount = first.descriptorCount,
+                    stageFlags = group.fold(0) { acc, b -> acc or b.stageFlags },
+                    name = first.name
+                )
+            }
     }
 }

@@ -15,20 +15,12 @@ class ShaderModule(
     pCode: ByteBuffer
 ) : Handle<Long>() {
 
-    override val handle: Long
+    override val handle: Long = memoryStack { stack ->
+        val createInfo = VkShaderModuleCreateInfo.calloc(stack).`sType$Default`()
+            .pCode(pCode)
 
-    init {
-        // Validation remains here as a safety guard for the Vulkan API
-        if (pCode.remaining() % 4 != 0)
-            throw IllegalArgumentException("SPIR-V shader buffer size is not a multiple of 4")
-
-        handle = memoryStack { stack ->
-            val createInfo = VkShaderModuleCreateInfo.calloc(stack).`sType$Default`()
-                .pCode(pCode)
-
-            stack.createHandle({ "Failed to create shader module from buffer" }) {
-                vkCreateShaderModule(device, createInfo, null, it)
-            }
+        stack.createHandle({ "Failed to create shader module from buffer" }) {
+            vkCreateShaderModule(device, createInfo, null, it)
         }
     }
 

@@ -32,19 +32,7 @@ class VanadiumSandbox : VanadiumAdapter {
         val vertexShader = Vanadium.assets.load<Shader>(VERTEX_SHADER_FILE_GLSL)
         val fragmentShader = Vanadium.assets.load<Shader>(FRAGMENT_SHADER_FILE_GLSL)
 
-        graphicsPipeline = GraphicsPipeline.create(Vanadium.context.device.handle, Vanadium.context.pipelineCache.handle) {
-            shaders(vertexShader, fragmentShader)
-
-            val emptyVertexInputState = VkPipelineVertexInputStateCreateInfo.calloc()
-                .sType(VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO)
-                .pVertexBindingDescriptions(null)
-                .pVertexAttributeDescriptions(null)
-
-            vertexInput(emptyVertexInputState)
-
-            colorFormat = Vanadium.context.surface.surfaceFormat.imageFormat
-            depthFormat = DEPTH_FORMAT
-        }
+        graphicsPipeline = GraphicsPipeline(Vanadium.context.device.handle, vertexShader, fragmentShader)
 
         vertexShader.close()
         fragmentShader.close()

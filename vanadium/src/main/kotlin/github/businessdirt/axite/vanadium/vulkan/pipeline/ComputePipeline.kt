@@ -2,9 +2,9 @@ package github.businessdirt.axite.vanadium.vulkan.pipeline
 
 import github.businessdirt.axite.vanadium.Vanadium
 import github.businessdirt.axite.vanadium.assets.types.Shader
-import github.businessdirt.axite.vanadium.vulkan.pipeline.DescriptorSetLayout
 import github.businessdirt.axite.vanadium.core.utils.createHandle
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
+import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.VK13.VK_SHADER_STAGE_COMPUTE_BIT
 import org.lwjgl.vulkan.VK13.vkCreateComputePipelines
 import org.lwjgl.vulkan.VkComputePipelineCreateInfo
@@ -15,13 +15,6 @@ class ComputePipeline(
     device: VkDevice,
     shader: Shader
 ) : Pipeline(device) {
-
-    private val shaderStage = memoryStack { stack ->
-        VkPipelineShaderStageCreateInfo.calloc(stack).`sType$Default`()
-            .stage(VK_SHADER_STAGE_COMPUTE_BIT)
-            .module(shader.module.handle)
-            .pName(stack.UTF8("main"))
-    }
 
     override val layout: PipelineLayout = PipelineLayout(
         device,
@@ -35,11 +28,17 @@ class ComputePipeline(
 
     override val handle: Long = memoryStack { stack ->
         val pipelineCreateInfo = VkComputePipelineCreateInfo.calloc(1, stack).`sType$Default`()
-            .stage(shaderStage)
+            .stage(stack.shaderStageCreateInfo(shader))
             .layout(layout.handle)
 
         stack.createHandle({ "Error creating compute pipeline" }) {
             vkCreateComputePipelines(device, Vanadium.context.pipelineCache.handle, pipelineCreateInfo, null, it)
         }
     }
+
+    private fun MemoryStack.shaderStageCreateInfo(shader: Shader) =
+        VkPipelineShaderStageCreateInfo.calloc(this).`sType$Default`()
+            .stage(VK_SHADER_STAGE_COMPUTE_BIT)
+            .module(shader.module.handle)
+            .pName(this.UTF8("main"))
 }
