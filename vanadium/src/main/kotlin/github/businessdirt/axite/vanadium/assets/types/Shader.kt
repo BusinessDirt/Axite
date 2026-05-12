@@ -1,5 +1,6 @@
 package github.businessdirt.axite.vanadium.assets.types
 
+import github.businessdirt.axite.vanadium.assets.metadata.AssetMetadata
 import github.businessdirt.axite.vanadium.vulkan.resources.ShaderModule
 import org.lwjgl.util.shaderc.Shaderc
 import org.lwjgl.vulkan.KHRRayTracingPipeline.*

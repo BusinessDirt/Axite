@@ -1,7 +1,7 @@
 package github.businessdirt.axite.vanadium.assets.loaders
 
+import github.businessdirt.axite.vanadium.assets.metadata.AssetMetadata
 import github.businessdirt.axite.vanadium.assets.types.Asset
-import github.businessdirt.axite.vanadium.assets.types.AssetMetadata
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import java.io.File

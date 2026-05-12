@@ -1,5 +1,6 @@
 package github.businessdirt.axite.vanadium.assets.types
 
+import github.businessdirt.axite.vanadium.assets.metadata.AssetMetadata
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 

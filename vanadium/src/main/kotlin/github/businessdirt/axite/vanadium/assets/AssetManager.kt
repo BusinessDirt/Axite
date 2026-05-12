@@ -2,7 +2,7 @@ package github.businessdirt.axite.vanadium.assets
 
 import github.businessdirt.axite.vanadium.assets.loaders.AssetSerializer
 import github.businessdirt.axite.vanadium.assets.types.Asset
-import github.businessdirt.axite.vanadium.assets.types.AssetMetadata
+import github.businessdirt.axite.vanadium.assets.metadata.AssetMetadata
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
 import kotlinx.coroutines.*
 import java.util.concurrent.ConcurrentHashMap
