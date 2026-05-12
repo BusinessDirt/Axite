@@ -1,6 +1,6 @@
 package github.businessdirt.axite.vanadium.assets.types
 
-import github.businessdirt.axite.vanadium.assets.Asset
+import github.businessdirt.axite.vanadium.assets.types.Asset
 import github.businessdirt.axite.vanadium.vulkan.resources.ShaderModule
 import org.lwjgl.util.shaderc.Shaderc
 import org.lwjgl.vulkan.KHRRayTracingPipeline.VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR

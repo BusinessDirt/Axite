@@ -1,7 +1,6 @@
 package github.businessdirt.axite.vanadium.assets.loaders
 
 import github.businessdirt.axite.vanadium.Vanadium
-import github.businessdirt.axite.vanadium.assets.AssetLoader
 import github.businessdirt.axite.vanadium.assets.types.Shader
 import github.businessdirt.axite.vanadium.assets.types.ShaderStage
 import github.businessdirt.axite.vanadium.vulkan.resources.ShaderModule
@@ -19,7 +18,7 @@ import java.nio.file.StandardOpenOption
  * Loads and compiles shaders.
  * Supports caching compiled SPIR-V on disk.
  */
-class ShaderLoader : AssetLoader<Shader> {
+class ShaderSerializer : AssetSerializer<Shader> {
 
     override suspend fun load(path: String): Shader = withContext(Dispatchers.IO) {
         val stage = ShaderStage.fromPath(path)

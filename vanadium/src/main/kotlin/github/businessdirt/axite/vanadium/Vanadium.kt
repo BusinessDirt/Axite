@@ -3,7 +3,7 @@ package github.businessdirt.axite.vanadium
 import github.businessdirt.axite.logging.LoggingConfigurator
 import github.businessdirt.axite.logging.PatternBuilder
 import github.businessdirt.axite.vanadium.assets.AssetManager
-import github.businessdirt.axite.vanadium.assets.loaders.ShaderLoader
+import github.businessdirt.axite.vanadium.assets.loaders.ShaderSerializer
 import github.businessdirt.axite.vanadium.assets.types.Shader
 import github.businessdirt.axite.vanadium.core.events.Event
 import github.businessdirt.axite.vanadium.core.events.EventDispatcher
@@ -51,7 +51,7 @@ object Vanadium {
                 context = Context(config).also { it.initialize(window) }
                 renderer = Renderer(context).also { it.initialize() }
                 assets = AssetManager(engineScope).configure {
-                    registerLoader<Shader>(ShaderLoader())
+                    registerLoader<Shader>(ShaderSerializer())
                 }
 
                 // Initialize Adapter (Suspendable for async asset loading)

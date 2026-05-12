@@ -1,4 +1,4 @@
-package github.businessdirt.axite.vanadium.assets
+package github.businessdirt.axite.vanadium.assets.types
 
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
@@ -16,12 +16,4 @@ interface Asset : AutoCloseable {
         logger.debug("Releasing {} [{}]", this::class.simpleName, this.path)
         release()
     }
-}
-
-interface AssetLoader<T : Asset> {
-
-    val logger: Logger
-        get() = LogManager.getLogger(this::class.java)
-
-    suspend fun load(path: String): T
 }

@@ -1,5 +1,7 @@
 package github.businessdirt.axite.vanadium.assets
 
+import github.businessdirt.axite.vanadium.assets.loaders.AssetSerializer
+import github.businessdirt.axite.vanadium.assets.types.Asset
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
 import kotlinx.coroutines.*
 import java.util.concurrent.ConcurrentHashMap
@@ -10,7 +12,7 @@ class AssetManager(private val scope: CoroutineScope) {
     private val cache = ConcurrentHashMap<String, Asset>()
     private val loadingJobs = ConcurrentHashMap<String, Deferred<Asset>>()
 
-    val loaders = ConcurrentHashMap<KClass<out Asset>, AssetLoader<out Asset>>()
+    val serializers = ConcurrentHashMap<KClass<out Asset>, AssetSerializer<out Asset>>()
 
     fun configure(block: AssetManager.() -> Unit): AssetManager = Profiler.profile("AssetManager Configuration") {
         this.apply { block.invoke(this) }
@@ -19,8 +21,8 @@ class AssetManager(private val scope: CoroutineScope) {
     /**
      * Pre-register how to load a specific type of asset.
      */
-    inline fun <reified T : Asset> registerLoader(loader: AssetLoader<out Asset>) {
-        loaders[T::class] = loader
+    inline fun <reified T : Asset> registerLoader(loader: AssetSerializer<out Asset>) {
+        serializers[T::class] = loader
     }
 
     /**
@@ -29,7 +31,7 @@ class AssetManager(private val scope: CoroutineScope) {
     @Suppress("UNCHECKED_CAST")
     suspend inline fun <reified T : Asset> load(path: String): T {
         val clazz = T::class
-        val loader = loaders[clazz] ?: throw IllegalStateException("No loader registered for ${clazz.simpleName}")
+        val loader = serializers[clazz] ?: throw IllegalStateException("No loader registered for ${clazz.simpleName}")
 
         return loadWithLoader(path, loader) as T
     }
@@ -38,7 +40,7 @@ class AssetManager(private val scope: CoroutineScope) {
      * Internal logic to handle deduplication and async execution.
      */
     @Suppress("UNCHECKED_CAST", "DeferredResultUnused")
-    suspend fun <T : Asset> loadWithLoader(path: String, loader: AssetLoader<out Asset>): T {
+    suspend fun <T : Asset> loadWithLoader(path: String, loader: AssetSerializer<out Asset>): T {
         // Return from cache if available
         cache[path]?.let { return it as T }
 
