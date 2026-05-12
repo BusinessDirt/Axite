@@ -1,6 +1,5 @@
 package github.businessdirt.axite.vanadium
 
-import github.businessdirt.axite.vanadium.assets.ShaderCompiler
 import github.businessdirt.axite.vanadium.assets.types.Shader
 import github.businessdirt.axite.vanadium.core.events.Event
 import github.businessdirt.axite.vanadium.renderer.SceneRenderer
@@ -12,9 +11,7 @@ import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
 import github.businessdirt.axite.vanadium.vulkan.commands.setScissor
 import github.businessdirt.axite.vanadium.vulkan.commands.setViewport
 import github.businessdirt.axite.vanadium.vulkan.pipeline.GraphicsPipeline
-import github.businessdirt.axite.vanadium.vulkan.resources.ShaderModule
 import kotlinx.coroutines.CoroutineScope
-import org.lwjgl.util.shaderc.Shaderc
 import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkPipelineVertexInputStateCreateInfo
 

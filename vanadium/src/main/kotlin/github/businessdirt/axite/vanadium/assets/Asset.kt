@@ -19,5 +19,9 @@ interface Asset : AutoCloseable {
 }
 
 interface AssetLoader<T : Asset> {
+
+    val logger: Logger
+        get() = LogManager.getLogger(this::class.java)
+
     suspend fun load(path: String): T
 }

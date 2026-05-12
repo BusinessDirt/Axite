@@ -3,7 +3,6 @@ package github.businessdirt.axite.vanadium
 import github.businessdirt.axite.logging.LoggingConfigurator
 import github.businessdirt.axite.logging.PatternBuilder
 import github.businessdirt.axite.vanadium.assets.AssetManager
-import github.businessdirt.axite.vanadium.assets.ShaderCompiler
 import github.businessdirt.axite.vanadium.assets.loaders.ShaderLoader
 import github.businessdirt.axite.vanadium.assets.types.Shader
 import github.businessdirt.axite.vanadium.core.events.Event

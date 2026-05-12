@@ -3,7 +3,6 @@ package github.businessdirt.axite.vanadium.vulkan.pipeline
 import github.businessdirt.axite.vanadium.assets.types.Shader
 import github.businessdirt.axite.vanadium.core.utils.createHandle
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
-import github.businessdirt.axite.vanadium.vulkan.resources.ShaderModule
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil.NULL
 import org.lwjgl.vulkan.*
