@@ -17,8 +17,7 @@ class CommandBuffer(
 ) : Handle<VkCommandBuffer>() {
 
     override val handle: VkCommandBuffer = memoryStack { stack ->
-        val commandBufferAllocateInfo = VkCommandBufferAllocateInfo.calloc(stack)
-            .`sType$Default`()
+        val commandBufferAllocateInfo = VkCommandBufferAllocateInfo.calloc(stack).`sType$Default`()
             .commandPool(commandPool.handle)
             .level(if (primary) VK_COMMAND_BUFFER_LEVEL_PRIMARY else VK_COMMAND_BUFFER_LEVEL_SECONDARY)
             .commandBufferCount(1)
@@ -41,14 +40,12 @@ class CommandBuffer(
         if (!primary) {
             val info = inheritanceInfo ?: throw RuntimeException("Secondary buffers must declare inheritance info")
 
-            val renderingInfo = VkCommandBufferInheritanceRenderingInfo.calloc(stack)
-                .`sType$Default`()
+            val renderingInfo = VkCommandBufferInheritanceRenderingInfo.calloc(stack).`sType$Default`()
                 .depthAttachmentFormat(info.depthFormat)
                 .pColorAttachmentFormats(stack.ints(*info.colorFormats))
                 .rasterizationSamples(info.rasterizationSamples)
 
-            val vkInheritanceInfo = VkCommandBufferInheritanceInfo.calloc(stack)
-                .`sType$Default`()
+            val vkInheritanceInfo = VkCommandBufferInheritanceInfo.calloc(stack).`sType$Default`()
                 .pNext(renderingInfo.address())
 
             commandBufferBeginInfo.pInheritanceInfo(vkInheritanceInfo)
@@ -90,8 +87,7 @@ class CommandBuffer(
      * Optional [fence] can be provided to track completion.
      */
     fun submit(queue: DeviceQueue, fence: Fence? = null) = memoryStack { stack ->
-        val commandBufferSubmitInfos = VkCommandBufferSubmitInfo.calloc(1, stack)
-            .`sType$Default`()
+        val commandBufferSubmitInfos = VkCommandBufferSubmitInfo.calloc(1, stack).`sType$Default`()
             .commandBuffer(handle)
 
         queue.submit(commandBuffers = commandBufferSubmitInfos, fence = fence)

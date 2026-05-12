@@ -47,7 +47,7 @@ class ComputePipeline(
                     val builder = ComputePipelineBuilder().apply { block(stack) }
                     validateBuilder(builder)
 
-                    layoutHandle = Pipeline.createPipelineLayout(device, stack, builder.pushConstantRanges)
+                    layoutHandle = createPipelineLayout(device, stack, builder.pushConstantRanges)
                     pipelineHandle = createComputePipeline(device, stack, builder, layoutHandle, pipelineCache)
                 }
                 return ComputePipeline(device, layoutHandle, pipelineHandle)

@@ -17,6 +17,7 @@ class CommandPool(
     override val handle: Long = memoryStack { stack ->
         val commandPoolCreateInfo = VkCommandPoolCreateInfo.calloc(stack).`sType$Default`()
             .queueFamilyIndex(queueFamilyIndex)
+
         if (supportReset) commandPoolCreateInfo.flags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
 
         stack.createHandle({ "Failed to create command pool" }) { pCommandPool ->
@@ -27,9 +28,8 @@ class CommandPool(
     /**
      * Allocates a single [CommandBuffer] from this pool.
      */
-    fun allocate(primary: Boolean = true, oneTimeSubmit: Boolean = false): CommandBuffer {
-        return CommandBuffer(device, this, primary, oneTimeSubmit)
-    }
+    fun allocate(primary: Boolean = true, oneTimeSubmit: Boolean = false): CommandBuffer =
+        CommandBuffer(device, this, primary, oneTimeSubmit)
 
     /**
      * Executes a one-time command on the given [queue].
@@ -37,9 +37,7 @@ class CommandPool(
      */
     fun executeTransient(queue: DeviceQueue, block: CommandBuffer.() -> Unit) {
         val commandBuffer = allocate(primary = true, oneTimeSubmit = true)
-        commandBuffer.record {
-            block()
-        }
+        commandBuffer.record(block = block)
         commandBuffer.submitAndWait(queue)
         commandBuffer.close()
     }

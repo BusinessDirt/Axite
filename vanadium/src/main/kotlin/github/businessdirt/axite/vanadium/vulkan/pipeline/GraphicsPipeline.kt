@@ -54,7 +54,7 @@ class GraphicsPipeline(
                     val builder = GraphicsPipelineBuilder().apply { block(stack) }
                     validateBuilder(builder)
 
-                    layoutHandle = Pipeline.createPipelineLayout(device, stack, builder.pushConstantRanges)
+                    layoutHandle = createPipelineLayout(device, stack, builder.pushConstantRanges)
                     pipelineHandle = createGraphicsPipeline(device, stack, builder, layoutHandle, pipelineCache)
                 }
                 return GraphicsPipeline(device, layoutHandle, pipelineHandle)

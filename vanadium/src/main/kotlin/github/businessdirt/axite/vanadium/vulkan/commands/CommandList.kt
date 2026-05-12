@@ -54,20 +54,17 @@ fun CommandBuffer.beginRendering(
 
 fun CommandBuffer.setViewport(width: Float, height: Float, x: Float = 0f, y: Float = 0f) = memoryStack { stack ->
     val viewport = VkViewport.calloc(1, stack)
-        .x(x)
-        .y(y)
-        .width(width)
-        .height(height)
-        .minDepth(0.0f)
-        .maxDepth(1.0f)
+        .x(x).y(y)
+        .width(width).height(height)
+        .minDepth(0.0f).maxDepth(1.0f)
 
     vkCmdSetViewport(this.handle, 0, viewport)
 }
 
 fun CommandBuffer.setScissor(width: Int, height: Int, offsetX: Int = 0, offsetY: Int = 0) = memoryStack { stack ->
     val scissor = VkRect2D.calloc(1, stack)
-    scissor.offset { it.set(offsetX, offsetY) }
-    scissor.extent { it.set(width, height) }
+        .offset { it.set(offsetX, offsetY) }
+        .extent { it.set(width, height) }
 
     vkCmdSetScissor(this.handle, 0, scissor)
 }

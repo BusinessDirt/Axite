@@ -1,9 +1,8 @@
 #version 450
 
-layout(location = 0) in vec2 inTextCoords;
-layout(location = 0) out vec4 outFragColor;
+layout(location = 0) out vec4 outColor;
 
-void main()
-{
-    outFragColor = vec4(inTextCoords.x, inTextCoords.y, 0, 1);
+void main() {
+    // Output a solid orange color
+    outColor = vec4(1.0, 0.5, 0.0, 1.0);
 }
