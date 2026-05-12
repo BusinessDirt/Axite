@@ -7,6 +7,9 @@ import github.businessdirt.axite.vanadium.vulkan.device.PhysicalDevice
 import org.apache.logging.log4j.Level
 import org.lwjgl.glfw.GLFWVulkan
 import org.lwjgl.vulkan.KHRSurface
+import org.lwjgl.vulkan.VK13.*
+import org.lwjgl.vulkan.VkFormatProperties
+import org.lwjgl.vulkan.VkPhysicalDevice
 import org.lwjgl.vulkan.VkSurfaceCapabilitiesKHR
 import org.lwjgl.vulkan.VkSurfaceFormatKHR
 import kotlin.math.max
@@ -81,8 +84,30 @@ class Surface(
         return@memoryStack SurfaceFormat(idealFormat.format(), idealFormat.colorSpace())
     }
 
+    val depthFormat = physicalDevice.findSupportedFormat(VK_FORMAT_D32_SFLOAT, VK_FORMAT_X8_D24_UNORM_PACK32, VK_FORMAT_D16_UNORM)
+    val depthStencilFormat = physicalDevice.findSupportedFormat(VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT_S8_UINT)
+
     override fun destroy() {
         surfaceCaps.free()
         KHRSurface.vkDestroySurfaceKHR(instance.handle, handle, null)
     }
+}
+
+private fun PhysicalDevice.findSupportedFormat(
+    vararg candidates: Int,
+    tiling: Int = VK_IMAGE_TILING_OPTIMAL,
+    features: Int = VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT,
+): Int = memoryStack { stack ->
+    val props = VkFormatProperties.calloc(stack)
+
+    for (format in candidates) {
+        vkGetPhysicalDeviceFormatProperties(this.handle, format, props)
+
+        when (tiling) {
+            VK_IMAGE_TILING_LINEAR if (props.linearTilingFeatures() and features) == features -> return@memoryStack format
+            VK_IMAGE_TILING_OPTIMAL if (props.optimalTilingFeatures() and features) == features -> return@memoryStack format
+        }
+    }
+
+    throw RuntimeException("Failed to find supported format!")
 }

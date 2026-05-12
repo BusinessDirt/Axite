@@ -4,9 +4,9 @@ import github.businessdirt.axite.vanadium.Vanadium
 import github.businessdirt.axite.vanadium.assets.types.Shader
 import github.businessdirt.axite.vanadium.core.utils.createHandle
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
+import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
 import org.lwjgl.system.MemoryStack
-import org.lwjgl.vulkan.VK13.VK_SHADER_STAGE_COMPUTE_BIT
-import org.lwjgl.vulkan.VK13.vkCreateComputePipelines
+import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkComputePipelineCreateInfo
 import org.lwjgl.vulkan.VkDevice
 import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo
@@ -41,4 +41,7 @@ class ComputePipeline(
             .stage(VK_SHADER_STAGE_COMPUTE_BIT)
             .module(shader.module.handle)
             .pName(this.UTF8("main"))
+
+    override fun bind(commandBuffer: CommandBuffer) =
+        vkCmdBindPipeline(commandBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, handle)
 }

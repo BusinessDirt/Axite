@@ -21,7 +21,6 @@ class VanadiumSandbox : VanadiumAdapter {
     companion object {
         const val FRAGMENT_SHADER_FILE_GLSL: String = "src/sandbox/resources/shaders/scene.frag.glsl"
         const val VERTEX_SHADER_FILE_GLSL: String = "src/sandbox/resources/shaders/scene.vert.glsl"
-        const val DEPTH_FORMAT = VK_FORMAT_D32_SFLOAT
     }
 
     private val scene: Scene = Scene()
@@ -57,7 +56,7 @@ class VanadiumSandbox : VanadiumAdapter {
             clearDepth = 1.0f
 
             pipeline { commandBuffer ->
-                vkCmdBindPipeline(commandBuffer.handle, 0, graphicsPipeline!!.handle)
+                graphicsPipeline!!.bind(commandBuffer)
                 vkCmdDraw(commandBuffer.handle, 3, 1, 0, 0)
             }
         }
@@ -66,10 +65,9 @@ class VanadiumSandbox : VanadiumAdapter {
             writes(RenderResourceNames.BACK_BUFFER, RenderResourceNames.DEPTH_BUFFER)
             pipeline { commandBuffer ->
                 commandBuffer.setScissor(fbWidth / 2, fbHeight / 2, fbWidth / 2, fbHeight / 2)
-                commandBuffer.setViewport((fbWidth / 2).toFloat(), (fbHeight / 2).toFloat(),
-                    (fbWidth / 2).toFloat(), (fbHeight / 2).toFloat()
-                )
-                vkCmdBindPipeline(commandBuffer.handle, 0, graphicsPipeline!!.handle)
+                commandBuffer.setViewport((fbWidth / 2).toFloat(), (fbHeight / 2).toFloat(), (fbWidth / 2).toFloat(), (fbHeight / 2).toFloat())
+
+                graphicsPipeline!!.bind(commandBuffer)
                 vkCmdDraw(commandBuffer.handle, 3, 1, 0, 0)
             }
         }

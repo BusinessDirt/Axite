@@ -4,6 +4,7 @@ import github.businessdirt.axite.vanadium.Vanadium
 import github.businessdirt.axite.vanadium.assets.types.Shader
 import github.businessdirt.axite.vanadium.core.utils.createHandle
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
+import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
 import github.businessdirt.axite.vanadium.vulkan.swapchain.Swapchain
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.*
@@ -23,7 +24,7 @@ class GraphicsPipeline(
         val info = VkPipelineRenderingCreateInfo.calloc(this).`sType$Default`()
             .colorAttachmentCount(1)
             .pColorAttachmentFormats(this.ints(Vanadium.context.surface.surfaceFormat.imageFormat))
-        if (Swapchain.DEPTH_FORMAT != VK_FORMAT_UNDEFINED) info.depthAttachmentFormat(Swapchain.DEPTH_FORMAT)
+        if (Vanadium.context.surface.depthFormat != VK_FORMAT_UNDEFINED) info.depthAttachmentFormat(Vanadium.context.surface.depthFormat)
         return info
     }
 
@@ -109,6 +110,9 @@ class GraphicsPipeline(
             if (it.isNotEmpty()) listOf(DescriptorSetLayout(device, it)) else emptyList()
         }
     )
+
+    override fun bind(commandBuffer: CommandBuffer) =
+        vkCmdBindPipeline(commandBuffer.handle, VK_PIPELINE_BIND_POINT_GRAPHICS, handle)
 
     override val handle: Long = memoryStack { stack ->
         val pipelineCreateInfo = VkGraphicsPipelineCreateInfo.calloc(1, stack).`sType$Default`()

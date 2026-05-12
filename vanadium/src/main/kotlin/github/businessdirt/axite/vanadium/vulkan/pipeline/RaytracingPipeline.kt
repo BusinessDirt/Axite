@@ -1,6 +1,7 @@
 package github.businessdirt.axite.vanadium.vulkan.pipeline
 
 import github.businessdirt.axite.vanadium.assets.types.Shader
+import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
 import org.lwjgl.vulkan.VkDevice
 
 /**
@@ -11,11 +12,12 @@ class RaytracingPipeline(
     shader: Shader, // add later
 ) : Pipeline(device) {
 
-    // Raytracing pipeline implementation would go here.
-    // It typically involves shader groups and a shader binding table (SBT).
-
     override val layout: PipelineLayout
         get() = TODO("Not yet implemented")
+
+    override fun bind(commandBuffer: CommandBuffer) {
+        TODO("Not yet implemented")
+    }
 
     override val handle: Long
         get() = TODO("Not yet implemented")
