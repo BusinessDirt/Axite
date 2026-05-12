@@ -1,5 +1,7 @@
 package github.businessdirt.axite.vanadium.vulkan.pipeline
 
+import github.businessdirt.axite.vanadium.assets.metadata.LayoutBinding
+import github.businessdirt.axite.vanadium.assets.metadata.PushConstantRange
 import github.businessdirt.axite.vanadium.core.utils.createHandle
 import github.businessdirt.axite.vanadium.vulkan.Handle
 import org.lwjgl.system.MemoryStack
@@ -11,14 +13,6 @@ import org.lwjgl.vulkan.VK10.vkDestroyPipeline
 import org.lwjgl.vulkan.VK10.vkDestroyPipelineLayout
 
 /**
- * Represents a Vulkan push constant range.
- * @property stage The shader stage(s) that will use the push constants.
- * @property offset The offset in bytes from the start of the push constant block.
- * @property size The size in bytes of the push constant range.
- */
-data class PushConstantRange(val stage: Int, val offset: Int, val size: Int)
-
-/**
  * Base class for all Vulkan pipelines.
  * @property device The Vulkan device used to create the pipeline.
  * @property layoutHandle The handle to the pipeline layout.
@@ -26,30 +20,39 @@ data class PushConstantRange(val stage: Int, val offset: Int, val size: Int)
  */
 sealed class Pipeline(
     protected val device: VkDevice,
-    val layoutHandle: Long,
-    override val handle: Long
 ) : Handle<Long>() {
 
+    abstract val layout: PipelineLayout
+
     override fun destroy() {
-        vkDestroyPipelineLayout(device, layoutHandle, null)
+        layout.close()
         vkDestroyPipeline(device, handle, null)
     }
 
     companion object {
-        fun createPipelineLayout(device: VkDevice, stack: MemoryStack, pushConstantRanges: List<PushConstantRange>): Long {
-            val layoutCreateInfo = VkPipelineLayoutCreateInfo.calloc(stack).`sType$Default`()
-
-            if (pushConstantRanges.isNotEmpty()) {
-                val pushConstants = VkPushConstantRange.calloc(pushConstantRanges.size, stack)
-                pushConstantRanges.forEachIndexed { i, range ->
-                    pushConstants[i].stageFlags(range.stage).offset(range.offset).size(range.size)
+        fun mergePushConstants(ranges: List<PushConstantRange>): List<PushConstantRange> {
+            return ranges.groupBy { it.offset to it.size }
+                .map { (key, group) ->
+                    PushConstantRange(
+                        stageFlags = group.fold(0) { acc, r -> acc or r.stageFlags },
+                        offset = key.first,
+                        size = key.second
+                    )
                 }
-                layoutCreateInfo.pPushConstantRanges(pushConstants)
-            }
+        }
 
-            return stack.createHandle({ "Failed to create pipeline layout" }) {
-                vkCreatePipelineLayout(device, layoutCreateInfo, null, it)
-            }
+        fun mergeLayoutBindings(bindings: List<LayoutBinding>): List<LayoutBinding> {
+            return bindings.groupBy { it.binding }
+                .map { (binding, group) ->
+                    val first = group.first()
+                    LayoutBinding(
+                        binding = binding,
+                        descriptorType = first.descriptorType,
+                        descriptorCount = first.descriptorCount,
+                        stageFlags = group.fold(0) { acc, b -> acc or b.stageFlags },
+                        name = first.name
+                    )
+                }
         }
     }
 }

@@ -1,86 +1,45 @@
 package github.businessdirt.axite.vanadium.vulkan.pipeline
 
+import github.businessdirt.axite.vanadium.Vanadium
+import github.businessdirt.axite.vanadium.assets.types.Shader
+import github.businessdirt.axite.vanadium.vulkan.pipeline.DescriptorSetLayout
 import github.businessdirt.axite.vanadium.core.utils.createHandle
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
-import github.businessdirt.axite.vanadium.vulkan.resources.ShaderModule
-import org.lwjgl.system.MemoryStack
-import org.lwjgl.system.MemoryUtil.NULL
-import org.lwjgl.vulkan.*
-import org.lwjgl.vulkan.VK13.*
+import org.lwjgl.vulkan.VK13.VK_SHADER_STAGE_COMPUTE_BIT
+import org.lwjgl.vulkan.VK13.vkCreateComputePipelines
+import org.lwjgl.vulkan.VkComputePipelineCreateInfo
+import org.lwjgl.vulkan.VkDevice
+import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo
 
-/**
- * Builder for a [ComputePipeline].
- */
-class ComputePipelineBuilder {
-    var shaderModule: ShaderModule? = null
-    var pushConstantRanges = mutableListOf<PushConstantRange>()
-
-    fun shader(module: ShaderModule) {
-        shaderModule = module
-    }
-
-    fun pushConstantRanges(vararg ranges: PushConstantRange) {
-        pushConstantRanges.addAll(ranges)
-    }
-}
-
-/**
- * Represents a Vulkan compute pipeline.
- */
 class ComputePipeline(
     device: VkDevice,
-    layoutHandle: Long,
-    handle: Long
-) : Pipeline(device, layoutHandle, handle) {
+    shader: Shader
+) : Pipeline(device) {
 
-    companion object {
-        fun create(
-            device: VkDevice,
-            pipelineCache: Long,
-            block: ComputePipelineBuilder.(MemoryStack) -> Unit
-        ): ComputePipeline {
-            var layoutHandle = NULL
-            var pipelineHandle = NULL
+    private val shaderStage = memoryStack { stack ->
+        VkPipelineShaderStageCreateInfo.calloc(stack).`sType$Default`()
+            .stage(VK_SHADER_STAGE_COMPUTE_BIT)
+            .module(shader.module.handle)
+            .pName(stack.UTF8("main"))
+    }
 
-            try {
-                memoryStack { stack ->
-                    val builder = ComputePipelineBuilder().apply { block(stack) }
-                    validateBuilder(builder)
-
-                    layoutHandle = createPipelineLayout(device, stack, builder.pushConstantRanges)
-                    pipelineHandle = createComputePipeline(device, stack, builder, layoutHandle, pipelineCache)
-                }
-                return ComputePipeline(device, layoutHandle, pipelineHandle)
-            } catch (e: Exception) {
-                if (layoutHandle != NULL) vkDestroyPipelineLayout(device, layoutHandle, null)
-                if (pipelineHandle != NULL) vkDestroyPipeline(device, pipelineHandle, null)
-                throw e
-            }
+    override val layout: PipelineLayout = PipelineLayout(
+        device,
+        shader.metadata.pushConstantRanges,
+        if (shader.metadata.layoutBindings.isNotEmpty()) {
+            listOf(DescriptorSetLayout(device, shader.metadata.layoutBindings))
+        } else {
+            emptyList()
         }
+    )
 
-        private fun validateBuilder(builder: ComputePipelineBuilder) {
-            requireNotNull(builder.shaderModule) { "Shader module is required for compute pipeline" }
-        }
+    override val handle: Long = memoryStack { stack ->
+        val pipelineCreateInfo = VkComputePipelineCreateInfo.calloc(1, stack).`sType$Default`()
+            .stage(shaderStage)
+            .layout(layout.handle)
 
-        private fun createComputePipeline(
-            device: VkDevice,
-            stack: MemoryStack,
-            builder: ComputePipelineBuilder,
-            layoutHandle: Long,
-            pipelineCache: Long
-        ): Long {
-            val shaderStage = VkPipelineShaderStageCreateInfo.calloc(stack).`sType$Default`()
-                .stage(VK_SHADER_STAGE_COMPUTE_BIT)
-                .module(builder.shaderModule!!.handle)
-                .pName(stack.UTF8("main"))
-
-            val pipelineCreateInfo = VkComputePipelineCreateInfo.calloc(1, stack).`sType$Default`()
-                .stage(shaderStage)
-                .layout(layoutHandle)
-
-            return stack.createHandle({ "Error creating compute pipeline" }) {
-                vkCreateComputePipelines(device, pipelineCache, pipelineCreateInfo, null, it)
-            }
+        stack.createHandle({ "Error creating compute pipeline" }) {
+            vkCreateComputePipelines(device, Vanadium.context.pipelineCache.handle, pipelineCreateInfo, null, it)
         }
     }
 }

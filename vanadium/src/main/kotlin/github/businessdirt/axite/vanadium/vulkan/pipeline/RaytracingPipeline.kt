@@ -1,5 +1,6 @@
 package github.businessdirt.axite.vanadium.vulkan.pipeline
 
+import github.businessdirt.axite.vanadium.assets.types.Shader
 import org.lwjgl.vulkan.VkDevice
 
 /**
@@ -7,16 +8,15 @@ import org.lwjgl.vulkan.VkDevice
  */
 class RaytracingPipeline(
     device: VkDevice,
-    layoutHandle: Long,
-    handle: Long
-) : Pipeline(device, layoutHandle, handle) {
+    shader: Shader, // add later
+) : Pipeline(device) {
+
     // Raytracing pipeline implementation would go here.
     // It typically involves shader groups and a shader binding table (SBT).
-}
 
-/**
- * Builder for a [RaytracingPipeline].
- */
-class RaytracingPipelineBuilder {
-    // Builder for raytracing pipeline
+    override val layout: PipelineLayout
+        get() = TODO("Not yet implemented")
+
+    override val handle: Long
+        get() = TODO("Not yet implemented")
 }

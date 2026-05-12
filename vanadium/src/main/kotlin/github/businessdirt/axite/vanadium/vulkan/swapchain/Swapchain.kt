@@ -33,6 +33,10 @@ class Swapchain(
     private var vsync: Boolean
 ) : Handle<Long>() {
 
+    companion object {
+        const val DEPTH_FORMAT = VK_FORMAT_D32_SFLOAT
+    }
+
     override var handle: Long = 0L
         private set
 
@@ -123,7 +127,7 @@ class Swapchain(
         depthAttachment = Attachment(
             device.handle, physicalDevice,
             extent.width(), extent.height(),
-            VK_FORMAT_D32_SFLOAT,
+            DEPTH_FORMAT,
             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT
         )
 

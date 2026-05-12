@@ -1,6 +1,6 @@
 package github.businessdirt.axite.vanadium.assets.types
 
-import github.businessdirt.axite.vanadium.assets.metadata.AssetMetadata
+import github.businessdirt.axite.vanadium.assets.metadata.ShaderMetadata
 import github.businessdirt.axite.vanadium.vulkan.resources.ShaderModule
 import org.lwjgl.util.shaderc.Shaderc
 import org.lwjgl.vulkan.KHRRayTracingPipeline.*
@@ -9,7 +9,7 @@ import org.lwjgl.vulkan.VK13.*
 class Shader(
     override val path: String,
     override val uuid: String,
-    override val metadata: AssetMetadata,
+    override val metadata: ShaderMetadata,
     val stage: ShaderStage,
     val module: ShaderModule
 ) : Asset {
