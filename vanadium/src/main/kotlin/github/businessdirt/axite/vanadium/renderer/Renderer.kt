@@ -24,7 +24,6 @@ class Renderer(val context: Context) {
     }
 
     fun shutdown() = Profiler.profile("Renderer Shutdown") {
-        context.device.waitIdle()
         sceneRenderer.shutdown()
         renderGraph.clear()
     }

@@ -87,7 +87,6 @@ class Context(private val config: VanadiumConfig) {
     }
 
     fun shutdown() = Profiler.profile("Vulkan Context Shutdown") {
-        device.waitIdle()
         scope.close()
     }
 

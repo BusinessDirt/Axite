@@ -93,6 +93,8 @@ object Vanadium {
     }
 
     private fun shutdown(adapter: VanadiumAdapter) = Profiler.profile("Shutdown") {
+        context.device.waitIdle()
+
         Profiler.profile("Adapter Shutdown") { adapter.shutdown() }
         renderer.shutdown()
         context.shutdown()
