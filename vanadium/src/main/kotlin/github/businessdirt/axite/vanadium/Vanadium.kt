@@ -2,6 +2,10 @@ package github.businessdirt.axite.vanadium
 
 import github.businessdirt.axite.logging.LoggingConfigurator
 import github.businessdirt.axite.logging.PatternBuilder
+import github.businessdirt.axite.vanadium.assets.AssetManager
+import github.businessdirt.axite.vanadium.assets.ShaderCompiler
+import github.businessdirt.axite.vanadium.assets.loaders.ShaderLoader
+import github.businessdirt.axite.vanadium.assets.types.Shader
 import github.businessdirt.axite.vanadium.core.events.Event
 import github.businessdirt.axite.vanadium.core.events.EventDispatcher
 import github.businessdirt.axite.vanadium.core.events.FramebufferResizedEvent
@@ -34,6 +38,7 @@ object Vanadium {
     lateinit var window: Window
     lateinit var context: Context
     lateinit var renderer: Renderer
+    lateinit var assets: AssetManager
 
     fun launch(adapterProvider: () -> VanadiumAdapter) {
         config = VanadiumConfig()
@@ -47,6 +52,9 @@ object Vanadium {
                 window = Window(config).also { it.initialize() }
                 context = Context(config).also { it.initialize(window) }
                 renderer = Renderer(context).also { it.initialize() }
+                assets = AssetManager(engineScope).configure {
+                    registerLoader<Shader>(ShaderLoader())
+                }
 
                 // Initialize Adapter (Suspendable for async asset loading)
                 adapter.configure(config)
