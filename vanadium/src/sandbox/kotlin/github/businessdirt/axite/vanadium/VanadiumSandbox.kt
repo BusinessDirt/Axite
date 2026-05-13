@@ -7,9 +7,13 @@ import github.businessdirt.axite.vanadium.renderer.SceneRenderer
 import github.businessdirt.axite.vanadium.renderer.graph.ClearColorValue
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
 import github.businessdirt.axite.vanadium.renderer.graph.RenderResourceNames
+import github.businessdirt.axite.vanadium.scene.ModelComponent
+import github.businessdirt.axite.vanadium.scene.SceneGraph
+import github.businessdirt.axite.vanadium.scene.TransformComponent
 import github.businessdirt.axite.vanadium.vulkan.commands.*
 import github.businessdirt.axite.vanadium.vulkan.pipeline.GraphicsPipeline
 import kotlinx.coroutines.CoroutineScope
+import org.joml.Vector3f
 
 class VanadiumSandbox : VanadiumAdapter {
 
@@ -20,32 +24,40 @@ class VanadiumSandbox : VanadiumAdapter {
     }
 
     private var graphicsPipeline: GraphicsPipeline? = null
-    private var model: Model? = null
+    private val sceneGraph = SceneGraph()
 
     override suspend fun initialize(scope: CoroutineScope) {
-        // Assets are reference counted and pooled. Loading them here increments their ref count.
         val vertexShader = Vanadium.assets.load<Shader>(VERTEX_SHADER_FILE_GLSL)
         val fragmentShader = Vanadium.assets.load<Shader>(FRAGMENT_SHADER_FILE_GLSL)
-        model = Vanadium.assets.load<Model>(MODEL_FILE)
+        val model = Vanadium.assets.load<Model>(MODEL_FILE)
 
-        // Create the pipeline using the loaded shaders.
-        // The pipeline uses the shader metadata to configure vertex inputs and layout.
         graphicsPipeline = GraphicsPipeline(Vanadium.context.device.handle, vertexShader, fragmentShader)
 
-        vertexShader.release()
-        fragmentShader.release()
+        // Create an entity in the scene graph
+        sceneGraph.createEntity("Triangle").apply {
+            configure {
+                it += ModelComponent(model)
+                it += TransformComponent(
+                    position = Vector3f(0f, 0f, 0f),
+                    scale = Vector3f(1.0f, 1.0f, 1.0f)
+                )
+            }
+        }
     }
 
     override fun shutdown() {
         graphicsPipeline?.close()
         graphicsPipeline = null
+        sceneGraph.close()
 
-        // Unloading assets decrements their ref count and disposes them if it reaches zero.
+        Vanadium.assets.unload(VERTEX_SHADER_FILE_GLSL)
+        Vanadium.assets.unload(FRAGMENT_SHADER_FILE_GLSL)
         Vanadium.assets.unload(MODEL_FILE)
-        model = null
     }
 
-    override fun update(frameInfo: FrameInfo) { }
+    override fun update(frameInfo: FrameInfo) {
+        sceneGraph.update(frameInfo.deltaTime.toFloat())
+    }
 
     override fun onRecord(graph: RenderGraph, sceneRenderer: SceneRenderer, commandBuffer: CommandBuffer, interpolation: Double) = graph.build {
         val fbWidth = Vanadium.context.swapchain.extent.width()
@@ -60,11 +72,14 @@ class VanadiumSandbox : VanadiumAdapter {
                 graphicsPipeline?.let { pipeline ->
                     pipeline.bind(commandBuffer)
 
-                    // Render the model's meshes
-                    model?.meshes?.forEach { mesh ->
-                        commandBuffer.bindVertexBuffer(mesh.vertexBuffer.handle)
-                        commandBuffer.bindIndexBuffer(mesh.indexBuffer.handle)
-                        commandBuffer.drawIndexed(mesh.indexCount)
+                    // Render all entities with a ModelComponent using the SceneGraph
+                    sceneGraph.forEachModel { transform, modelComp ->
+                        modelComp.model?.meshes?.forEach { mesh ->
+                            // In a real engine, we'd pass the transform.globalMatrix to a push constant or UBO
+                            commandBuffer.bindVertexBuffer(mesh.vertexBuffer.handle)
+                            commandBuffer.bindIndexBuffer(mesh.indexBuffer.handle)
+                            commandBuffer.drawIndexed(mesh.indexCount)
+                        }
                     }
                 }
             }
@@ -79,10 +94,12 @@ class VanadiumSandbox : VanadiumAdapter {
                 graphicsPipeline?.let { pipeline ->
                     pipeline.bind(commandBuffer)
                     
-                    model?.meshes?.forEach { mesh ->
-                        commandBuffer.bindVertexBuffer(mesh.vertexBuffer.handle)
-                        commandBuffer.bindIndexBuffer(mesh.indexBuffer.handle)
-                        commandBuffer.drawIndexed(mesh.indexCount)
+                    sceneGraph.forEachModel { _, modelComp ->
+                        modelComp.model?.meshes?.forEach { mesh ->
+                            commandBuffer.bindVertexBuffer(mesh.vertexBuffer.handle)
+                            commandBuffer.bindIndexBuffer(mesh.indexBuffer.handle)
+                            commandBuffer.drawIndexed(mesh.indexCount)
+                        }
                     }
                 }
             }
