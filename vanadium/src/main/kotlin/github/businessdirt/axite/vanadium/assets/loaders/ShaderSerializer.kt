@@ -5,14 +5,15 @@ import github.businessdirt.axite.vanadium.assets.metadata.LayoutBinding
 import github.businessdirt.axite.vanadium.assets.metadata.PushConstantRange
 import github.businessdirt.axite.vanadium.assets.metadata.ShaderMetadata
 import github.businessdirt.axite.vanadium.assets.metadata.VertexInputAttribute
-import github.businessdirt.axite.vanadium.assets.types.*
+import github.businessdirt.axite.vanadium.assets.types.Shader
+import github.businessdirt.axite.vanadium.assets.types.ShaderStage
 import github.businessdirt.axite.vanadium.core.utils.getPointer
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import github.businessdirt.axite.vanadium.vulkan.resources.ShaderModule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.util.shaderc.Shaderc
 import org.lwjgl.util.spvc.Spv.SpvDecorationBinding
@@ -31,9 +32,9 @@ import java.security.MessageDigest
  * Loads and compiles shaders.
  * Supports caching compiled SPIR-V on disk.
  */
-class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata> {
-
-    private val json = Json { prettyPrint = true }
+class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
+    serializer<ShaderMetadata>()
+) {
 
     override suspend fun load(path: String): Shader = withContext(Dispatchers.IO) {
         val stage = ShaderStage.fromPath(path)
@@ -64,26 +65,6 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata> {
 
         val module = ShaderModule(Vanadium.context.device.handle, stage.vulkan, pCode)
         Shader(path, metadata.uuid, metadata, stage, module)
-    }
-
-    override fun loadMetadata(path: String): ShaderMetadata? {
-        val file = File("$path.meta")
-        return if (file.exists()) {
-            try {
-                json.decodeFromString<ShaderMetadata>(file.readText())
-            } catch (e: Exception) {
-                logger.warn("Failed to load metadata for [{}]: {}", path, e.message)
-                null
-            }
-        } else null
-    }
-
-    override fun writeMetadata(path: String, metadata: ShaderMetadata) {
-        try {
-            File("$path.meta").writeText(json.encodeToString(metadata))
-        } catch (e: Exception) {
-            logger.warn("Failed to write metadata for [{}]: {}", path, e.message)
-        }
     }
 
     private fun calculateHash(file: File): String {

@@ -2,33 +2,42 @@ package github.businessdirt.axite.vanadium.assets.loaders
 
 import github.businessdirt.axite.vanadium.assets.metadata.AssetMetadata
 import github.businessdirt.axite.vanadium.assets.types.Asset
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.json.Json
 import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import java.io.File
 
-interface AssetSerializer<T : Asset, M : AssetMetadata> {
+abstract class AssetSerializer<T : Asset, M : AssetMetadata>(
+    private val metadataSerializer: KSerializer<M>
+) {
 
-    val logger: Logger
-        get() = LogManager.getLogger(this::class.java)
+    protected val json = Json {
+        prettyPrint = true
+        ignoreUnknownKeys = true
+    }
 
-    /**
-     * The main entry point. Orchestrates loading metadata and then the asset.
-     */
-    suspend fun load(path: String): T
+    val logger: Logger = LogManager.getLogger(this::class.java)
 
-    /**
-     * Loads just the metadata.
-     * Returns M?, as the meta file might not exist yet.
-     */
-    fun loadMetadata(path: String): M?
+    abstract suspend fun load(path: String): T
 
-    /**
-     * Persists metadata to disk.
-     */
-    fun writeMetadata(path: String, metadata: M)
+    fun loadMetadata(path: String): M? {
+        if (!hasMetadata(path)) return null
 
-    /**
-     * Utility to check for the sidecar file.
-     */
+        return try {
+            json.decodeFromString(metadataSerializer, File("$path.meta").readText())
+        } catch (e: Exception) {
+            logger.error("Failed to load metadata for [{}]: {}", path, e.message)
+            null
+        }
+    }
+
+    fun writeMetadata(path: String, metadata: M) = try {
+        val text = json.encodeToString(metadataSerializer, metadata)
+        File("$path.meta").writeText(text)
+    } catch (e: Exception) {
+        logger.error("Failed to write metadata for [{}]: {}", path, e.message)
+    }
+
     fun hasMetadata(path: String): Boolean = File("$path.meta").exists()
 }

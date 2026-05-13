@@ -5,25 +5,23 @@ import github.businessdirt.axite.vanadium.assets.metadata.TextureMetadata
 import github.businessdirt.axite.vanadium.assets.types.Texture
 import github.businessdirt.axite.vanadium.core.utils.imageBarrier
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
-import github.businessdirt.axite.vanadium.core.utils.vkCheck
 import github.businessdirt.axite.vanadium.vulkan.resources.Buffer
 import github.businessdirt.axite.vanadium.vulkan.resources.Image
 import github.businessdirt.axite.vanadium.vulkan.resources.ImageView
 import github.businessdirt.axite.vanadium.vulkan.resources.Sampler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 import org.lwjgl.stb.STBImage.*
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkBufferImageCopy2
 import org.lwjgl.vulkan.VkCopyBufferToImageInfo2
 import java.io.File
-import java.nio.ByteBuffer
 
-class TextureSerializer : AssetSerializer<Texture, TextureMetadata> {
-
-    private val json = Json { prettyPrint = true }
+class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
+    serializer<TextureMetadata>(),
+) {
 
     override suspend fun load(path: String): Texture = withContext(Dispatchers.IO) {
         val file = File(path)
@@ -120,25 +118,6 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata> {
             )
 
             Texture(path, finalMetadata.uuid, finalMetadata, image, view, sampler)
-        }
-    }
-
-    override fun loadMetadata(path: String): TextureMetadata? {
-        val file = File("$path.meta")
-        return if (file.exists()) {
-            try {
-                json.decodeFromString<TextureMetadata>(file.readText())
-            } catch (e: Exception) {
-                null
-            }
-        } else null
-    }
-
-    override fun writeMetadata(path: String, metadata: TextureMetadata) {
-        try {
-            File("$path.meta").writeText(json.encodeToString(metadata))
-        } catch (e: Exception) {
-            // log error
         }
     }
 }

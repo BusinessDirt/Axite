@@ -9,20 +9,19 @@ import github.businessdirt.axite.vanadium.renderer.scene.Vertex
 import github.businessdirt.axite.vanadium.vulkan.resources.Buffer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 import org.joml.Vector2f
 import org.joml.Vector3f
-import org.lwjgl.assimp.Assimp.*
 import org.lwjgl.assimp.AIMesh
-import org.lwjgl.assimp.AIScene
+import org.lwjgl.assimp.Assimp.*
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.vulkan.VK13.*
 import java.io.File
 import java.nio.ByteBuffer
 
-class ModelSerializer : AssetSerializer<Model, ModelMetadata> {
-
-    private val json = Json { prettyPrint = true }
+class ModelSerializer : AssetSerializer<Model, ModelMetadata>(
+    serializer<ModelMetadata>()
+) {
 
     override suspend fun load(path: String): Model = withContext(Dispatchers.IO) {
         val file = File(path)
@@ -45,7 +44,7 @@ class ModelSerializer : AssetSerializer<Model, ModelMetadata> {
         Model(path, finalMetadata.uuid, finalMetadata, meshes)
     }
 
-    private fun loadMesh(aiMesh: AIMesh): Mesh = memoryStack { stack ->
+    private fun loadMesh(aiMesh: AIMesh): Mesh = memoryStack {
         val vertexCount = aiMesh.mNumVertices()
         val vertices = mutableListOf<Vertex>()
 
@@ -131,24 +130,5 @@ class ModelSerializer : AssetSerializer<Model, ModelMetadata> {
 
         stagingBuffer.close()
         return deviceBuffer
-    }
-
-    override fun loadMetadata(path: String): ModelMetadata? {
-        val file = File("$path.meta")
-        return if (file.exists()) {
-            try {
-                json.decodeFromString<ModelMetadata>(file.readText())
-            } catch (e: Exception) {
-                null
-            }
-        } else null
-    }
-
-    override fun writeMetadata(path: String, metadata: ModelMetadata) {
-        try {
-            File("$path.meta").writeText(json.encodeToString(metadata))
-        } catch (e: Exception) {
-            // log error
-        }
     }
 }

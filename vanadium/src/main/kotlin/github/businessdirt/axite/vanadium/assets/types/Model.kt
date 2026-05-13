@@ -9,7 +9,5 @@ class Model(
     override val metadata: ModelMetadata,
     val meshes: List<Mesh>
 ) : Asset {
-    override fun release() {
-        meshes.forEach { it.close() }
-    }
+    override fun release() = meshes.forEach { it.close() }
 }

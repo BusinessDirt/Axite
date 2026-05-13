@@ -93,6 +93,8 @@ object Vanadium {
     }
 
     fun onEvent(event: Event) {
+        if (!::context.isInitialized) return
+
         val dispatcher = EventDispatcher(event)
         dispatcher.dispatch<FramebufferResizedEvent> { context.resize() }
 
