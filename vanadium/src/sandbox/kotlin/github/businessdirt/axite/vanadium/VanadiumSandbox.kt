@@ -7,9 +7,9 @@ import github.businessdirt.axite.vanadium.renderer.SceneRenderer
 import github.businessdirt.axite.vanadium.renderer.graph.ClearColorValue
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
 import github.businessdirt.axite.vanadium.renderer.graph.RenderResourceNames
-import github.businessdirt.axite.vanadium.scene.ModelComponent
-import github.businessdirt.axite.vanadium.scene.SceneGraph
-import github.businessdirt.axite.vanadium.scene.TransformComponent
+import github.businessdirt.axite.vanadium.scene.Scene
+import github.businessdirt.axite.vanadium.scene.components.ModelComponent
+import github.businessdirt.axite.vanadium.scene.components.TransformComponent
 import github.businessdirt.axite.vanadium.vulkan.commands.*
 import github.businessdirt.axite.vanadium.vulkan.pipeline.GraphicsPipeline
 import kotlinx.coroutines.CoroutineScope
@@ -24,7 +24,7 @@ class VanadiumSandbox : VanadiumAdapter {
     }
 
     private var graphicsPipeline: GraphicsPipeline? = null
-    private val sceneGraph = SceneGraph()
+    private val scene = Scene()
 
     override suspend fun initialize(scope: CoroutineScope) {
         val vertexShader = Vanadium.assets.load<Shader>(VERTEX_SHADER_FILE_GLSL)
@@ -34,7 +34,7 @@ class VanadiumSandbox : VanadiumAdapter {
         graphicsPipeline = GraphicsPipeline(Vanadium.context.device.handle, vertexShader, fragmentShader)
 
         // Create an entity in the scene graph
-        sceneGraph.createEntity("Triangle").apply {
+        scene.createEntity("Triangle").apply {
             configure {
                 it += ModelComponent(model)
                 it += TransformComponent(
@@ -48,7 +48,7 @@ class VanadiumSandbox : VanadiumAdapter {
     override fun shutdown() {
         graphicsPipeline?.close()
         graphicsPipeline = null
-        sceneGraph.close()
+        scene.close()
 
         Vanadium.assets.unload(VERTEX_SHADER_FILE_GLSL)
         Vanadium.assets.unload(FRAGMENT_SHADER_FILE_GLSL)
@@ -56,7 +56,7 @@ class VanadiumSandbox : VanadiumAdapter {
     }
 
     override fun update(frameInfo: FrameInfo) {
-        sceneGraph.update(frameInfo.deltaTime.toFloat())
+        scene.update(frameInfo.deltaTime.toFloat())
     }
 
     override fun onRecord(graph: RenderGraph, sceneRenderer: SceneRenderer, commandBuffer: CommandBuffer, interpolation: Double) = graph.build {
@@ -73,9 +73,9 @@ class VanadiumSandbox : VanadiumAdapter {
                     pipeline.bind(commandBuffer)
 
                     // Render all entities with a ModelComponent using the SceneGraph
-                    sceneGraph.forEachModel { transform, modelComp ->
+                    scene.forEachModel { _, modelComp ->
                         modelComp.model?.meshes?.forEach { mesh ->
-                            // In a real engine, we'd pass the transform.globalMatrix to a push constant or UBO
+                            // TODO: pass the transform.globalMatrix to a push constant or UBO
                             commandBuffer.bindVertexBuffer(mesh.vertexBuffer.handle)
                             commandBuffer.bindIndexBuffer(mesh.indexBuffer.handle)
                             commandBuffer.drawIndexed(mesh.indexCount)
@@ -94,7 +94,7 @@ class VanadiumSandbox : VanadiumAdapter {
                 graphicsPipeline?.let { pipeline ->
                     pipeline.bind(commandBuffer)
                     
-                    sceneGraph.forEachModel { _, modelComp ->
+                    scene.forEachModel { _, modelComp ->
                         modelComp.model?.meshes?.forEach { mesh ->
                             commandBuffer.bindVertexBuffer(mesh.vertexBuffer.handle)
                             commandBuffer.bindIndexBuffer(mesh.indexBuffer.handle)
