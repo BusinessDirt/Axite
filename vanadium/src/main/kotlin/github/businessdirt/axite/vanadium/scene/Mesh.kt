@@ -1,4 +1,4 @@
-package github.businessdirt.axite.vanadium.renderer.scene
+package github.businessdirt.axite.vanadium.scene
 
 import github.businessdirt.axite.vanadium.vulkan.resources.Buffer
 import org.joml.Vector2f
@@ -10,8 +10,9 @@ data class Vertex(
     val uv: Vector2f,
     val color: Vector3f = Vector3f(1f, 1f, 1f)
 ) {
+
     companion object {
-        const val SIZE = (3 + 3 + 2 + 3) * 4 // Size in bytes
+        const val SIZE = (3 + 3 + 2 + 3) * Float.SIZE_BYTES
     }
 }
 

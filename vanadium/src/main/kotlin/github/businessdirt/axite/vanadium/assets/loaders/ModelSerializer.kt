@@ -4,8 +4,8 @@ import github.businessdirt.axite.vanadium.Vanadium
 import github.businessdirt.axite.vanadium.assets.metadata.ModelMetadata
 import github.businessdirt.axite.vanadium.assets.types.Model
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
-import github.businessdirt.axite.vanadium.renderer.scene.Mesh
-import github.businessdirt.axite.vanadium.renderer.scene.Vertex
+import github.businessdirt.axite.vanadium.scene.Mesh
+import github.businessdirt.axite.vanadium.scene.Vertex
 import github.businessdirt.axite.vanadium.vulkan.resources.Buffer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
