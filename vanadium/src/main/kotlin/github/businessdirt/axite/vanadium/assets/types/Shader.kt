@@ -12,7 +12,7 @@ class Shader(
     metadata: ShaderMetadata,
     stage: ShaderStage,
     module: ShaderModule
-) : Asset(uuid, path, metadata) {
+) : Asset<Shader>(uuid, path, metadata) {
 
     override var metadata: ShaderMetadata = metadata
         private set
@@ -23,14 +23,12 @@ class Shader(
     var module: ShaderModule = module
         private set
 
-    override fun update(newAsset: Asset) {
-        if (newAsset is Shader) {
-            val oldModule = this.module
-            this.metadata = newAsset.metadata
-            this.stage = newAsset.stage
-            this.module = newAsset.module
-            oldModule.close()
-        }
+    override fun update(newAsset: Shader) {
+        val oldModule = this.module
+        this.metadata = newAsset.metadata
+        this.stage = newAsset.stage
+        this.module = newAsset.module
+        oldModule.close()
     }
 
     override fun dispose() = module.close()

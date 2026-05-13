@@ -16,10 +16,10 @@ class AssetManager(private val scope: CoroutineScope) {
 
     private val logger: Logger = LogManager.getLogger(AssetManager::class.java)
 
-    private val cache = ConcurrentHashMap<String, Asset>()
-    private val loadingJobs = ConcurrentHashMap<String, Deferred<Asset>>()
+    private val cache = ConcurrentHashMap<String, Asset<*>>()
+    private val loadingJobs = ConcurrentHashMap<String, Deferred<Asset<*>>>()
 
-    val serializers = ConcurrentHashMap<KClass<out Asset>, AssetSerializer<out Asset, out AssetMetadata>>()
+    val serializers = ConcurrentHashMap<KClass<out Asset<*>>, AssetSerializer<out Asset<*>, out AssetMetadata>>()
 
     // Hot Reloading
     private val watchService: WatchService = FileSystems.getDefault().newWatchService()
@@ -50,7 +50,7 @@ class AssetManager(private val scope: CoroutineScope) {
                 }
                 key.reset()
             }
-        } catch (e: ClosedWatchServiceException) {
+        } catch (_: ClosedWatchServiceException) {
             // normal shutdown
         } catch (e: Exception) {
             logger.error("Asset watcher error: {}", e.message)
@@ -62,29 +62,34 @@ class AssetManager(private val scope: CoroutineScope) {
         val loader = serializers[asset::class] ?: return@launch
 
         try {
-            val newAsset = loader.load(path)
-            asset.update(newAsset)
+            val loaded = loader.load(path)
+            performUpdate(asset, loaded)
             logger.info("Successfully hot-reloaded asset: [{}]", path)
         } catch (e: Exception) {
             logger.error("Failed to hot-reload asset [{}]: {}", path, e.message ?: "Unknown error")
         }
     }
 
-    private fun registerWatcher(path: String) {
-        try {
-            val file = File(path).absoluteFile
-            val dir = file.parentFile.toPath()
-            val filePath = file.toPath().toAbsolutePath()
+    @Suppress("UNCHECKED_CAST")
+    private fun <T : Asset<T>> performUpdate(current: Asset<*>, loaded: Asset<*>) {
+        val target = current as Asset<T>
+        val source = loaded as T
+        target.update(source)
+    }
 
-            assetPathsByFile.getOrPut(filePath) { ConcurrentHashMap.newKeySet() }.add(path)
+    private fun registerWatcher(path: String) = try {
+        val file = File(path).absoluteFile
+        val dir = file.parentFile.toPath()
+        val filePath = file.toPath().toAbsolutePath()
 
-            if (watchKeys.values.none { it == dir }) {
-                val key = dir.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY)
-                watchKeys[key] = dir
-            }
-        } catch (e: Exception) {
-            logger.warn("Failed to register watcher for [{}]: {}", path, e.message)
-        }
+        assetPathsByFile.getOrPut(filePath) { ConcurrentHashMap.newKeySet() }.add(path)
+
+        if (watchKeys.values.none { it == dir }) {
+            val key = dir.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY)
+            watchKeys[key] = dir
+        } else {}
+    } catch (e: Exception) {
+        logger.warn("Failed to register watcher for [{}]: {}", path, e.message)
     }
 
     fun configure(block: AssetManager.() -> Unit): AssetManager = Profiler.profile("AssetManager Configuration") {
@@ -94,7 +99,7 @@ class AssetManager(private val scope: CoroutineScope) {
     /**
      * Pre-register how to load a specific type of asset.
      */
-    inline fun <reified T : Asset> registerLoader(loader: AssetSerializer<out Asset, out AssetMetadata>) {
+    inline fun <reified T : Asset<T>> registerLoader(loader: AssetSerializer<out Asset<T>, out AssetMetadata>) {
         serializers[T::class] = loader
     }
 
@@ -102,7 +107,7 @@ class AssetManager(private val scope: CoroutineScope) {
      * Loads an asset using the registered loader for type T.
      */
     @Suppress("UNCHECKED_CAST")
-    suspend inline fun <reified T : Asset> load(path: String): T {
+    suspend inline fun <reified T : Asset<T>> load(path: String): T {
         val clazz = T::class
         val loader = serializers[clazz] ?: throw IllegalStateException("No loader registered for ${clazz.simpleName}")
 
@@ -113,7 +118,7 @@ class AssetManager(private val scope: CoroutineScope) {
      * Internal logic to handle deduplication and async execution.
      */
     @Suppress("UNCHECKED_CAST", "DeferredResultUnused")
-    suspend fun <T : Asset> loadWithLoader(path: String, loader: AssetSerializer<out Asset, out AssetMetadata>): T {
+    suspend fun <T : Asset<T>> loadWithLoader(path: String, loader: AssetSerializer<out Asset<T>, out AssetMetadata>): T {
         // Return from cache if available
         cache[path]?.let {
             it.retain()

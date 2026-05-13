@@ -12,7 +12,7 @@ class Texture(
     image: Image,
     view: ImageView,
     sampler: Sampler
-) : Asset(uuid, path, metadata) {
+) : Asset<Texture>(uuid, path, metadata) {
 
     override var metadata: TextureMetadata = metadata
         private set
@@ -24,21 +24,19 @@ class Texture(
     var sampler: Sampler = sampler
         private set
 
-    override fun update(newAsset: Asset) {
-        if (newAsset is Texture) {
-            val oldImage = this.image
-            val oldView = this.view
-            val oldSampler = this.sampler
+    override fun update(newAsset: Texture) {
+        val oldImage = this.image
+        val oldView = this.view
+        val oldSampler = this.sampler
 
-            this.metadata = newAsset.metadata
-            this.image = newAsset.image
-            this.view = newAsset.view
-            this.sampler = newAsset.sampler
+        this.metadata = newAsset.metadata
+        this.image = newAsset.image
+        this.view = newAsset.view
+        this.sampler = newAsset.sampler
 
-            oldSampler.close()
-            oldView.close()
-            oldImage.close()
-        }
+        oldSampler.close()
+        oldView.close()
+        oldImage.close()
     }
 
     override fun dispose() {

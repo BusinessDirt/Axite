@@ -5,7 +5,7 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import java.util.concurrent.atomic.AtomicInteger
 
-abstract class Asset(
+abstract class Asset<T : Asset<T>>(
     open val uuid: String,
     open val path: String,
     open val metadata: AssetMetadata
@@ -44,7 +44,7 @@ abstract class Asset(
      * Updates the internal state of this asset using another loaded instance.
      * This is primarily used for hot-reloading.
      */
-    abstract fun update(newAsset: Asset)
+    abstract fun update(newAsset: T)
 
     override fun close() {
         release()
