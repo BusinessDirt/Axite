@@ -14,6 +14,6 @@ class Material(
     val baseColor: Vector4f = Vector4f(1f, 1f, 1f, 1f),
     val metallicFactor: Float = 1.0f,
     val roughnessFactor: Float = 1.0f
-) : Asset {
-    override fun release() { }
+) : Asset(uuid, path, metadata) {
+    override fun dispose() { }
 }

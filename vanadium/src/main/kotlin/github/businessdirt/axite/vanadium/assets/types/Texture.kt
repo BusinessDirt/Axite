@@ -12,8 +12,8 @@ class Texture(
     val image: Image,
     val view: ImageView,
     val sampler: Sampler
-) : Asset {
-    override fun release() {
+) : Asset(uuid, path, metadata) {
+    override fun dispose() {
         sampler.close()
         view.close()
         image.close()

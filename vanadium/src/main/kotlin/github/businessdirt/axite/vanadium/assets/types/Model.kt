@@ -8,6 +8,6 @@ class Model(
     override val uuid: String,
     override val metadata: ModelMetadata,
     val meshes: List<Mesh>
-) : Asset {
-    override fun release() = meshes.forEach { it.close() }
+) : Asset(uuid, path, metadata) {
+    override fun dispose() = meshes.forEach { it.close() }
 }

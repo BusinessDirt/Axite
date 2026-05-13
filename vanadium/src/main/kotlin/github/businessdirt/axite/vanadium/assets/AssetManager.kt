@@ -46,10 +46,15 @@ class AssetManager(private val scope: CoroutineScope) {
     @Suppress("UNCHECKED_CAST", "DeferredResultUnused")
     suspend fun <T : Asset> loadWithLoader(path: String, loader: AssetSerializer<out Asset, out AssetMetadata>): T {
         // Return from cache if available
-        cache[path]?.let { return it as T }
+        cache[path]?.let {
+            it.retain()
+            return it as T
+        }
 
+        var wasCreated = false
         // Return the existing job if it's already loading
         val job = loadingJobs.getOrPut(path) {
+            wasCreated = true
             scope.async(Dispatchers.IO) {
                 try {
                     val asset = loader.load(path)
@@ -61,9 +66,13 @@ class AssetManager(private val scope: CoroutineScope) {
             }
         }
 
-        return job.await() as T
+        val asset = job.await() as T
+        if (!wasCreated) asset.retain()
+        return asset
     }
 
     @Suppress("unused")
-    fun unload(path: String) = cache.remove(path)?.release()
+    fun unload(path: String) = cache[path]?.let { asset ->
+        if (asset.release()) cache.remove(path)
+    }
 }

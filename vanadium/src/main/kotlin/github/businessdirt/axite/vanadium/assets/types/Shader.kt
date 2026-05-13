@@ -12,9 +12,9 @@ class Shader(
     override val metadata: ShaderMetadata,
     val stage: ShaderStage,
     val module: ShaderModule
-) : Asset {
+) : Asset(uuid, path, metadata) {
 
-    override fun release() = module.close()
+    override fun dispose() = module.close()
 }
 
 enum class ShaderStage(
