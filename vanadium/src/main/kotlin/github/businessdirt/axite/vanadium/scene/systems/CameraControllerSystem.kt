@@ -4,7 +4,6 @@ import com.github.quillraven.fleks.Entity
 import com.github.quillraven.fleks.IteratingSystem
 import com.github.quillraven.fleks.World
 import github.businessdirt.axite.vanadium.scene.components.CameraControllerComponent
-import github.businessdirt.axite.vanadium.scene.components.ControllerSettings
 import github.businessdirt.axite.vanadium.scene.components.TransformComponent
 
 class CameraControllerSystem : IteratingSystem(
@@ -13,14 +12,6 @@ class CameraControllerSystem : IteratingSystem(
     override fun onTickEntity(entity: Entity) {
         val controller = entity[CameraControllerComponent]
         val transform = entity[TransformComponent]
-
-        when (val s = controller.settings) {
-            is ControllerSettings.FirstPerson -> {
-            }
-            is ControllerSettings.ThirdPerson -> {
-            }
-            is ControllerSettings.FreeFly -> {
-            }
-        }
+        controller.settings.update(transform, deltaTime)
     }
 }
