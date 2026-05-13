@@ -20,7 +20,7 @@ import java.io.File
 import java.nio.ByteBuffer
 
 class ModelSerializer : AssetSerializer<Model, ModelMetadata>(
-    serializer<ModelMetadata>()
+    ModelMetadata.serializer()
 ) {
 
     override suspend fun load(path: String): Model = withContext(Dispatchers.IO) {

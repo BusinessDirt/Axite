@@ -3,9 +3,11 @@ package github.businessdirt.axite.vanadium
 import github.businessdirt.axite.logging.LoggingConfigurator
 import github.businessdirt.axite.logging.PatternBuilder
 import github.businessdirt.axite.vanadium.assets.AssetManager
+import github.businessdirt.axite.vanadium.assets.loaders.MaterialSerializer
 import github.businessdirt.axite.vanadium.assets.loaders.ModelSerializer
 import github.businessdirt.axite.vanadium.assets.loaders.ShaderSerializer
 import github.businessdirt.axite.vanadium.assets.loaders.TextureSerializer
+import github.businessdirt.axite.vanadium.assets.types.Material
 import github.businessdirt.axite.vanadium.assets.types.Model
 import github.businessdirt.axite.vanadium.assets.types.Shader
 import github.businessdirt.axite.vanadium.assets.types.Texture
@@ -58,6 +60,7 @@ object Vanadium {
                     registerLoader<Shader>(ShaderSerializer())
                     registerLoader<Texture>(TextureSerializer())
                     registerLoader<Model>(ModelSerializer())
+                    registerLoader<Material>(MaterialSerializer())
                 }
 
                 // Initialize Adapter (Suspendable for async asset loading)

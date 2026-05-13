@@ -20,7 +20,7 @@ import org.lwjgl.vulkan.VkCopyBufferToImageInfo2
 import java.io.File
 
 class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
-    serializer<TextureMetadata>(),
+    TextureMetadata.serializer()
 ) {
 
     override suspend fun load(path: String): Texture = withContext(Dispatchers.IO) {

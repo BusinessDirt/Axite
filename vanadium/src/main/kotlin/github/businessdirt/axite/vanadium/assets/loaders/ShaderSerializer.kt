@@ -33,7 +33,7 @@ import java.security.MessageDigest
  * Supports caching compiled SPIR-V on disk.
  */
 class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
-    serializer<ShaderMetadata>()
+    ShaderMetadata.serializer()
 ) {
 
     override suspend fun load(path: String): Shader = withContext(Dispatchers.IO) {

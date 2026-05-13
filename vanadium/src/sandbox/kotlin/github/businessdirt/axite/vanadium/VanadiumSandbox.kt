@@ -6,7 +6,6 @@ import github.businessdirt.axite.vanadium.renderer.SceneRenderer
 import github.businessdirt.axite.vanadium.renderer.graph.ClearColorValue
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
 import github.businessdirt.axite.vanadium.renderer.graph.RenderResourceNames
-import github.businessdirt.axite.vanadium.renderer.scene.Scene
 import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
 import github.businessdirt.axite.vanadium.vulkan.commands.draw
 import github.businessdirt.axite.vanadium.vulkan.commands.setScissor
@@ -21,8 +20,6 @@ class VanadiumSandbox : VanadiumAdapter {
         const val FRAGMENT_SHADER_FILE_GLSL: String = "src/sandbox/resources/shaders/scene.frag.glsl"
         const val VERTEX_SHADER_FILE_GLSL: String = "src/sandbox/resources/shaders/scene.vert.glsl"
     }
-
-    private val scene: Scene = Scene()
 
     private var graphicsPipeline: GraphicsPipeline? = null
 
