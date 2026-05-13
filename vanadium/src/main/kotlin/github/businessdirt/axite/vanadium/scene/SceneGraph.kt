@@ -1,6 +1,10 @@
 package github.businessdirt.axite.vanadium.scene
 
 import com.github.quillraven.fleks.*
+import github.businessdirt.axite.vanadium.scene.components.HierarchyComponent
+import github.businessdirt.axite.vanadium.scene.components.ModelComponent
+import github.businessdirt.axite.vanadium.scene.components.NameComponent
+import github.businessdirt.axite.vanadium.scene.components.TransformComponent
 import org.joml.Matrix4f
 
 /**
@@ -29,25 +33,19 @@ class SceneGraph : AutoCloseable {
     /**
      * Updates the ECS world.
      */
-    fun update(deltaTime: Float) {
-        world.update(deltaTime)
-    }
+    fun update(deltaTime: Float) = world.update(deltaTime)
 
     /**
      * Iterates over all entities that have both a [TransformComponent] and a [ModelComponent].
      */
     fun forEachModel(block: (TransformComponent, ModelComponent) -> Unit) {
-        with(world) {
-            val family = world.family { all(TransformComponent, ModelComponent) }
-            family.forEach { entity ->
-                block(entity[TransformComponent], entity[ModelComponent])
-            }
+        val family = world.family { all(TransformComponent, ModelComponent) }
+        return family.forEach { entity ->
+            block(entity[TransformComponent], entity[ModelComponent])
         }
     }
 
-    override fun close() {
-        world.dispose()
-    }
+    override fun close() = world.dispose()
 
     /**
      * Internal system to update global transform matrices.
@@ -57,7 +55,7 @@ class SceneGraph : AutoCloseable {
     ) {
         override fun onTickEntity(entity: Entity) {
             val hierarchy = entity[HierarchyComponent]
-            
+
             // We only trigger calculation from root nodes (no parent)
             // The recursive call will handle children.
             if (hierarchy.parent == null) {

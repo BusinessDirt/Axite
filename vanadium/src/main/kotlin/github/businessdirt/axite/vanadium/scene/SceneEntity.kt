@@ -1,6 +1,7 @@
 package github.businessdirt.axite.vanadium.scene
 
 import com.github.quillraven.fleks.*
+import github.businessdirt.axite.vanadium.scene.components.HierarchyComponent
 
 class SceneEntity(
     val entity: Entity,
