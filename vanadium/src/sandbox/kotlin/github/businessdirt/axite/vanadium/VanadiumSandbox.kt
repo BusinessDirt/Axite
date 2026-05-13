@@ -8,12 +8,11 @@ import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
 import github.businessdirt.axite.vanadium.renderer.graph.RenderResourceNames
 import github.businessdirt.axite.vanadium.renderer.scene.Scene
 import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
+import github.businessdirt.axite.vanadium.vulkan.commands.draw
 import github.businessdirt.axite.vanadium.vulkan.commands.setScissor
 import github.businessdirt.axite.vanadium.vulkan.commands.setViewport
 import github.businessdirt.axite.vanadium.vulkan.pipeline.GraphicsPipeline
 import kotlinx.coroutines.CoroutineScope
-import org.lwjgl.vulkan.VK13.*
-import org.lwjgl.vulkan.VkPipelineVertexInputStateCreateInfo
 
 
 class VanadiumSandbox : VanadiumAdapter {
@@ -57,7 +56,7 @@ class VanadiumSandbox : VanadiumAdapter {
 
             pipeline { commandBuffer ->
                 graphicsPipeline!!.bind(commandBuffer)
-                vkCmdDraw(commandBuffer.handle, 3, 1, 0, 0)
+                commandBuffer.draw(3)
             }
         }
 
@@ -68,7 +67,7 @@ class VanadiumSandbox : VanadiumAdapter {
                 commandBuffer.setViewport((fbWidth / 2).toFloat(), (fbHeight / 2).toFloat(), (fbWidth / 2).toFloat(), (fbHeight / 2).toFloat())
 
                 graphicsPipeline!!.bind(commandBuffer)
-                vkCmdDraw(commandBuffer.handle, 3, 1, 0, 0)
+                commandBuffer.draw(3)
             }
         }
     }

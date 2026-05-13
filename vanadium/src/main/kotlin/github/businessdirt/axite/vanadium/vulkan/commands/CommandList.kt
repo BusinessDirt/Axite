@@ -123,3 +123,18 @@ private fun getStageMask(layout: Int): Long = when (layout) {
     VK_IMAGE_LAYOUT_PRESENT_SRC_KHR -> VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT
     else -> VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT
 }
+
+fun CommandBuffer.draw(
+    vertexCount: Int,
+    instanceCount: Int = 1,
+    firstVertex: Int = 0,
+    firstInstance: Int = 0,
+) = vkCmdDraw(handle, vertexCount, instanceCount, firstVertex, firstInstance)
+
+fun CommandBuffer.drawIndexed(
+    indexCount: Int,
+    instanceCount: Int = 1,
+    firstIndex: Int = 0,
+    vertexOffset: Int = 0,
+    firstInstance: Int = 0,
+) = vkCmdDrawIndexed(handle, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance)
