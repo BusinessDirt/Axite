@@ -9,7 +9,6 @@ import org.lwjgl.glfw.GLFWVulkan
 import org.lwjgl.vulkan.KHRSurface
 import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkFormatProperties
-import org.lwjgl.vulkan.VkPhysicalDevice
 import org.lwjgl.vulkan.VkSurfaceCapabilitiesKHR
 import org.lwjgl.vulkan.VkSurfaceFormatKHR
 import kotlin.math.max

@@ -2,17 +2,10 @@ package github.businessdirt.axite.vanadium.vulkan.pipeline
 
 import github.businessdirt.axite.vanadium.assets.metadata.LayoutBinding
 import github.businessdirt.axite.vanadium.assets.metadata.PushConstantRange
-import github.businessdirt.axite.vanadium.core.utils.createHandle
 import github.businessdirt.axite.vanadium.vulkan.Handle
 import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
-import org.lwjgl.system.MemoryStack
-import org.lwjgl.vulkan.VK10.vkCmdBindPipeline
-import org.lwjgl.vulkan.VkDevice
-import org.lwjgl.vulkan.VkPipelineLayoutCreateInfo
-import org.lwjgl.vulkan.VkPushConstantRange
-import org.lwjgl.vulkan.VK10.vkCreatePipelineLayout
 import org.lwjgl.vulkan.VK10.vkDestroyPipeline
-import org.lwjgl.vulkan.VK10.vkDestroyPipelineLayout
+import org.lwjgl.vulkan.VkDevice
 
 /**
  * Base class for all Vulkan pipelines.

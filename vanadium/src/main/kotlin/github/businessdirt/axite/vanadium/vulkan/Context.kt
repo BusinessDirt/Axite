@@ -4,11 +4,7 @@ import github.businessdirt.axite.vanadium.VanadiumConfig
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
 import github.businessdirt.axite.vanadium.core.utils.VulkanUtils.coerceRequestedImageCount
 import github.businessdirt.axite.vanadium.platform.Window
-import github.businessdirt.axite.vanadium.vulkan.device.Device
-import github.businessdirt.axite.vanadium.vulkan.device.GraphicsQueue
-import github.businessdirt.axite.vanadium.vulkan.device.PhysicalDevice
-import github.businessdirt.axite.vanadium.vulkan.device.PresentQueue
-import github.businessdirt.axite.vanadium.vulkan.device.pickPhysicalDevice
+import github.businessdirt.axite.vanadium.vulkan.device.*
 import github.businessdirt.axite.vanadium.vulkan.pipeline.PipelineCache
 import github.businessdirt.axite.vanadium.vulkan.surface.Surface
 import github.businessdirt.axite.vanadium.vulkan.swapchain.Swapchain

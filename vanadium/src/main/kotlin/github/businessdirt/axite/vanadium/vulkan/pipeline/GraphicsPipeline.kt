@@ -5,11 +5,9 @@ import github.businessdirt.axite.vanadium.assets.types.Shader
 import github.businessdirt.axite.vanadium.core.utils.createHandle
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
-import github.businessdirt.axite.vanadium.vulkan.swapchain.Swapchain
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK13.*
-import kotlin.apply
 
 /**
  * Represents a Vulkan graphics pipeline.

@@ -4,7 +4,8 @@ import github.businessdirt.axite.vanadium.assets.metadata.PushConstantRange
 import github.businessdirt.axite.vanadium.core.utils.createHandle
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import github.businessdirt.axite.vanadium.vulkan.Handle
-import org.lwjgl.vulkan.VK13.*
+import org.lwjgl.vulkan.VK13.vkCreatePipelineLayout
+import org.lwjgl.vulkan.VK13.vkDestroyPipelineLayout
 import org.lwjgl.vulkan.VkDevice
 import org.lwjgl.vulkan.VkPipelineLayoutCreateInfo
 import org.lwjgl.vulkan.VkPushConstantRange

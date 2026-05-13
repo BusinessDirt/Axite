@@ -1,10 +1,13 @@
 package github.businessdirt.axite.vanadium.assets
 
 import github.businessdirt.axite.vanadium.assets.loaders.AssetSerializer
-import github.businessdirt.axite.vanadium.assets.types.Asset
 import github.businessdirt.axite.vanadium.assets.metadata.AssetMetadata
+import github.businessdirt.axite.vanadium.assets.types.Asset
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 

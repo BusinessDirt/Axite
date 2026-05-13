@@ -22,7 +22,6 @@ import org.lwjgl.vulkan.VkExtent2D
 import org.lwjgl.vulkan.VkPresentInfoKHR
 import org.lwjgl.vulkan.VkSurfaceCapabilitiesKHR
 import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR
-import kotlin.apply
 
 class Swapchain(
     private val device: Device,

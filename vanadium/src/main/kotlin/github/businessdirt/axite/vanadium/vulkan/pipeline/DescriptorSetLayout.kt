@@ -4,7 +4,8 @@ import github.businessdirt.axite.vanadium.assets.metadata.LayoutBinding
 import github.businessdirt.axite.vanadium.core.utils.createHandle
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import github.businessdirt.axite.vanadium.vulkan.Handle
-import org.lwjgl.vulkan.VK13.*
+import org.lwjgl.vulkan.VK13.vkCreateDescriptorSetLayout
+import org.lwjgl.vulkan.VK13.vkDestroyDescriptorSetLayout
 import org.lwjgl.vulkan.VkDescriptorSetLayoutBinding
 import org.lwjgl.vulkan.VkDescriptorSetLayoutCreateInfo
 import org.lwjgl.vulkan.VkDevice

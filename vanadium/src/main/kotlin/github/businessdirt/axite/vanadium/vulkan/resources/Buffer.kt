@@ -1,7 +1,10 @@
 package github.businessdirt.axite.vanadium.vulkan.resources
 
-import github.businessdirt.axite.vanadium.core.utils.*
 import github.businessdirt.axite.vanadium.core.utils.VulkanUtils.memoryTypeFromProperties
+import github.businessdirt.axite.vanadium.core.utils.createHandle
+import github.businessdirt.axite.vanadium.core.utils.createPointer
+import github.businessdirt.axite.vanadium.core.utils.memoryStack
+import github.businessdirt.axite.vanadium.core.utils.vkCheck
 import github.businessdirt.axite.vanadium.vulkan.Handle
 import github.businessdirt.axite.vanadium.vulkan.device.PhysicalDevice
 import org.lwjgl.system.MemoryUtil.NULL
