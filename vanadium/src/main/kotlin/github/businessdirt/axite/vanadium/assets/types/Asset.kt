@@ -40,6 +40,12 @@ abstract class Asset(
      */
     protected abstract fun dispose()
 
+    /**
+     * Updates the internal state of this asset using another loaded instance.
+     * This is primarily used for hot-reloading.
+     */
+    abstract fun update(newAsset: Asset)
+
     override fun close() {
         release()
     }

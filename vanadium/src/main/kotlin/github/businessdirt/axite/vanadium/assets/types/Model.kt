@@ -4,10 +4,26 @@ import github.businessdirt.axite.vanadium.assets.metadata.ModelMetadata
 import github.businessdirt.axite.vanadium.scene.Mesh
 
 class Model(
-    override val path: String,
-    override val uuid: String,
-    override val metadata: ModelMetadata,
-    val meshes: List<Mesh>
+    path: String,
+    uuid: String,
+    metadata: ModelMetadata,
+    meshes: List<Mesh>
 ) : Asset(uuid, path, metadata) {
+
+    override var metadata: ModelMetadata = metadata
+        private set
+
+    var meshes: List<Mesh> = meshes
+        private set
+
+    override fun update(newAsset: Asset) {
+        if (newAsset is Model) {
+            val oldMeshes = this.meshes
+            this.metadata = newAsset.metadata
+            this.meshes = newAsset.meshes
+            oldMeshes.forEach { it.close() }
+        }
+    }
+
     override fun dispose() = meshes.forEach { it.close() }
 }

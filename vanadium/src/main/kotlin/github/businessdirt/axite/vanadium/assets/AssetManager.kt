@@ -4,19 +4,88 @@ import github.businessdirt.axite.vanadium.assets.loaders.AssetSerializer
 import github.businessdirt.axite.vanadium.assets.metadata.AssetMetadata
 import github.businessdirt.axite.vanadium.assets.types.Asset
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
+import kotlinx.coroutines.*
+import org.apache.logging.log4j.LogManager
+import org.apache.logging.log4j.Logger
+import java.io.File
+import java.nio.file.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.KClass
 
 class AssetManager(private val scope: CoroutineScope) {
 
+    private val logger: Logger = LogManager.getLogger(AssetManager::class.java)
+
     private val cache = ConcurrentHashMap<String, Asset>()
     private val loadingJobs = ConcurrentHashMap<String, Deferred<Asset>>()
 
     val serializers = ConcurrentHashMap<KClass<out Asset>, AssetSerializer<out Asset, out AssetMetadata>>()
+
+    // Hot Reloading
+    private val watchService: WatchService = FileSystems.getDefault().newWatchService()
+    private val watchKeys = ConcurrentHashMap<WatchKey, Path>()
+    private val assetPathsByFile = ConcurrentHashMap<Path, MutableSet<String>>()
+
+    init {
+        startWatcher()
+    }
+
+    private fun startWatcher() = scope.launch(Dispatchers.IO) {
+        try {
+            while (isActive) {
+                val key = watchService.take() ?: continue
+                val dir = watchKeys[key] ?: continue
+
+                for (event in key.pollEvents()) {
+                    val context = event.context() as? Path ?: continue
+                    val fullPath = dir.resolve(context).toAbsolutePath()
+                    
+                    if (event.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
+                        val assetPaths = assetPathsByFile[fullPath] ?: continue
+                        for (assetPath in assetPaths) {
+                            logger.info("Detected change in asset file: [{}]. Reloading...", assetPath)
+                            reload(assetPath)
+                        }
+                    }
+                }
+                key.reset()
+            }
+        } catch (e: ClosedWatchServiceException) {
+            // normal shutdown
+        } catch (e: Exception) {
+            logger.error("Asset watcher error: {}", e.message)
+        }
+    }
+
+    internal fun reload(path: String) = scope.launch(Dispatchers.IO) {
+        val asset = cache[path] ?: return@launch
+        val loader = serializers[asset::class] ?: return@launch
+
+        try {
+            val newAsset = loader.load(path)
+            asset.update(newAsset)
+            logger.info("Successfully hot-reloaded asset: [{}]", path)
+        } catch (e: Exception) {
+            logger.error("Failed to hot-reload asset [{}]: {}", path, e.message ?: "Unknown error")
+        }
+    }
+
+    private fun registerWatcher(path: String) {
+        try {
+            val file = File(path).absoluteFile
+            val dir = file.parentFile.toPath()
+            val filePath = file.toPath().toAbsolutePath()
+
+            assetPathsByFile.getOrPut(filePath) { ConcurrentHashMap.newKeySet() }.add(path)
+
+            if (watchKeys.values.none { it == dir }) {
+                val key = dir.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY)
+                watchKeys[key] = dir
+            }
+        } catch (e: Exception) {
+            logger.warn("Failed to register watcher for [{}]: {}", path, e.message)
+        }
+    }
 
     fun configure(block: AssetManager.() -> Unit): AssetManager = Profiler.profile("AssetManager Configuration") {
         this.apply { block.invoke(this) }
@@ -59,6 +128,7 @@ class AssetManager(private val scope: CoroutineScope) {
                 try {
                     val asset = loader.load(path)
                     cache[path] = asset
+                    registerWatcher(path)
                     asset
                 } finally {
                     loadingJobs.remove(path)
@@ -72,7 +142,12 @@ class AssetManager(private val scope: CoroutineScope) {
     }
 
     @Suppress("unused")
-    fun unload(path: String) = cache[path]?.let { asset ->
-        if (asset.release()) cache.remove(path)
+    fun unload(path: String) {
+        cache[path]?.let { asset ->
+            if (asset.release()) {
+                cache.remove(path)
+                // We don't easily unregister from WatchService, but it's fine for now.
+            }
+        }
     }
 }
