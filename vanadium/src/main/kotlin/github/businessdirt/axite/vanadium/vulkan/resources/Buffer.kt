@@ -82,6 +82,7 @@ class Buffer(
         return mappedMemory
     }
 
+    @Suppress("unused")
     fun flush(offset: Long = 0, flushSize: Long = size) {
         if (isCoherent) return
 

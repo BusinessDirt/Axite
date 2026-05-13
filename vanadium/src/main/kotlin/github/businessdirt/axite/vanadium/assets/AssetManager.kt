@@ -41,14 +41,6 @@ class AssetManager(private val scope: CoroutineScope) {
     }
 
     /**
-     * Loads only the metadata for an asset of type T.
-     */
-    inline fun <reified T : Asset> loadMetadata(path: String): AssetMetadata? {
-        val loader = serializers[T::class] ?: return null
-        return loader.loadMetadata(path)
-    }
-
-    /**
      * Internal logic to handle deduplication and async execution.
      */
     @Suppress("UNCHECKED_CAST", "DeferredResultUnused")
@@ -72,5 +64,6 @@ class AssetManager(private val scope: CoroutineScope) {
         return job.await() as T
     }
 
+    @Suppress("unused")
     fun unload(path: String) = cache.remove(path)?.release()
 }

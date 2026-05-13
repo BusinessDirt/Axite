@@ -29,18 +29,6 @@ class Attachment(
 
     override val handle: Long get() = image.handle
 
-    fun updateImageHandle(newHandle: Long) {
-        if (image.handle == newHandle) return
-        image.handle = newHandle
-        
-        // Recreate image view
-        imageView.close()
-        imageView = ImageView(device, image.handle) {
-            this.format = image.format
-            this.aspectMask = this@Attachment.aspectMask
-        }
-    }
-
     val aspectMask: Int = run {
         var mask = 0
         if (isDepth) mask = mask or VK_IMAGE_ASPECT_DEPTH_BIT

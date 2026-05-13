@@ -17,8 +17,6 @@ open class DirectedAcyclicGraph<T> {
     var sortedNodes: List<Node<T>> = emptyList()
         private set
 
-    private val logger = LoggerFactory.getLogger(DirectedAcyclicGraph::class.java)
-
     /**
      * Compiles the graph by performing topological sorting, layer calculation (barriers),
      * and resource lifetime analysis.
@@ -114,6 +112,7 @@ open class DirectedAcyclicGraph<T> {
      * Dumps the graph structure to a JSON string for debugging purposes.
      * @return A JSON representation of the graph.
      */
+    @Suppress("unused")
     fun toJson(): String = Json.encodeToString(GraphDump(
         nodeCount = nodes.size,
         layers = layers.size,

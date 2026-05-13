@@ -7,12 +7,6 @@ import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
 import org.lwjgl.vulkan.VK10.vkDestroyPipeline
 import org.lwjgl.vulkan.VkDevice
 
-/**
- * Base class for all Vulkan pipelines.
- * @property device The Vulkan device used to create the pipeline.
- * @property layoutHandle The handle to the pipeline layout.
- * @property handle The handle to the Vulkan pipeline object.
- */
 sealed class Pipeline(
     protected val device: VkDevice,
 ) : Handle<Long>() {
