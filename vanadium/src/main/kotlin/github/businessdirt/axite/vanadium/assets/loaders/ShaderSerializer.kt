@@ -5,6 +5,7 @@ import github.businessdirt.axite.vanadium.assets.metadata.LayoutBinding
 import github.businessdirt.axite.vanadium.assets.metadata.PushConstantRange
 import github.businessdirt.axite.vanadium.assets.metadata.ShaderMetadata
 import github.businessdirt.axite.vanadium.assets.metadata.VertexInputAttribute
+import github.businessdirt.axite.vanadium.assets.metadata.VertexInputBinding
 import github.businessdirt.axite.vanadium.assets.types.Shader
 import github.businessdirt.axite.vanadium.assets.types.ShaderStage
 import github.businessdirt.axite.vanadium.core.utils.getPointer
@@ -133,6 +134,7 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
             val layoutBindings = mutableListOf<LayoutBinding>()
             val pushConstants = mutableListOf<PushConstantRange>()
             val vertexAttributes = mutableListOf<VertexInputAttribute>()
+            val vertexInputBindings = mutableListOf<VertexInputBinding>()
 
             // Reflect Uniform Buffers
             reflectResourceType(compiler, resources, SPVC_RESOURCE_TYPE_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, metadata.stage.vulkan, layoutBindings)
@@ -166,22 +168,32 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
                 }.toInt()
                 val inputList = SpvcReflectedResource.create(inputListPtr[0], inputCount)
 
-                for (i in 0 until inputCount) {
-                    val resource = inputList[i]
+                val reflectedInputs = (0 until inputCount).map {
+                    val resource = inputList[it]
                     val location = spvc_compiler_get_decoration(compiler, resource.id(), SpvDecorationLocation)
                     val format = getVulkanFormat(compiler, resource.type_id())
                     val binding = if (spvc_compiler_has_decoration(compiler, resource.id(), SpvDecorationBinding)) {
                         spvc_compiler_get_decoration(compiler, resource.id(), SpvDecorationBinding)
                     } else 0
+                    Triple(location, format, binding)
+                }.sortedBy { it.first }
 
-                    vertexAttributes.add(VertexInputAttribute(location, binding, format, 0))
+                var currentOffset = 0
+                for ((location, format, binding) in reflectedInputs) {
+                    vertexAttributes.add(VertexInputAttribute(location, binding, format, currentOffset))
+                    currentOffset += getFormatSize(format)
+                }
+
+                if (vertexAttributes.isNotEmpty()) {
+                    vertexInputBindings.add(VertexInputBinding(0, currentOffset, VK_VERTEX_INPUT_RATE_VERTEX))
                 }
             }
 
             metadata.copy(
                 pushConstantRanges = pushConstants,
                 layoutBindings = layoutBindings,
-                vertexInputAttributes = vertexAttributes
+                vertexInputAttributes = vertexAttributes,
+                vertexInputBindings = vertexInputBindings
             )
         } catch (e: Exception) {
             logger.error("Failed to reflect shader [{}]: {}", metadata.hash, e.message ?: "Unknown error")
@@ -189,6 +201,14 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
         } finally {
             spvc_context_destroy(context)
         }
+    }
+
+    private fun getFormatSize(format: Int): Int = when (format) {
+        VK_FORMAT_R32_SFLOAT, VK_FORMAT_R32_SINT, VK_FORMAT_R32_UINT -> 4
+        VK_FORMAT_R32G32_SFLOAT, VK_FORMAT_R32G32_SINT, VK_FORMAT_R32G32_UINT -> 8
+        VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32_SINT, VK_FORMAT_R32G32B32_UINT -> 12
+        VK_FORMAT_R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SINT, VK_FORMAT_R32G32B32A32_UINT -> 16
+        else -> 0
     }
 
     private fun reflectResourceType(

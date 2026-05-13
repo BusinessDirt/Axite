@@ -1,16 +1,17 @@
 #version 450
 
-// Hardcoded positions for a triangle in Normalized Device Coordinates (NDC)
-vec2 positions[3] = vec2[](
-    vec2(0.0, -0.5), // Top
-    vec2(0.5, 0.5),  // Bottom Right
-    vec2(-0.5, 0.5)  // Bottom Left
-);
+layout(location = 0) in vec3 inPosition;
+layout(location = 1) in vec3 inNormal;
+layout(location = 2) in vec2 inUV;
+layout(location = 3) in vec3 inColor;
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out vec3 outNormal;
+layout(location = 1) out vec2 outUV;
+layout(location = 2) out vec3 outColor;
 
 void main() {
-    // Select position based on vertex index (0, 1, or 2)
-    gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
-    outColor = vec4(positions[gl_VertexIndex], 1.0, 1.0);
+    gl_Position = vec4(inPosition, 1.0);
+    outNormal = inNormal;
+    outUV = inUV;
+    outColor = inColor;
 }

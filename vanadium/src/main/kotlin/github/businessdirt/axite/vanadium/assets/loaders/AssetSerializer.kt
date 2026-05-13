@@ -8,7 +8,7 @@ import org.apache.logging.log4j.LogManager
 import org.apache.logging.log4j.Logger
 import java.io.File
 
-abstract class AssetSerializer<T : Asset, M : AssetMetadata>(
+abstract class AssetSerializer<T : Asset<T>, M : AssetMetadata>(
     private val metadataSerializer: KSerializer<M>
 ) {
 

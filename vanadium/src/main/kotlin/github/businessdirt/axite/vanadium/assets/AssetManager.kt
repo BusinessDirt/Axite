@@ -39,7 +39,7 @@ class AssetManager(private val scope: CoroutineScope) {
                 for (event in key.pollEvents()) {
                     val context = event.context() as? Path ?: continue
                     val fullPath = dir.resolve(context).toAbsolutePath()
-                    
+
                     if (event.kind() == StandardWatchEventKinds.ENTRY_MODIFY) {
                         val assetPaths = assetPathsByFile[fullPath] ?: continue
                         for (assetPath in assetPaths) {
@@ -99,7 +99,7 @@ class AssetManager(private val scope: CoroutineScope) {
     /**
      * Pre-register how to load a specific type of asset.
      */
-    inline fun <reified T : Asset<T>> registerLoader(loader: AssetSerializer<out Asset<T>, out AssetMetadata>) {
+    inline fun <reified T : Asset<T>> registerLoader(loader: AssetSerializer<T, out AssetMetadata>) {
         serializers[T::class] = loader
     }
 
@@ -118,7 +118,7 @@ class AssetManager(private val scope: CoroutineScope) {
      * Internal logic to handle deduplication and async execution.
      */
     @Suppress("UNCHECKED_CAST", "DeferredResultUnused")
-    suspend fun <T : Asset<T>> loadWithLoader(path: String, loader: AssetSerializer<out Asset<T>, out AssetMetadata>): T {
+    suspend fun <T : Asset<T>> loadWithLoader(path: String, loader: AssetSerializer<T, out AssetMetadata>): T {
         // Return from cache if available
         cache[path]?.let {
             it.retain()

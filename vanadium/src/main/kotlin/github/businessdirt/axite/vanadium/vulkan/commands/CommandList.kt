@@ -138,3 +138,13 @@ fun CommandBuffer.drawIndexed(
     vertexOffset: Int = 0,
     firstInstance: Int = 0,
 ) = vkCmdDrawIndexed(handle, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance)
+
+fun CommandBuffer.bindVertexBuffer(buffer: Long, offset: Long = 0) = memoryStack { stack ->
+    val pBuffers = stack.longs(buffer)
+    val pOffsets = stack.longs(offset)
+    vkCmdBindVertexBuffers(handle, 0, pBuffers, pOffsets)
+}
+
+fun CommandBuffer.bindIndexBuffer(buffer: Long, offset: Long = 0, indexType: Int = VK_INDEX_TYPE_UINT32) {
+    vkCmdBindIndexBuffer(handle, buffer, offset, indexType)
+}
