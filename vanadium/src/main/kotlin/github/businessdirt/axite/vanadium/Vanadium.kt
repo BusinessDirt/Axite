@@ -3,8 +3,12 @@ package github.businessdirt.axite.vanadium
 import github.businessdirt.axite.logging.LoggingConfigurator
 import github.businessdirt.axite.logging.PatternBuilder
 import github.businessdirt.axite.vanadium.assets.AssetManager
+import github.businessdirt.axite.vanadium.assets.loaders.ModelSerializer
 import github.businessdirt.axite.vanadium.assets.loaders.ShaderSerializer
+import github.businessdirt.axite.vanadium.assets.loaders.TextureSerializer
+import github.businessdirt.axite.vanadium.assets.types.Model
 import github.businessdirt.axite.vanadium.assets.types.Shader
+import github.businessdirt.axite.vanadium.assets.types.Texture
 import github.businessdirt.axite.vanadium.core.events.Event
 import github.businessdirt.axite.vanadium.core.events.EventDispatcher
 import github.businessdirt.axite.vanadium.core.events.FramebufferResizedEvent
@@ -52,6 +56,8 @@ object Vanadium {
                 renderer = Renderer(context).also { it.initialize() }
                 assets = AssetManager(engineScope).configure {
                     registerLoader<Shader>(ShaderSerializer())
+                    registerLoader<Texture>(TextureSerializer())
+                    registerLoader<Model>(ModelSerializer())
                 }
 
                 // Initialize Adapter (Suspendable for async asset loading)
