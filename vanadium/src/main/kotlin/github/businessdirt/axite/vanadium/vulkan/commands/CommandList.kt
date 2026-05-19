@@ -148,3 +148,7 @@ fun CommandBuffer.bindVertexBuffer(buffer: Long, offset: Long = 0) = memoryStack
 fun CommandBuffer.bindIndexBuffer(buffer: Long, offset: Long = 0, indexType: Int = VK_INDEX_TYPE_UINT32) {
     vkCmdBindIndexBuffer(handle, buffer, offset, indexType)
 }
+
+fun CommandBuffer.pushConstants(layout: Long, stageFlags: Int, data: java.nio.ByteBuffer, offset: Int = 0) {
+    vkCmdPushConstants(handle, layout, stageFlags, offset, data)
+}

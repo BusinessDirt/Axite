@@ -1,6 +1,7 @@
 package github.businessdirt.axite.vanadium.scene
 
 import com.github.quillraven.fleks.configureWorld
+import github.businessdirt.axite.vanadium.scene.components.CameraComponent
 import github.businessdirt.axite.vanadium.scene.components.HierarchyComponent
 import github.businessdirt.axite.vanadium.scene.components.ModelComponent
 import github.businessdirt.axite.vanadium.scene.components.NameComponent
@@ -20,6 +21,7 @@ class Scene : AutoCloseable {
     }
 
     private val modelFamily = world.family { all(TransformComponent, ModelComponent) }
+    private val cameraFamily = world.family { all(TransformComponent, CameraComponent) }
 
     fun createEntity(name: String = "Entity"): Entity {
         val entity = world.entity {
@@ -34,6 +36,10 @@ class Scene : AutoCloseable {
 
     fun forEachModel(block: (TransformComponent, ModelComponent) -> Unit) = modelFamily.forEach { entity ->
         block(entity[TransformComponent], entity[ModelComponent])
+    }
+
+    fun forEachCamera(block: (TransformComponent, CameraComponent) -> Unit) = cameraFamily.forEach { entity ->
+        block(entity[TransformComponent], entity[CameraComponent])
     }
 
     override fun close() = world.dispose()

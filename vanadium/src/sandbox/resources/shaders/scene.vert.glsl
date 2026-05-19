@@ -9,8 +9,13 @@ layout(location = 0) out vec3 outNormal;
 layout(location = 1) out vec2 outUV;
 layout(location = 2) out vec3 outColor;
 
+layout(push_constant) uniform PushConstants {
+    mat4 model;
+    mat4 viewProj;
+} push;
+
 void main() {
-    gl_Position = vec4(inPosition, 1.0);
+    gl_Position = push.viewProj * push.model * vec4(inPosition, 1.0);
     outNormal = inNormal;
     outUV = inUV;
     outColor = inColor;
