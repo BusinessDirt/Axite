@@ -12,6 +12,7 @@ import github.businessdirt.axite.vanadium.renderer.graph.RenderResourceNames
 import github.businessdirt.axite.vanadium.scene.Entity
 import github.businessdirt.axite.vanadium.scene.Scene
 import github.businessdirt.axite.vanadium.scene.components.CameraComponent
+import github.businessdirt.axite.vanadium.scene.components.CameraControllerComponent
 import github.businessdirt.axite.vanadium.scene.components.ModelComponent
 import github.businessdirt.axite.vanadium.scene.components.TransformComponent
 import github.businessdirt.axite.vanadium.vulkan.commands.*
@@ -73,6 +74,7 @@ class VanadiumSandbox : VanadiumAdapter {
         scene.createEntity("Camera").apply {
             configure {
                 it += CameraComponent()
+                it += CameraControllerComponent()
                 it += TransformComponent(
                     position = Vector3f(0f, 0f, 0f)
                 )
