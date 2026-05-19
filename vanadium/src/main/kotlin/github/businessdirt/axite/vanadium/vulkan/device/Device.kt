@@ -32,8 +32,14 @@ class Device(
             .dynamicRendering(true)
             .synchronization2(true)
 
+        val features = VkPhysicalDeviceFeatures.calloc(stack)
+        if (physicalDevice.features.samplerAnisotropy()) {
+            features.samplerAnisotropy(true)
+        }
+
         val features2 = VkPhysicalDeviceFeatures2.calloc(stack).`sType$Default`()
             .pNext(features13.address())
+            .features(features)
 
         val deviceCreateInfo: VkDeviceCreateInfo = VkDeviceCreateInfo.calloc(stack).`sType$Default`()
             .pNext(features2.address())

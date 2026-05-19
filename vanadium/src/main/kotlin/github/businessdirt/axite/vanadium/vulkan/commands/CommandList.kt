@@ -152,3 +152,7 @@ fun CommandBuffer.bindIndexBuffer(buffer: Long, offset: Long = 0, indexType: Int
 fun CommandBuffer.pushConstants(layout: Long, stageFlags: Int, data: java.nio.ByteBuffer, offset: Int = 0) {
     vkCmdPushConstants(handle, layout, stageFlags, offset, data)
 }
+
+fun CommandBuffer.bindDescriptorSets(pipelineLayout: Long, descriptorSets: LongArray, bindPoint: Int = VK_PIPELINE_BIND_POINT_GRAPHICS, firstSet: Int = 0) = memoryStack { stack ->
+    vkCmdBindDescriptorSets(handle, bindPoint, pipelineLayout, firstSet, stack.longs(*descriptorSets), null)
+}
