@@ -3,19 +3,18 @@ package github.businessdirt.axite.vanadium.assets
 import github.businessdirt.axite.vanadium.assets.metadata.ModelMetadata
 import github.businessdirt.axite.vanadium.assets.types.Asset
 import github.businessdirt.axite.vanadium.assets.loaders.AssetSerializer
+import github.businessdirt.axite.vanadium.assets.types.Model
 import kotlinx.coroutines.*
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import java.util.*
 
-class TestAsset(path: String, uuid: String, metadata: ModelMetadata, var data: String, val onDispose: () -> Unit) : Asset(uuid, path, metadata) {
+class TestAsset(path: String, uuid: String, metadata: ModelMetadata, var data: String, val onDispose: () -> Unit) : Asset<TestAsset>(uuid, path, metadata) {
     override var metadata: ModelMetadata = metadata
 
-    override fun update(newAsset: Asset) {
-        if (newAsset is TestAsset) {
-            this.metadata = newAsset.metadata
-            this.data = newAsset.data
-        }
+    override fun update(newAsset: TestAsset) {
+        this.metadata = newAsset.metadata
+        this.data = newAsset.data
     }
 
     override fun dispose() {

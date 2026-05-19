@@ -16,6 +16,8 @@ import github.businessdirt.axite.vanadium.core.events.EventDispatcher
 import github.businessdirt.axite.vanadium.core.events.FramebufferResizedEvent
 import github.businessdirt.axite.vanadium.core.math.Clock
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
+import github.businessdirt.axite.vanadium.platform.KeyboardInput
+import github.businessdirt.axite.vanadium.platform.MouseInput
 import github.businessdirt.axite.vanadium.platform.Window
 import github.businessdirt.axite.vanadium.renderer.Renderer
 import github.businessdirt.axite.vanadium.vulkan.Context
@@ -88,6 +90,8 @@ object Vanadium {
             while (clock.shouldUpdate()) adapter.update(clock.frameInfo)
             renderer.render(adapter, clock.interpolation)
 
+            MouseInput.endFrame()
+
             // Yield to allow other coroutines to work if needed
             yield()
         }
@@ -97,6 +101,9 @@ object Vanadium {
 
     fun onEvent(event: Event) {
         if (!::context.isInitialized) return
+
+        KeyboardInput.onEvent(event)
+        MouseInput.onEvent(event)
 
         val dispatcher = EventDispatcher(event)
         dispatcher.dispatch<FramebufferResizedEvent> { context.resize() }
