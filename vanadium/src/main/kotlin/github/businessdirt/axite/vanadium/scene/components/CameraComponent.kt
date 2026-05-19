@@ -25,6 +25,7 @@ sealed class CameraType {
     ) : CameraType() {
         override fun updateProjection(projectionMatrix: Matrix4f, aspectRatio: Float) {
             projectionMatrix.setPerspective(Math.toRadians(fov.toDouble()).toFloat(), aspectRatio, near, far)
+            projectionMatrix.m11(projectionMatrix.m11() * -1f)
         }
     }
 
@@ -35,6 +36,7 @@ sealed class CameraType {
     ) : CameraType() {
         override fun updateProjection(projectionMatrix: Matrix4f, aspectRatio: Float) {
             projectionMatrix.setOrtho(-zoom * aspectRatio, zoom * aspectRatio, -zoom, zoom, near, far)
+            projectionMatrix.m11(projectionMatrix.m11() * -1f)
         }
     }
 }

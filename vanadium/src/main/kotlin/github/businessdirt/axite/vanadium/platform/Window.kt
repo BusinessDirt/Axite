@@ -29,7 +29,7 @@ data class WindowData(
     val isDecorated: Boolean
 ) {
     val aspectRatio: Float
-        get() = width.toFloat() / height.toFloat()
+        get() = framebufferWidth.toFloat() / framebufferHeight.toFloat()
 
     val contentScale: Float
         get() = framebufferWidth.toFloat() / width.toFloat()
