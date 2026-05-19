@@ -21,13 +21,13 @@ class Scene : AutoCloseable {
 
     private val modelFamily = world.family { all(TransformComponent, ModelComponent) }
 
-    fun createEntity(name: String = "Entity"): SceneEntity {
+    fun createEntity(name: String = "Entity"): Entity {
         val entity = world.entity {
             it += NameComponent(name)
             it += TransformComponent()
             it += HierarchyComponent()
         }
-        return SceneEntity(entity, world)
+        return Entity(entity, world)
     }
 
     fun update(deltaTime: Float) = world.update(deltaTime)

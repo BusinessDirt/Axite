@@ -3,8 +3,8 @@ package github.businessdirt.axite.vanadium.scene
 import com.github.quillraven.fleks.*
 import github.businessdirt.axite.vanadium.scene.components.HierarchyComponent
 
-class SceneEntity(
-    val entity: Entity,
+class Entity(
+    val entity: com.github.quillraven.fleks.Entity,
     val world: World
 ) {
 
@@ -39,7 +39,7 @@ class SceneEntity(
     /**
      * Configures the entity by adding/removing multiple components.
      */
-    fun configure(block: EntityUpdateContext.(Entity) -> Unit) = with(world) {
+    fun configure(block: EntityUpdateContext.(com.github.quillraven.fleks.Entity) -> Unit) = with(world) {
         entity.configure(block)
     }
 
@@ -53,7 +53,7 @@ class SceneEntity(
     /**
      * Sets the parent of this entity.
      */
-    fun setParent(parent: SceneEntity?) {
+    fun setParent(parent: Entity?) {
         val hierarchy = get(HierarchyComponent)
 
         // Remove from old parent
@@ -71,7 +71,7 @@ class SceneEntity(
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other !is SceneEntity) return false
+        if (other !is Entity) return false
         return entity == other.entity && world == other.world
     }
 

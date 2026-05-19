@@ -4,7 +4,7 @@ import com.github.quillraven.fleks.Component
 import com.github.quillraven.fleks.ComponentType
 import github.businessdirt.axite.vanadium.platform.KeyboardInput
 import github.businessdirt.axite.vanadium.platform.MouseInput
-import github.businessdirt.axite.vanadium.scene.SceneEntity
+import github.businessdirt.axite.vanadium.scene.Entity
 import org.joml.Quaternionf
 import org.joml.Vector3f
 import org.lwjgl.glfw.GLFW.*
@@ -53,7 +53,7 @@ sealed class ControllerSettings {
     }
 
     data class ThirdPerson(
-        var target: SceneEntity? = null,
+        var target: Entity? = null,
         var distance: Float = 5f,
         var orbitSpeed: Float = 0.1f,
         var pitch: Float = 45f,
