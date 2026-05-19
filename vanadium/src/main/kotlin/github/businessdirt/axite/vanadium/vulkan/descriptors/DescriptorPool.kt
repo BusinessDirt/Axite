@@ -1,4 +1,4 @@
-package github.businessdirt.axite.vanadium.vulkan.pipeline
+package github.businessdirt.axite.vanadium.vulkan.descriptors
 
 import github.businessdirt.axite.vanadium.core.utils.createHandle
 import github.businessdirt.axite.vanadium.core.utils.memoryStack

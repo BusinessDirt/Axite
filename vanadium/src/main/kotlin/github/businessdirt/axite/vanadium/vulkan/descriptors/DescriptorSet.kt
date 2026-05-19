@@ -1,4 +1,4 @@
-package github.businessdirt.axite.vanadium.vulkan.pipeline
+package github.businessdirt.axite.vanadium.vulkan.descriptors
 
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import github.businessdirt.axite.vanadium.core.utils.vkCheck

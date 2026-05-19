@@ -16,6 +16,8 @@ import github.businessdirt.axite.vanadium.scene.components.CameraControllerCompo
 import github.businessdirt.axite.vanadium.scene.components.ModelComponent
 import github.businessdirt.axite.vanadium.scene.components.TransformComponent
 import github.businessdirt.axite.vanadium.vulkan.commands.*
+import github.businessdirt.axite.vanadium.vulkan.descriptors.DescriptorPool
+import github.businessdirt.axite.vanadium.vulkan.descriptors.DescriptorSet
 import github.businessdirt.axite.vanadium.vulkan.pipeline.*
 import kotlinx.coroutines.CoroutineScope
 import org.joml.Matrix4f
@@ -48,9 +50,11 @@ class VanadiumSandbox : VanadiumAdapter {
         graphicsPipeline = GraphicsPipeline(Vanadium.context.device.handle, vertexShader, fragmentShader)
 
         // Initialize Descriptor Set for the texture
-        descriptorPool = DescriptorPool(Vanadium.context.device.handle, 1, listOf(
-            DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
-        ))
+        descriptorPool = DescriptorPool(
+            Vanadium.context.device.handle, 1, listOf(
+                DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1)
+            )
+        )
         
         graphicsPipeline?.layout?.descriptorSetLayouts?.firstOrNull()?.let { layout ->
             descriptorSet = DescriptorSet(Vanadium.context.device.handle, descriptorPool!!, layout)
