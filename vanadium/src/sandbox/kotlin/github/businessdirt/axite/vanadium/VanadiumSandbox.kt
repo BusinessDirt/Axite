@@ -60,11 +60,9 @@ class VanadiumSandbox : VanadiumAdapter {
     }
 
     override fun onRecord(graph: RenderGraph, sceneRenderer: SceneRenderer, commandBuffer: CommandBuffer, interpolation: Double) = graph.build {
-        val fbWidth = Vanadium.context.swapchain.extent.width()
-        val fbHeight = Vanadium.context.swapchain.extent.height()
-
         pass("MainScenePass") {
             writes(RenderResourceNames.BACK_BUFFER, RenderResourceNames.DEPTH_BUFFER)
+
             clearColor = ClearColorValue(0.4f, 0.6f, 0.9f, 1.0f)
             clearDepth = 1.0f
 
@@ -76,26 +74,6 @@ class VanadiumSandbox : VanadiumAdapter {
                     scene.forEachModel { _, modelComp ->
                         modelComp.model?.meshes?.forEach { mesh ->
                             // TODO: pass the transform.globalMatrix to a push constant or UBO
-                            commandBuffer.bindVertexBuffer(mesh.vertexBuffer.handle)
-                            commandBuffer.bindIndexBuffer(mesh.indexBuffer.handle)
-                            commandBuffer.drawIndexed(mesh.indexCount)
-                        }
-                    }
-                }
-            }
-        }
-
-        pass("DebugScenePass") {
-            writes(RenderResourceNames.BACK_BUFFER, RenderResourceNames.DEPTH_BUFFER)
-            pipeline { commandBuffer ->
-                commandBuffer.setScissor(fbWidth / 2, fbHeight / 2, fbWidth / 2, fbHeight / 2)
-                commandBuffer.setViewport((fbWidth / 2).toFloat(), (fbHeight / 2).toFloat(), (fbWidth / 2).toFloat(), (fbHeight / 2).toFloat())
-
-                graphicsPipeline?.let { pipeline ->
-                    pipeline.bind(commandBuffer)
-                    
-                    scene.forEachModel { _, modelComp ->
-                        modelComp.model?.meshes?.forEach { mesh ->
                             commandBuffer.bindVertexBuffer(mesh.vertexBuffer.handle)
                             commandBuffer.bindIndexBuffer(mesh.indexBuffer.handle)
                             commandBuffer.drawIndexed(mesh.indexCount)
