@@ -37,7 +37,8 @@ class MaterialSerializer : AssetSerializer<Material, MaterialMetadata>(
             emissiveTexture = emissive,
             baseColor = Vector4f(metadata.baseColorR, metadata.baseColorG, metadata.baseColorB, metadata.baseColorA),
             metallicFactor = metadata.metallicFactor,
-            roughnessFactor = metadata.roughnessFactor
+            roughnessFactor = metadata.roughnessFactor,
+            isTransparent = metadata.isTransparent
         )
     }
 }

@@ -13,7 +13,8 @@ class Material(
     emissiveTexture: Texture?,
     baseColor: Vector4f = Vector4f(1f, 1f, 1f, 1f),
     metallicFactor: Float = 1.0f,
-    roughnessFactor: Float = 1.0f
+    roughnessFactor: Float = 1.0f,
+    isTransparent: Boolean
 ) : Asset<Material>(uuid, path, metadata) {
 
     override var metadata: MaterialMetadata = metadata
@@ -21,17 +22,26 @@ class Material(
 
     var albedoTexture: Texture? = albedoTexture
         private set
+
     var normalTexture: Texture? = normalTexture
         private set
+
     var metallicRoughnessTexture: Texture? = metallicRoughnessTexture
         private set
+
     var emissiveTexture: Texture? = emissiveTexture
         private set
+
     var baseColor: Vector4f = baseColor
         private set
+
     var metallicFactor: Float = metallicFactor
         private set
+
     var roughnessFactor: Float = roughnessFactor
+        private set
+
+    var isTransparent: Boolean = isTransparent
         private set
 
     override fun update(newAsset: Material) {
@@ -43,6 +53,7 @@ class Material(
         this.baseColor = newAsset.baseColor
         this.metallicFactor = newAsset.metallicFactor
         this.roughnessFactor = newAsset.roughnessFactor
+        this.isTransparent = newAsset.isTransparent
     }
 
     override fun dispose() { }

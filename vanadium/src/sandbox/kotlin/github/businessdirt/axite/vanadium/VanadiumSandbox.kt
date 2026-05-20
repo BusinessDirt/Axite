@@ -47,7 +47,12 @@ class VanadiumSandbox : VanadiumAdapter {
         val model = Vanadium.assets.load<Model>(MODEL_FILE)
         texture = Vanadium.assets.load<Texture>(TEXTURE_FILE)
 
-        graphicsPipeline = GraphicsPipeline(Vanadium.context.device.handle, vertexShader, fragmentShader)
+        graphicsPipeline = GraphicsPipeline(Vanadium.context.device.handle) {
+            vertexShader(vertexShader)
+            fragmentShader(fragmentShader)
+
+            enableBlend = true
+        }
 
         // Initialize Descriptor Set for the texture
         descriptorPool = DescriptorPool(

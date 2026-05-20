@@ -4,20 +4,48 @@ import github.businessdirt.axite.vanadium.Vanadium
 import github.businessdirt.axite.vanadium.assets.types.Shader
 import github.businessdirt.axite.vanadium.core.utils.createHandle
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
+import github.businessdirt.axite.vanadium.vulkan.VulkanDsl
 import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
 import github.businessdirt.axite.vanadium.vulkan.descriptors.DescriptorSetLayout
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK13.*
 
+@VulkanDsl
+class GraphicsPipelineConfiguration {
+    lateinit var vertexShader: Shader
+    lateinit var fragmentShader: Shader
+
+    var topology: Int = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+    var polygonMode: Int = VK_POLYGON_MODE_FILL
+    var cullMode: Int = VK_CULL_MODE_NONE
+    var frontFace: Int = VK_FRONT_FACE_CLOCKWISE
+    var lineWidth: Float = 1.0f
+
+    var enableBlend: Boolean = false
+
+    var depthTestEnable: Boolean = true
+    var depthWriteEnable: Boolean = true
+    var depthCompareOp: Int = VK_COMPARE_OP_LESS_OR_EQUAL
+
+    fun vertexShader(shader: Shader) {
+        this.vertexShader = shader
+    }
+
+    fun fragmentShader(shader: Shader) {
+        this.fragmentShader = shader
+    }
+}
+
 /**
  * Represents a Vulkan graphics pipeline.
  */
 class GraphicsPipeline(
     device: VkDevice,
-    vertexShader: Shader,
-    fragmentShader: Shader
+    val configuration: GraphicsPipelineConfiguration
 ) : Pipeline(device) {
+
+    constructor(device: VkDevice, block: GraphicsPipelineConfiguration.() -> Unit) : this(device, GraphicsPipelineConfiguration().apply(block))
 
     private fun MemoryStack.renderingCreateInfo(): VkPipelineRenderingCreateInfo {
         val info = VkPipelineRenderingCreateInfo.calloc(this).`sType$Default`()
@@ -40,7 +68,7 @@ class GraphicsPipeline(
 
     private fun MemoryStack.inputAssemblyStateCreateInfo(): VkPipelineInputAssemblyStateCreateInfo =
         VkPipelineInputAssemblyStateCreateInfo.calloc(this).`sType$Default`()
-            .topology(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+            .topology(configuration.topology)
 
     private fun MemoryStack.viewportStateCreateInfo(): VkPipelineViewportStateCreateInfo =
         VkPipelineViewportStateCreateInfo.calloc(this).`sType$Default`()
@@ -48,10 +76,10 @@ class GraphicsPipeline(
 
     private fun MemoryStack.rasterizationStateCreateInfo(): VkPipelineRasterizationStateCreateInfo =
         VkPipelineRasterizationStateCreateInfo.calloc(this).`sType$Default`()
-            .polygonMode(VK_POLYGON_MODE_FILL)
-            .cullMode(VK_CULL_MODE_NONE)
-            .frontFace(VK_FRONT_FACE_CLOCKWISE)
-            .lineWidth(1.0f)
+            .polygonMode(configuration.polygonMode)
+            .cullMode(configuration.cullMode)
+            .frontFace(configuration.frontFace)
+            .lineWidth(configuration.lineWidth)
 
     private fun MemoryStack.multisampleStateCreateInfo(): VkPipelineMultisampleStateCreateInfo =
         VkPipelineMultisampleStateCreateInfo.calloc(this).`sType$Default`()
@@ -61,20 +89,27 @@ class GraphicsPipeline(
         VkPipelineDynamicStateCreateInfo.calloc(this).`sType$Default`()
             .pDynamicStates(this.ints(VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR))
 
-    private fun MemoryStack.colorBlendAttachmentStateCreateInfo(): VkPipelineColorBlendStateCreateInfo {
-        val attachment = VkPipelineColorBlendAttachmentState.calloc(1, this)
+    private fun MemoryStack.colorBlendAttachmentStateCreateInfo(enableBlend: Boolean): VkPipelineColorBlendStateCreateInfo {
+        val attachmentState = VkPipelineColorBlendAttachmentState.calloc(1, this)
             .colorWriteMask(VK_COLOR_COMPONENT_R_BIT or VK_COLOR_COMPONENT_G_BIT or VK_COLOR_COMPONENT_B_BIT or VK_COLOR_COMPONENT_A_BIT)
-            .blendEnable(false)
-        return VkPipelineColorBlendStateCreateInfo.calloc(this).`sType$Default`().pAttachments(attachment)
+            .blendEnable(enableBlend)
+
+        if (enableBlend) attachmentState[0].colorBlendOp(VK_BLEND_OP_ADD)
+            .alphaBlendOp(VK_BLEND_OP_ADD)
+            .srcColorBlendFactor(VK_BLEND_FACTOR_SRC_ALPHA)
+            .dstColorBlendFactor(VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA)
+            .srcAlphaBlendFactor(VK_BLEND_FACTOR_SRC_ALPHA)
+            .dstAlphaBlendFactor(VK_BLEND_FACTOR_ZERO)
+
+        return VkPipelineColorBlendStateCreateInfo.calloc(this).`sType$Default`().pAttachments(attachmentState)
     }
 
-    private fun MemoryStack.depthStencilStateCreateInfo() =
-        VkPipelineDepthStencilStateCreateInfo.calloc(this).`sType$Default`()
-            .depthTestEnable(true)
-            .depthWriteEnable(true)
-            .depthCompareOp(VK_COMPARE_OP_LESS_OR_EQUAL)
-            .depthBoundsTestEnable(false)
-            .stencilTestEnable(false)
+    private fun MemoryStack.depthStencilStateCreateInfo() = VkPipelineDepthStencilStateCreateInfo.calloc(this).`sType$Default`()
+        .depthTestEnable(configuration.depthTestEnable)
+        .depthWriteEnable(configuration.depthWriteEnable)
+        .depthCompareOp(configuration.depthCompareOp)
+        .depthBoundsTestEnable(false)
+        .stencilTestEnable(false)
 
     private fun MemoryStack.vertexInputStateCreateInfo(vertexShader: Shader): VkPipelineVertexInputStateCreateInfo {
         val metadata = vertexShader.metadata
@@ -104,8 +139,8 @@ class GraphicsPipeline(
 
     override val layout: PipelineLayout = PipelineLayout(
         device,
-        mergePushConstants(vertexShader.metadata.pushConstantRanges + fragmentShader.metadata.pushConstantRanges),
-        mergeLayoutBindings(vertexShader.metadata.layoutBindings + fragmentShader.metadata.layoutBindings).let {
+        mergePushConstants(configuration.vertexShader.metadata.pushConstantRanges + configuration.fragmentShader.metadata.pushConstantRanges),
+        mergeLayoutBindings(configuration.vertexShader.metadata.layoutBindings + configuration.fragmentShader.metadata.layoutBindings).let {
             if (it.isNotEmpty()) listOf(DescriptorSetLayout(device, it)) else emptyList()
         }
     )
@@ -117,12 +152,12 @@ class GraphicsPipeline(
         val pipelineCreateInfo = VkGraphicsPipelineCreateInfo.calloc(1, stack).`sType$Default`()
             .pNext(stack.renderingCreateInfo().address())
             .renderPass(VK_NULL_HANDLE)
-            .pStages(stack.shaderStageCreateInfo(vertexShader, fragmentShader))
-            .pVertexInputState(stack.vertexInputStateCreateInfo(vertexShader))
+            .pStages(stack.shaderStageCreateInfo(configuration.vertexShader, configuration.fragmentShader))
+            .pVertexInputState(stack.vertexInputStateCreateInfo(configuration.vertexShader))
             .pInputAssemblyState(stack.inputAssemblyStateCreateInfo())
             .pViewportState(stack.viewportStateCreateInfo())
             .pRasterizationState(stack.rasterizationStateCreateInfo())
-            .pColorBlendState(stack.colorBlendAttachmentStateCreateInfo())
+            .pColorBlendState(stack.colorBlendAttachmentStateCreateInfo(configuration.enableBlend))
             .pMultisampleState(stack.multisampleStateCreateInfo())
             .pDynamicState(stack.dynamicStateCreateInfo())
             .pDepthStencilState(stack.depthStencilStateCreateInfo())
@@ -132,5 +167,4 @@ class GraphicsPipeline(
             vkCreateGraphicsPipelines(device, Vanadium.context.pipelineCache.handle, pipelineCreateInfo, null, it)
         }
     }
-
 }

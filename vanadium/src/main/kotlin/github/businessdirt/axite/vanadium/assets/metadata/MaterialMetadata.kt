@@ -16,5 +16,6 @@ data class MaterialMetadata(
     val baseColorB: Float = 1.0f,
     val baseColorA: Float = 1.0f,
     val metallicFactor: Float = 1.0f,
-    val roughnessFactor: Float = 1.0f
+    val roughnessFactor: Float = 1.0f,
+    val isTransparent: Boolean = false
 ) : AssetMetadata()

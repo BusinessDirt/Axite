@@ -11,7 +11,6 @@ import github.businessdirt.axite.vanadium.vulkan.resources.ImageView
 import github.businessdirt.axite.vanadium.vulkan.resources.Sampler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.serializer
 import org.lwjgl.stb.STBImage.*
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.vulkan.VK13.*
@@ -52,7 +51,6 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
             val pStaging = stagingBuffer.map()
             MemoryUtil.memCopy(MemoryUtil.memAddress(pixels), pStaging, imageSize)
             stagingBuffer.unmap()
-            stbi_image_free(pixels)
 
             val format = if (metadata.format == 0) VK_FORMAT_R8G8B8A8_SRGB else metadata.format
             val image = Image(Vanadium.context.device.handle, Vanadium.context.physicalDevice) {
@@ -117,7 +115,10 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
                 format = format
             )
 
-            Texture(path, finalMetadata.uuid, finalMetadata, image, view, sampler)
+            Texture(path, finalMetadata.uuid, finalMetadata, image, view, sampler).apply {
+                setTransparent(pixels)
+                stbi_image_free(pixels)
+            }
         }
     }
 }
