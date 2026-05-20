@@ -8,6 +8,7 @@ import github.businessdirt.axite.vanadium.scene.Mesh
 import github.businessdirt.axite.vanadium.scene.Vertex
 import github.businessdirt.axite.vanadium.vulkan.resources.Buffer
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.serializer
 import org.joml.Vector2f
@@ -41,6 +42,11 @@ class ModelSerializer : AssetSerializer<Model, ModelMetadata>(
         aiReleaseImport(scene)
 
         val finalMetadata = metadata.copy(meshCount = meshes.size)
+
+        if (!hasMetadata(path)) Vanadium.engineScope.launch(Dispatchers.IO) {
+            writeMetadata(path, finalMetadata)
+        }
+
         Model(path, finalMetadata.uuid, finalMetadata, meshes)
     }
 

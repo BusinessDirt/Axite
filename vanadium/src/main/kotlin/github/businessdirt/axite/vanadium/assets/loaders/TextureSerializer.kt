@@ -10,6 +10,7 @@ import github.businessdirt.axite.vanadium.vulkan.resources.Image
 import github.businessdirt.axite.vanadium.vulkan.resources.ImageView
 import github.businessdirt.axite.vanadium.vulkan.resources.Sampler
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.lwjgl.stb.STBImage.*
 import org.lwjgl.system.MemoryUtil
@@ -114,6 +115,10 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
                 height = height,
                 format = format
             )
+
+            if (!hasMetadata(path)) Vanadium.engineScope.launch(Dispatchers.IO) {
+                writeMetadata(path, finalMetadata)
+            }
 
             Texture(path, finalMetadata.uuid, finalMetadata, image, view, sampler).apply {
                 setTransparent(pixels)

@@ -5,6 +5,7 @@ import github.businessdirt.axite.vanadium.assets.metadata.MaterialMetadata
 import github.businessdirt.axite.vanadium.assets.types.Material
 import github.businessdirt.axite.vanadium.assets.types.Texture
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.joml.Vector4f
@@ -20,6 +21,10 @@ class MaterialSerializer : AssetSerializer<Material, MaterialMetadata>(
             json.decodeFromString<MaterialMetadata>(file.readText())
         } else {
             loadMetadata(path) ?: MaterialMetadata()
+        }
+
+        if (!hasMetadata(path)) Vanadium.engineScope.launch(Dispatchers.IO) {
+            writeMetadata(path, metadata)
         }
 
         val albedo = metadata.albedoPath?.let { Vanadium.assets.load<Texture>(it) }
