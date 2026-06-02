@@ -41,6 +41,9 @@ class Context(private val config: VanadiumConfig) {
     lateinit var pipelineCache: PipelineCache
         private set
 
+    lateinit var memoryAllocator: MemoryAllocator
+        private set
+
     lateinit var frameData: Array<FrameData>
         private set
 
@@ -70,6 +73,8 @@ class Context(private val config: VanadiumConfig) {
         // Determine max frames in flight. Standard is 2, but we must not exceed (imageCount - 1)
         // to avoid stalling on image acquisition.
         maxFramesInFlight = min(2, swapchain.imageCount - 1)
+
+        memoryAllocator = scope.use(MemoryAllocator(instance, physicalDevice, device))
 
         // Initialize frames in flight
         frameData = Array(maxFramesInFlight) {
