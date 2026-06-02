@@ -140,8 +140,17 @@ class GraphicsPipeline(
     override val layout: PipelineLayout = PipelineLayout(
         device,
         mergePushConstants(configuration.vertexShader.metadata.pushConstantRanges + configuration.fragmentShader.metadata.pushConstantRanges),
-        mergeLayoutBindings(configuration.vertexShader.metadata.layoutBindings + configuration.fragmentShader.metadata.layoutBindings).let {
-            if (it.isNotEmpty()) listOf(DescriptorSetLayout(device, it)) else emptyList()
+        mergeLayoutBindings(configuration.vertexShader.metadata.layoutBindings + configuration.fragmentShader.metadata.layoutBindings).let { bindings ->
+            if (bindings.isEmpty()) return@let emptyList()
+
+            val maxSet = bindings.maxOf { it.set }
+            val layouts = mutableListOf<DescriptorSetLayout>()
+
+            for (setIndex in 0..maxSet) {
+                val setBindings = bindings.filter { it.set == setIndex }
+                layouts.add(DescriptorSetLayout(device, setBindings))
+            }
+            layouts
         }
     )
 

@@ -1,13 +1,36 @@
 #version 450
 
-layout(location = 0) in vec3 inNormal;
-layout(location = 1) in vec2 inUV;
-layout(location = 2) in vec3 inColor;
+// Keep in sync manually with Java code
+const int MAX_TEXTURES = 16;
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) in vec2 inTextCoords;
 
-layout(set = 0, binding = 0) uniform sampler2D texSampler;
+layout(location = 0) out vec4 outFragColor;
 
-void main() {
-    outColor = texture(texSampler, inUV) * vec4(inColor, 1.0);
+struct Material {
+    vec4 diffuseColor;
+    uint hasTexture;
+    uint textureIdx;
+    uint padding[2];
+};
+
+layout(set = 2, binding = 0) readonly buffer MaterialUniform {
+    Material materials[];
+} matUniform;
+
+layout(set = 3, binding = 0) uniform sampler2D textSampler[MAX_TEXTURES];
+
+layout(push_constant) uniform pc {
+    mat4 modelMatrix;
+    uint materialIdx;
+} push_constants;
+
+void main()
+{
+    Material material = matUniform.materials[push_constants.materialIdx];
+    if (material.hasTexture == 1) {
+        outFragColor = texture(textSampler[material.textureIdx], inTextCoords);
+    } else {
+        outFragColor = material.diffuseColor;
+    }
 }

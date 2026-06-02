@@ -20,6 +20,14 @@ import org.lwjgl.vulkan.VK13.*
 import java.io.File
 import java.nio.ByteBuffer
 
+import github.businessdirt.axite.vanadium.assets.types.Texture
+import org.joml.Vector4f
+import org.lwjgl.assimp.AIMaterial
+import org.lwjgl.assimp.AIString
+import java.util.UUID
+
+import java.nio.IntBuffer
+
 class ModelSerializer : AssetSerializer<Model, ModelMetadata>(
     ModelMetadata.serializer()
 ) {
@@ -36,7 +44,40 @@ class ModelSerializer : AssetSerializer<Model, ModelMetadata>(
         val meshes = mutableListOf<Mesh>()
         for (i in 0 until scene.mNumMeshes()) {
             val aiMesh = AIMesh.create(scene.mMeshes()!![i])
-            meshes.add(loadMesh(aiMesh))
+            val materialIndex = aiMesh.mMaterialIndex()
+            meshes.add(loadMesh(aiMesh, materialIndex))
+        }
+
+        val materials = mutableListOf<github.businessdirt.axite.vanadium.assets.types.Material>()
+        val parentDir = file.parentFile
+        for (i in 0 until scene.mNumMaterials()) {
+            val aiMaterial = AIMaterial.create(scene.mMaterials()!![i])
+            val color = Vector4f(1f, 1f, 1f, 1f)
+
+            val texturePath = memoryStack { stack ->
+                val texturePathStr = AIString.calloc(stack)
+                aiGetMaterialTexture(aiMaterial, aiTextureType_DIFFUSE, 0, texturePathStr, null as IntBuffer?, null, null, null, null, null)
+                texturePathStr.dataString()
+            }
+
+            val texture = if (texturePath.isNotEmpty()) {
+                val texFile = File(parentDir, texturePath)
+                if (texFile.exists()) {
+                    Vanadium.assets.load<Texture>(texFile.path)
+                } else null
+            } else null
+
+            materials.add(github.businessdirt.axite.vanadium.assets.types.Material(
+                path = "internal:$i",
+                uuid = UUID.randomUUID().toString(),
+                metadata = github.businessdirt.axite.vanadium.assets.metadata.MaterialMetadata(),
+                albedoTexture = texture,
+                normalTexture = null,
+                metallicRoughnessTexture = null,
+                emissiveTexture = null,
+                baseColor = color,
+                isTransparent = false
+            ))
         }
 
         aiReleaseImport(scene)
@@ -47,10 +88,10 @@ class ModelSerializer : AssetSerializer<Model, ModelMetadata>(
             writeMetadata(path, finalMetadata)
         }
 
-        Model(path, finalMetadata.uuid, finalMetadata, meshes)
+        Model(path, finalMetadata.uuid, finalMetadata, meshes, materials)
     }
 
-    private fun loadMesh(aiMesh: AIMesh): Mesh = memoryStack {
+    private fun loadMesh(aiMesh: AIMesh, materialIndex: Int): Mesh = memoryStack {
         val vertexCount = aiMesh.mNumVertices()
         val vertices = mutableListOf<Vertex>()
 
@@ -93,7 +134,7 @@ class ModelSerializer : AssetSerializer<Model, ModelMetadata>(
             }
         }
 
-        Mesh(vertexBuffer, indexBuffer, indexCount)
+        Mesh(vertexBuffer, indexBuffer, indexCount, materialIndex)
     }
 
     private fun createDeviceLocalBuffer(usage: Int, size: Long, fillBlock: (ByteBuffer) -> Unit): Buffer {

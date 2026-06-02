@@ -1,22 +1,27 @@
 #version 450
 
-layout(location = 0) in vec3 inPosition;
+layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec3 inNormal;
-layout(location = 2) in vec2 inUV;
+layout(location = 2) in vec2 inTextCoords;
 layout(location = 3) in vec3 inColor;
 
-layout(location = 0) out vec3 outNormal;
-layout(location = 1) out vec2 outUV;
-layout(location = 2) out vec3 outColor;
+layout(location = 0) out vec2 outTextCoords;
 
-layout(push_constant) uniform PushConstants {
-    mat4 model;
-    mat4 viewProj;
-} push;
+layout(set = 0, binding = 0) uniform ProjUniform {
+    mat4 matrix;
+} projUniform;
 
-void main() {
-    gl_Position = push.viewProj * push.model * vec4(inPosition, 1.0);
-    outNormal = inNormal;
-    outUV = inUV;
-    outColor = inColor;
+layout(set = 1, binding = 0) uniform ViewUniform {
+    mat4 matrix;
+} viewUniform;
+
+layout(push_constant) uniform pc {
+    mat4 modelMatrix;
+    uint materialIdx;
+} push_constants;
+
+void main()
+{
+    gl_Position   = projUniform.matrix * viewUniform.matrix * push_constants.modelMatrix * vec4(inPos, 1);
+    outTextCoords = inTextCoords;
 }

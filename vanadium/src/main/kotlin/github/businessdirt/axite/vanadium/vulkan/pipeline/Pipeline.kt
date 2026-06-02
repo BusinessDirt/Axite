@@ -30,11 +30,12 @@ sealed class Pipeline(
                 )
             }
 
-        fun mergeLayoutBindings(bindings: List<LayoutBinding>): List<LayoutBinding> = bindings.groupBy { it.binding }
-            .map { (binding, group) ->
+        fun mergeLayoutBindings(bindings: List<LayoutBinding>): List<LayoutBinding> = bindings.groupBy { it.set to it.binding }
+            .map { (key, group) ->
                 val first = group.first()
                 LayoutBinding(
-                    binding = binding,
+                    set = key.first,
+                    binding = key.second,
                     descriptorType = first.descriptorType,
                     descriptorCount = first.descriptorCount,
                     stageFlags = group.fold(0) { acc, b -> acc or b.stageFlags },

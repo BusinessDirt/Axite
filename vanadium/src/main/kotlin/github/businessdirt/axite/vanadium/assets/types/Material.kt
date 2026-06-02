@@ -1,5 +1,6 @@
 package github.businessdirt.axite.vanadium.assets.types
 
+import github.businessdirt.axite.vanadium.Vanadium
 import github.businessdirt.axite.vanadium.assets.metadata.MaterialMetadata
 import org.joml.Vector4f
 
@@ -45,6 +46,11 @@ class Material(
         private set
 
     override fun update(newAsset: Material) {
+        val oldAlbedo = this.albedoTexture
+        val oldNormal = this.normalTexture
+        val oldMetallicRoughness = this.metallicRoughnessTexture
+        val oldEmissive = this.emissiveTexture
+
         this.metadata = newAsset.metadata
         this.albedoTexture = newAsset.albedoTexture
         this.normalTexture = newAsset.normalTexture
@@ -54,7 +60,17 @@ class Material(
         this.metallicFactor = newAsset.metallicFactor
         this.roughnessFactor = newAsset.roughnessFactor
         this.isTransparent = newAsset.isTransparent
+
+        oldAlbedo?.let { Vanadium.assets.unload(it.path) }
+        oldNormal?.let { Vanadium.assets.unload(it.path) }
+        oldMetallicRoughness?.let { Vanadium.assets.unload(it.path) }
+        oldEmissive?.let { Vanadium.assets.unload(it.path) }
     }
 
-    override fun dispose() { }
+    override fun dispose() {
+        albedoTexture?.let { Vanadium.assets.unload(it.path) }
+        normalTexture?.let { Vanadium.assets.unload(it.path) }
+        metallicRoughnessTexture?.let { Vanadium.assets.unload(it.path) }
+        emissiveTexture?.let { Vanadium.assets.unload(it.path) }
+    }
 }

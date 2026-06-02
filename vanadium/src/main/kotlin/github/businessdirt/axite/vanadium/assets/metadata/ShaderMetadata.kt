@@ -28,6 +28,7 @@ data class PushConstantRange(
 
 @Serializable
 data class LayoutBinding(
+    val set: Int = 0,
     val binding: Int,
     val descriptorType: Int,
     val descriptorCount: Int,

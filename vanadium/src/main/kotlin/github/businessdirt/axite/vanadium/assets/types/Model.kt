@@ -7,7 +7,8 @@ class Model(
     path: String,
     uuid: String,
     metadata: ModelMetadata,
-    meshes: List<Mesh>
+    meshes: List<Mesh>,
+    materials: List<Material> = emptyList()
 ) : Asset<Model>(uuid, path, metadata) {
 
     override var metadata: ModelMetadata = metadata
@@ -16,12 +17,23 @@ class Model(
     var meshes: List<Mesh> = meshes
         private set
 
+    var materials: List<Material> = materials
+        private set
+
     override fun update(newAsset: Model) {
         val oldMeshes = this.meshes
+        val oldMaterials = this.materials
+
         this.metadata = newAsset.metadata
         this.meshes = newAsset.meshes
-        oldMeshes.forEach { it.close() }
+        this.materials = newAsset.materials
+
+        oldMeshes.forEach { mesh -> mesh.close() }
+        oldMaterials.forEach { material -> material.release() }
     }
 
-    override fun dispose() = meshes.forEach { it.close() }
+    override fun dispose() {
+        meshes.forEach { mesh -> mesh.close() }
+        materials.forEach { material -> material.release() }
+    }
 }

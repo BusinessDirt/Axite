@@ -19,7 +19,8 @@ data class Vertex(
 class Mesh(
     val vertexBuffer: Buffer,
     val indexBuffer: Buffer,
-    val indexCount: Int
+    val indexCount: Int,
+    val materialIndex: Int = 0
 ) : AutoCloseable {
     override fun close() {
         vertexBuffer.close()

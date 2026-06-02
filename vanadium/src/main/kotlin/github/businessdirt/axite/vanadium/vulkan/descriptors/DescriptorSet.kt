@@ -45,6 +45,40 @@ class DescriptorSet(
         vkUpdateDescriptorSets(device, write, null)
     }
 
+    fun updateImages(binding: Int, views: LongArray, samplers: LongArray, layout: Int = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, type: Int = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) = memoryStack { stack ->
+        val imageInfo = VkDescriptorImageInfo.calloc(views.size, stack)
+        for (i in views.indices) {
+            imageInfo[i].imageView(views[i]).sampler(samplers[i]).imageLayout(layout)
+        }
+
+        val write = VkWriteDescriptorSet.calloc(1, stack).`sType$Default`()
+            .dstSet(handle)
+            .dstBinding(binding)
+            .dstArrayElement(0)
+            .descriptorType(type)
+            .descriptorCount(views.size)
+            .pImageInfo(imageInfo)
+
+        vkUpdateDescriptorSets(device, write, null)
+    }
+
+    fun updateBuffer(binding: Int, buffer: Long, size: Long, offset: Long = 0, type: Int = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER) = memoryStack { stack ->
+        val bufferInfo = org.lwjgl.vulkan.VkDescriptorBufferInfo.calloc(1, stack)
+            .buffer(buffer)
+            .offset(offset)
+            .range(size)
+
+        val write = VkWriteDescriptorSet.calloc(1, stack).`sType$Default`()
+            .dstSet(handle)
+            .dstBinding(binding)
+            .dstArrayElement(0)
+            .descriptorType(type)
+            .descriptorCount(1)
+            .pBufferInfo(bufferInfo)
+
+        vkUpdateDescriptorSets(device, write, null)
+    }
+
     override fun destroy() {
         // Descriptor sets are freed when the pool is destroyed, 
         // but we used VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT so we can free it manually if needed.

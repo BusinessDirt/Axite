@@ -18,6 +18,7 @@ import kotlinx.serialization.serializer
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.util.shaderc.Shaderc
 import org.lwjgl.util.spvc.Spv.SpvDecorationBinding
+import org.lwjgl.util.spvc.Spv.SpvDecorationDescriptorSet
 import org.lwjgl.util.spvc.Spv.SpvDecorationLocation
 import org.lwjgl.util.spvc.Spvc.*
 import org.lwjgl.util.spvc.SpvcReflectedResource
@@ -231,10 +232,16 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
 
             for (i in 0 until count) {
                 val resource = list[i]
+                val set = spvc_compiler_get_decoration(compiler, resource.id(), SpvDecorationDescriptorSet)
                 val binding = spvc_compiler_get_decoration(compiler, resource.id(), SpvDecorationBinding)
                 val name = spvc_compiler_get_name(compiler, resource.id()) ?: ""
 
-                results.add(LayoutBinding(binding, vkType, 1, stageFlags, name))
+                val type = spvc_compiler_get_type_handle(compiler, resource.type_id())
+                val arraySize = if (spvc_type_get_num_array_dimensions(type) > 0) {
+                    spvc_type_get_array_dimension(type, 0)
+                } else 1
+
+                results.add(LayoutBinding(set, binding, vkType, arraySize, stageFlags, name))
             }
         }
     }
