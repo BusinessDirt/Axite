@@ -217,5 +217,9 @@ class SceneRenderer(val context: Context) {
         materialBuffer?.close()
 
         graphicsPipeline?.close()
+
+        Vanadium.assets.unload(VERTEX_SHADER_PATH)
+        Vanadium.assets.unload(FRAGMENT_SHADER_PATH)
+        Vanadium.assets.unload(WHITE_TEXTURE_PATH)
     }
 }

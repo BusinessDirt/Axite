@@ -146,6 +146,18 @@ class AssetManager(private val scope: CoroutineScope) {
         return asset
     }
 
+    fun clear() {
+        val keys = cache.keys().toList()
+        for (key in keys) {
+            unload(key)
+        }
+    }
+
+    fun shutdown() {
+        clear()
+        watchService.close()
+    }
+
     @Suppress("unused")
     fun unload(path: String) {
         cache[path]?.let { asset ->

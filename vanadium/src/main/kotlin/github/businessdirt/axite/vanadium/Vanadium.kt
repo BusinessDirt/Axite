@@ -125,6 +125,7 @@ object Vanadium {
 
         Profiler.profile("Adapter Shutdown") { adapter.shutdown() }
         renderer.shutdown()
+        assets.shutdown()
         context.shutdown()
         window.shutdown()
 
