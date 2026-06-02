@@ -20,7 +20,7 @@ import org.lwjgl.vulkan.VK13.*
 class SceneRenderer(val context: Context) {
 
     companion object {
-        const val MAX_TEXTURES = 16
+        const val MAX_TEXTURES = 128
         const val MAX_MATERIALS = 1024
 
         const val VERTEX_SHADER_PATH = "src/main/resources/shaders/scene.vert.glsl"
@@ -46,6 +46,10 @@ class SceneRenderer(val context: Context) {
         val vertexShader = Vanadium.assets.load<Shader>(VERTEX_SHADER_PATH)
         val fragmentShader = Vanadium.assets.load<Shader>(FRAGMENT_SHADER_PATH)
         whiteTexture = Vanadium.assets.load<Texture>(WHITE_TEXTURE_PATH)
+
+        // Ensure white texture is always at index 0
+        textures.clear()
+        textures.add(whiteTexture)
 
         graphicsPipeline = GraphicsPipeline(context.device.handle) {
             vertexShader(vertexShader)
@@ -95,7 +99,7 @@ class SceneRenderer(val context: Context) {
     fun render(commandBuffer: CommandBuffer, scene: Scene) {
         val pipeline = graphicsPipeline ?: return
 
-        // Update texture list and material buffer from scene
+        // Update texture list from scene
         var textureUpdateNeeded = false
         scene.forEachModel { _: TransformComponent, modelComp: ModelComponent ->
             modelComp.model?.let { model ->
@@ -111,19 +115,30 @@ class SceneRenderer(val context: Context) {
         }
         if (textureUpdateNeeded) updateTextureSet()
 
+        // Populate material buffer
         val materialBufferSize = MAX_MATERIALS * 32L
         val matMap = materialBuffer!!.map()
         val matBuffer = MemoryUtil.memByteBuffer(matMap, materialBufferSize.toInt())
         var matOffset = 0
+        
+        // We need a stable mapping of material to index for this frame
+        val materialToIndex = mutableMapOf<github.businessdirt.axite.vanadium.assets.types.Material, Int>()
+        var nextMatIdx = 0
+
         scene.forEachModel { _: TransformComponent, modelComp: ModelComponent ->
             modelComp.model?.materials?.forEach { mat ->
-                if (matOffset + 32 <= materialBufferSize) {
-                    matBuffer.putFloat(mat.baseColor.x).putFloat(mat.baseColor.y).putFloat(mat.baseColor.z).putFloat(mat.baseColor.w)
-                    val texIdx = textures.indexOf(mat.albedoTexture).coerceAtLeast(0)
-                    matBuffer.putInt(if (mat.albedoTexture != null) 1 else 0)
-                    matBuffer.putInt(texIdx)
-                    matBuffer.putInt(0).putInt(0)
-                    matOffset += 32
+                if (!materialToIndex.containsKey(mat) && nextMatIdx < MAX_MATERIALS) {
+                    materialToIndex[mat] = nextMatIdx
+                    
+                    if (matOffset + 32 <= materialBufferSize) {
+                        matBuffer.putFloat(mat.baseColor.x).putFloat(mat.baseColor.y).putFloat(mat.baseColor.z).putFloat(mat.baseColor.w)
+                        val texIdx = textures.indexOf(mat.albedoTexture).coerceAtLeast(0)
+                        matBuffer.putInt(if (mat.albedoTexture != null) 1 else 0)
+                        matBuffer.putInt(texIdx)
+                        matBuffer.putInt(0).putInt(0)
+                        matOffset += 32
+                        nextMatIdx++
+                    }
                 }
             }
         }
@@ -149,11 +164,14 @@ class SceneRenderer(val context: Context) {
             viewBuffer!!.unmap()
         }
 
-        fun renderMesh(transform: TransformComponent, mesh: Mesh, matBaseIdx: Int) {
+        fun renderMesh(transform: TransformComponent, mesh: Mesh, modelMaterials: List<github.businessdirt.axite.vanadium.assets.types.Material>) {
+            val material = modelMaterials.getOrNull(mesh.materialIndex) ?: return
+            val globalMatIdx = materialToIndex[material] ?: 0
+
             memoryStack { stack ->
                 val pcBuffer = stack.malloc(64 + 4)
                 transform.globalMatrix.get(0, pcBuffer)
-                pcBuffer.putInt(64, matBaseIdx + mesh.materialIndex)
+                pcBuffer.putInt(64, globalMatIdx)
 
                 commandBuffer.pushConstants(pipeline.layout.handle, VK_SHADER_STAGE_VERTEX_BIT or VK_SHADER_STAGE_FRAGMENT_BIT, pcBuffer)
                 commandBuffer.bindVertexBuffer(mesh.vertexBuffer.handle)
@@ -162,31 +180,27 @@ class SceneRenderer(val context: Context) {
             }
         }
 
-        var currentMatBaseIdx = 0
         // Pass 1: Opaque
         scene.forEachModel { transform: TransformComponent, modelComp: ModelComponent ->
             modelComp.model?.let { model ->
                 model.meshes.forEach { mesh ->
                     val material = model.materials.getOrNull(mesh.materialIndex)
                     if (material == null || !material.isTransparent) {
-                        renderMesh(transform, mesh, currentMatBaseIdx)
+                        renderMesh(transform, mesh, model.materials)
                     }
                 }
-                currentMatBaseIdx += model.materials.size
             }
         }
 
-        currentMatBaseIdx = 0
         // Pass 2: Transparent
         scene.forEachModel { transform: TransformComponent, modelComp: ModelComponent ->
             modelComp.model?.let { model ->
                 model.meshes.forEach { mesh ->
                     val material = model.materials.getOrNull(mesh.materialIndex)
                     if (material?.isTransparent == true) {
-                        renderMesh(transform, mesh, currentMatBaseIdx)
+                        renderMesh(transform, mesh, model.materials)
                     }
                 }
-                currentMatBaseIdx += model.materials.size
             }
         }
     }

@@ -25,7 +25,7 @@ class DescriptorPool(
         val createInfo = VkDescriptorPoolCreateInfo.calloc(stack).`sType$Default`()
             .pPoolSizes(sizes)
             .maxSets(maxSets)
-            .flags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
+            .flags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT or VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT)
 
         stack.createHandle({ "Failed to create descriptor pool" }) {
             vkCreateDescriptorPool(device, createInfo, null, it)

@@ -28,7 +28,14 @@ class Device(
                 .pQueuePriorities(priorities)
         }
 
+        val features12 = VkPhysicalDeviceVulkan12Features.calloc(stack).`sType$Default`()
+            .descriptorBindingPartiallyBound(true)
+            .runtimeDescriptorArray(true)
+            .descriptorBindingSampledImageUpdateAfterBind(true)
+            .descriptorBindingStorageBufferUpdateAfterBind(true)
+
         val features13 = VkPhysicalDeviceVulkan13Features.calloc(stack).`sType$Default`()
+            .pNext(features12.address())
             .dynamicRendering(true)
             .synchronization2(true)
 
