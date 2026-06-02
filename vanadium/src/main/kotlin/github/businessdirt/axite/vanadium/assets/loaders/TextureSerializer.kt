@@ -172,7 +172,7 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
                 .srcOffsets(0, srcOffset0)
                 .srcOffsets(1, srcOffset1)
                 .srcSubresource {
-                    it!!.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+                    it.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
                         .mipLevel(i - 1)
                         .baseArrayLayer(0)
                         .layerCount(1)
@@ -180,7 +180,7 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
                 .dstOffsets(0, dstOffset0)
                 .dstOffsets(1, dstOffset1)
                 .dstSubresource {
-                    it!!.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+                    it.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
                         .mipLevel(i)
                         .baseArrayLayer(0)
                         .layerCount(1)
@@ -207,7 +207,7 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
             if (mipHeight > 1) mipHeight /= 2
         }
 
-        barrier.subresourceRange { it!!.baseMipLevel(mipLevels - 1) }
+        barrier.subresourceRange { it.baseMipLevel(mipLevels - 1) }
             .oldLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
             .newLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
             .srcStageMask(VK_PIPELINE_STAGE_TRANSFER_BIT.toLong())

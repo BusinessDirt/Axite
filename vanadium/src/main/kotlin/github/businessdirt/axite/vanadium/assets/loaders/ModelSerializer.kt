@@ -28,7 +28,7 @@ class ModelSerializer : AssetSerializer<Model, ModelMetadata>(
         val file = File(path)
         if (!file.exists()) throw IllegalArgumentException("Model file not found: $path")
 
-        val scene = aiImportFile(path, aiProcess_Triangulate or aiProcess_FlipUVs or aiProcess_CalcTangentSpace)
+        val scene = aiImportFile(path, aiProcess_Triangulate or aiProcess_FlipUVs or aiProcess_CalcTangentSpace or aiProcess_PreTransformVertices)
             ?: throw RuntimeException("Failed to load model: [${aiGetErrorString()}]")
 
         val metadata = loadMetadata(path) ?: ModelMetadata(meshCount = scene.mNumMeshes())

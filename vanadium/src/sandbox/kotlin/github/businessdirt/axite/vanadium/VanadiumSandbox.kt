@@ -13,6 +13,7 @@ import github.businessdirt.axite.vanadium.scene.Entity
 import github.businessdirt.axite.vanadium.scene.Scene
 import github.businessdirt.axite.vanadium.scene.components.CameraComponent
 import github.businessdirt.axite.vanadium.scene.components.CameraControllerComponent
+import github.businessdirt.axite.vanadium.scene.components.ControllerSettings
 import github.businessdirt.axite.vanadium.scene.components.ModelComponent
 import github.businessdirt.axite.vanadium.scene.components.TransformComponent
 import github.businessdirt.axite.vanadium.vulkan.commands.*
@@ -29,13 +30,13 @@ class VanadiumSandbox : VanadiumAdapter {
     companion object {
         const val FRAGMENT_SHADER_FILE_GLSL: String = "src/sandbox/resources/shaders/scene.frag.glsl"
         const val VERTEX_SHADER_FILE_GLSL: String = "src/sandbox/resources/shaders/scene.vert.glsl"
-        const val MODEL_FILE: String = "src/sandbox/resources/models/cube/cube.obj"
-        const val TEXTURE_FILE: String = "src/sandbox/resources/models/cube/cube.png"
+        const val MODEL_FILE: String = "src/sandbox/resources/models/sponza/Sponza.gltf"
+        const val TEXTURE_FILE: String = "src/sandbox/resources/models/sponza/white.png"
     }
 
     private var graphicsPipeline: GraphicsPipeline? = null
     private val scene = Scene()
-    private var cube: Entity? = null
+    private var sponza: Entity? = null
 
     private var descriptorPool: DescriptorPool? = null
     private var descriptorSet: DescriptorSet? = null
@@ -68,13 +69,13 @@ class VanadiumSandbox : VanadiumAdapter {
             }
         }
 
-        // Create a cube entity
-        cube = scene.createEntity("Cube").apply {
+        // Create a sponza entity
+        sponza = scene.createEntity("Sponza").apply {
             configure {
                 it += ModelComponent(model)
                 it += TransformComponent(
-                    position = Vector3f(0f, 0f, -5f),
-                    scale = Vector3f(1.0f, 1.0f, 1.0f)
+                    position = Vector3f(0f, 0f, 0f),
+                    scale = Vector3f(1f, 1f, 1f)
                 )
             }
         }
@@ -83,9 +84,11 @@ class VanadiumSandbox : VanadiumAdapter {
         scene.createEntity("Camera").apply {
             configure {
                 it += CameraComponent()
-                it += CameraControllerComponent()
+                it += CameraControllerComponent(
+                    settings = ControllerSettings.FirstPerson(speed = 10f)
+                )
                 it += TransformComponent(
-                    position = Vector3f(0f, 0f, 0f)
+                    position = Vector3f(0f, 2f, 0f)
                 )
             }
         }
@@ -97,7 +100,7 @@ class VanadiumSandbox : VanadiumAdapter {
         graphicsPipeline?.close()
         graphicsPipeline = null
         scene.close()
-        cube = null
+        sponza = null
 
         Vanadium.assets.unload(VERTEX_SHADER_FILE_GLSL)
         Vanadium.assets.unload(FRAGMENT_SHADER_FILE_GLSL)
@@ -106,11 +109,6 @@ class VanadiumSandbox : VanadiumAdapter {
     }
 
     override fun update(frameInfo: FrameInfo) {
-        cube?.let { entity ->
-            val transform = entity[TransformComponent]
-            val delta = frameInfo.deltaTime.toFloat()
-            transform.rotation.rotateXYZ(delta * 1.0f, delta * 0.8f, delta * 0.6f)
-        }
         scene.update(frameInfo.deltaTime.toFloat())
     }
 
