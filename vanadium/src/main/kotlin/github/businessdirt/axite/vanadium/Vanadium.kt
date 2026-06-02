@@ -58,13 +58,16 @@ object Vanadium {
                 window = Window(config).also { it.initialize() }
                 context = Context(config)
                 context.initialize(window)
-                renderer = Renderer(context).also { it.initialize() }
+
                 assets = AssetManager(engineScope).configure {
                     registerLoader<Shader>(ShaderSerializer())
                     registerLoader<Texture>(TextureSerializer())
                     registerLoader<Model>(ModelSerializer())
                     registerLoader<Material>(MaterialSerializer())
                 }
+
+                renderer = Renderer(context)
+                renderer.initialize()
 
                 // Initialize Adapter (Suspendable for async asset loading)
                 adapter.configure(config)

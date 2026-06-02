@@ -19,7 +19,7 @@ class Renderer(val context: Context) {
     private val sceneRenderer = SceneRenderer(context)
     private var resize = false
 
-    fun initialize() = Profiler.profile("Renderer Initialization") {
+    suspend fun initialize() = Profiler.profile("Renderer Initialization") {
         sceneRenderer.initialize()
     }
 
