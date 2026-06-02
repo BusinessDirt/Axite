@@ -13,11 +13,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.lwjgl.stb.STBImage.*
+import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil
+import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK13.*
-import org.lwjgl.vulkan.VkBufferImageCopy2
-import org.lwjgl.vulkan.VkCopyBufferToImageInfo2
 import java.io.File
+import kotlin.math.floor
+import kotlin.math.log2
+import kotlin.math.min
+
 
 class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
     TextureMetadata.serializer()
@@ -58,7 +62,7 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
                 this.width = width
                 this.height = height
                 this.format = format
-                this.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT or VK_IMAGE_USAGE_SAMPLED_BIT
+                this.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT or VK_IMAGE_USAGE_TRANSFER_DST_BIT or VK_IMAGE_USAGE_SAMPLED_BIT
                 this.mipLevels = metadata.mipLevels
             }
 
@@ -85,13 +89,7 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
 
                     vkCmdCopyBufferToImage2(handle, copyInfo)
 
-                    stack.imageBarrier(
-                        handle, image.handle,
-                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                        VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-                        VK_ACCESS_2_TRANSFER_WRITE_BIT, VK_ACCESS_2_SHADER_READ_BIT,
-                        VK_IMAGE_ASPECT_COLOR_BIT
-                    )
+                    handle.generateMipMaps(stack, width, height, image)
                 }
             }
 
@@ -113,7 +111,8 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
             val finalMetadata = metadata.copy(
                 width = width,
                 height = height,
-                format = format
+                format = format,
+                mipLevels = floor(log2(min(width, height).toDouble())).toInt() + 1
             )
 
             if (!hasMetadata(path)) Vanadium.engineScope.launch(Dispatchers.IO) {
@@ -126,4 +125,98 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
             }
         }
     }
+
+    private fun VkCommandBuffer.generateMipMaps(
+        stack: MemoryStack,
+        width: Int, height: Int,
+        image: Image,
+    ) {
+        val subResourceRange = VkImageSubresourceRange.calloc(stack)
+            .aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+            .baseArrayLayer(0)
+            .levelCount(1)
+            .layerCount(1)
+
+        val barrier = VkImageMemoryBarrier2.calloc(1, stack).`sType$Default`()
+            .image(image.handle)
+            .srcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+            .dstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+            .subresourceRange(subResourceRange)
+
+        val depInfo = VkDependencyInfo.calloc(stack).`sType$Default`()
+            .pImageMemoryBarriers(barrier)
+
+        var mipWidth = width
+        var mipHeight = height
+
+        val mipLevels: Int = image.mipLevels
+        for (i in 1..<mipLevels) {
+            subResourceRange.baseMipLevel(i - 1)
+            barrier.subresourceRange(subResourceRange)
+                .oldLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+                .newLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+                .srcStageMask(VK_PIPELINE_STAGE_TRANSFER_BIT.toLong())
+                .dstStageMask(VK_PIPELINE_STAGE_TRANSFER_BIT.toLong())
+                .srcAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT.toLong())
+                .dstAccessMask(VK_ACCESS_TRANSFER_READ_BIT.toLong())
+
+            vkCmdPipelineBarrier2(this, depInfo)
+
+            val srcOffset0 = VkOffset3D.calloc(stack).x(0).y(0).z(0)
+            val srcOffset1 = VkOffset3D.calloc(stack).x(mipWidth).y(mipHeight).z(1)
+
+            val dstOffset0 = VkOffset3D.calloc(stack).x(0).y(0).z(0)
+            val dstOffset1 = VkOffset3D.calloc(stack).x(mipWidth.clampMip()).y(mipHeight.clampMip()).z(1)
+
+            val blit = VkImageBlit.calloc(1, stack)
+                .srcOffsets(0, srcOffset0)
+                .srcOffsets(1, srcOffset1)
+                .srcSubresource {
+                    it!!.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+                        .mipLevel(i - 1)
+                        .baseArrayLayer(0)
+                        .layerCount(1)
+                }
+                .dstOffsets(0, dstOffset0)
+                .dstOffsets(1, dstOffset1)
+                .dstSubresource {
+                    it!!.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT)
+                        .mipLevel(i)
+                        .baseArrayLayer(0)
+                        .layerCount(1)
+                }
+
+            vkCmdBlitImage(
+                this,
+                image.handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                image.handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                blit, VK_FILTER_LINEAR
+            )
+
+            barrier.oldLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL)
+                .newLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+                .srcAccessMask(VK_ACCESS_TRANSFER_READ_BIT.toLong())
+                .dstAccessMask(VK_ACCESS_SHADER_READ_BIT.toLong())
+
+            barrier.srcStageMask(VK_PIPELINE_STAGE_TRANSFER_BIT.toLong())
+                .dstStageMask(VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT.toLong())
+
+            vkCmdPipelineBarrier2(this, depInfo)
+
+            if (mipWidth > 1) mipWidth /= 2
+            if (mipHeight > 1) mipHeight /= 2
+        }
+
+        barrier.subresourceRange { it!!.baseMipLevel(mipLevels - 1) }
+            .oldLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+            .newLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+            .srcStageMask(VK_PIPELINE_STAGE_TRANSFER_BIT.toLong())
+            .dstStageMask(VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT.toLong())
+            .srcAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT.toLong())
+            .dstAccessMask(VK_ACCESS_SHADER_READ_BIT.toLong())
+
+        vkCmdPipelineBarrier2(this, depInfo)
+    }
+
+    private fun Int.clampMip() = if (this > 1) this / 2 else 1
 }
