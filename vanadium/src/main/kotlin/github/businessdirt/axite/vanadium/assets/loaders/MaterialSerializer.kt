@@ -7,7 +7,6 @@ import github.businessdirt.axite.vanadium.assets.types.Texture
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.Json
 import org.joml.Vector4f
 import java.io.File
 
@@ -43,7 +42,7 @@ class MaterialSerializer : AssetSerializer<Material, MaterialMetadata>(
             baseColor = Vector4f(metadata.baseColorR, metadata.baseColorG, metadata.baseColorB, metadata.baseColorA),
             metallicFactor = metadata.metallicFactor,
             roughnessFactor = metadata.roughnessFactor,
-            isTransparent = metadata.isTransparent
+            isTransparent = metadata.isTransparent || (albedo?.isTransparent ?: false)
         )
     }
 }

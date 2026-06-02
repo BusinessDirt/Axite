@@ -10,19 +10,15 @@ import github.businessdirt.axite.vanadium.renderer.graph.ClearColorValue
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
 import github.businessdirt.axite.vanadium.renderer.graph.RenderResourceNames
 import github.businessdirt.axite.vanadium.scene.Entity
+import github.businessdirt.axite.vanadium.scene.Mesh
 import github.businessdirt.axite.vanadium.scene.Scene
-import github.businessdirt.axite.vanadium.scene.components.CameraComponent
-import github.businessdirt.axite.vanadium.scene.components.CameraControllerComponent
-import github.businessdirt.axite.vanadium.scene.components.ControllerSettings
-import github.businessdirt.axite.vanadium.scene.components.ModelComponent
-import github.businessdirt.axite.vanadium.scene.components.TransformComponent
+import github.businessdirt.axite.vanadium.scene.components.*
 import github.businessdirt.axite.vanadium.vulkan.commands.*
 import github.businessdirt.axite.vanadium.vulkan.descriptors.DescriptorPool
 import github.businessdirt.axite.vanadium.vulkan.descriptors.DescriptorSet
-import github.businessdirt.axite.vanadium.vulkan.pipeline.*
+import github.businessdirt.axite.vanadium.vulkan.pipeline.GraphicsPipeline
 import github.businessdirt.axite.vanadium.vulkan.resources.Buffer
 import kotlinx.coroutines.CoroutineScope
-import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.vulkan.VK13.*
@@ -208,18 +204,41 @@ class VanadiumSandbox : VanadiumAdapter {
                     }
 
                     // Render all entities with a ModelComponent using the SceneGraph
-                    scene.forEachModel { transform, modelComp ->
-                        modelComp.model?.meshes?.forEach { mesh ->
-                            memoryStack { stack ->
-                                // Push Constants: Model Matrix (0-63), materialIdx (64-67)
-                                val pcBuffer = stack.malloc(64 + 4)
-                                transform.globalMatrix.get(0, pcBuffer)
-                                pcBuffer.putInt(64, mesh.materialIndex)
+                    // Helper to render a mesh
+                    fun renderMesh(transform: TransformComponent, mesh: Mesh) {
+                        memoryStack { stack ->
+                            // Push Constants: Model Matrix (0-63), materialIdx (64-67)
+                            val pcBuffer = stack.malloc(64 + 4)
+                            transform.globalMatrix.get(0, pcBuffer)
+                            pcBuffer.putInt(64, mesh.materialIndex)
 
-                                commandBuffer.pushConstants(pipeline.layout.handle, VK_SHADER_STAGE_VERTEX_BIT or VK_SHADER_STAGE_FRAGMENT_BIT, pcBuffer)
-                                commandBuffer.bindVertexBuffer(mesh.vertexBuffer.handle)
-                                commandBuffer.bindIndexBuffer(mesh.indexBuffer.handle)
-                                commandBuffer.drawIndexed(mesh.indexCount)
+                            commandBuffer.pushConstants(pipeline.layout.handle, VK_SHADER_STAGE_VERTEX_BIT or VK_SHADER_STAGE_FRAGMENT_BIT, pcBuffer)
+                            commandBuffer.bindVertexBuffer(mesh.vertexBuffer.handle)
+                            commandBuffer.bindIndexBuffer(mesh.indexBuffer.handle)
+                            commandBuffer.drawIndexed(mesh.indexCount)
+                        }
+                    }
+
+                    // Pass 1: Opaque
+                    scene.forEachModel { transform, modelComp ->
+                        modelComp.model?.let { model ->
+                            model.meshes.forEach { mesh ->
+                                val material = model.materials.getOrNull(mesh.materialIndex)
+                                if (material == null || !material.isTransparent) {
+                                    renderMesh(transform, mesh)
+                                }
+                            }
+                        }
+                    }
+
+                    // Pass 2: Transparent
+                    scene.forEachModel { transform, modelComp ->
+                        modelComp.model?.let { model ->
+                            model.meshes.forEach { mesh ->
+                                val material = model.materials.getOrNull(mesh.materialIndex)
+                                if (material?.isTransparent == true) {
+                                    renderMesh(transform, mesh)
+                                }
                             }
                         }
                     }

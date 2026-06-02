@@ -3,6 +3,7 @@ package github.businessdirt.axite.vanadium.assets.loaders
 import github.businessdirt.axite.vanadium.Vanadium
 import github.businessdirt.axite.vanadium.assets.metadata.ModelMetadata
 import github.businessdirt.axite.vanadium.assets.types.Model
+import github.businessdirt.axite.vanadium.assets.types.Texture
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import github.businessdirt.axite.vanadium.scene.Mesh
 import github.businessdirt.axite.vanadium.scene.Vertex
@@ -10,23 +11,19 @@ import github.businessdirt.axite.vanadium.vulkan.resources.Buffer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.serializer
 import org.joml.Vector2f
 import org.joml.Vector3f
+import org.joml.Vector4f
+import org.lwjgl.assimp.AIMaterial
 import org.lwjgl.assimp.AIMesh
+import org.lwjgl.assimp.AIString
 import org.lwjgl.assimp.Assimp.*
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.vulkan.VK13.*
 import java.io.File
 import java.nio.ByteBuffer
-
-import github.businessdirt.axite.vanadium.assets.types.Texture
-import org.joml.Vector4f
-import org.lwjgl.assimp.AIMaterial
-import org.lwjgl.assimp.AIString
-import java.util.UUID
-
 import java.nio.IntBuffer
+import java.util.*
 
 class ModelSerializer : AssetSerializer<Model, ModelMetadata>(
     ModelMetadata.serializer()
@@ -76,7 +73,7 @@ class ModelSerializer : AssetSerializer<Model, ModelMetadata>(
                 metallicRoughnessTexture = null,
                 emissiveTexture = null,
                 baseColor = color,
-                isTransparent = false
+                isTransparent = texture?.isTransparent ?: false
             ))
         }
 

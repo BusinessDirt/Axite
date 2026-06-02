@@ -61,16 +61,20 @@ class Material(
         this.roughnessFactor = newAsset.roughnessFactor
         this.isTransparent = newAsset.isTransparent
 
-        oldAlbedo?.let { Vanadium.assets.unload(it.path) }
-        oldNormal?.let { Vanadium.assets.unload(it.path) }
-        oldMetallicRoughness?.let { Vanadium.assets.unload(it.path) }
-        oldEmissive?.let { Vanadium.assets.unload(it.path) }
+        disposeInternal(oldAlbedo, oldNormal, oldMetallicRoughness, oldEmissive)
     }
 
-    override fun dispose() {
-        albedoTexture?.let { Vanadium.assets.unload(it.path) }
-        normalTexture?.let { Vanadium.assets.unload(it.path) }
-        metallicRoughnessTexture?.let { Vanadium.assets.unload(it.path) }
-        emissiveTexture?.let { Vanadium.assets.unload(it.path) }
+    private fun disposeInternal(
+        albedo: Texture?,
+        normal: Texture?,
+        metallicRoughness: Texture?,
+        emissive: Texture?
+    ) {
+        albedo?.let { Vanadium.assets.unload(it.path) }
+        normal?.let { Vanadium.assets.unload(it.path) }
+        metallicRoughness?.let { Vanadium.assets.unload(it.path) }
+        emissive?.let { Vanadium.assets.unload(it.path) }
     }
+
+    override fun dispose() = disposeInternal(albedoTexture, normalTexture, metallicRoughnessTexture, emissiveTexture)
 }
