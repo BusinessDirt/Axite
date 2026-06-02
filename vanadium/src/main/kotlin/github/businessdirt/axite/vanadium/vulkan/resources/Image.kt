@@ -1,20 +1,18 @@
 package github.businessdirt.axite.vanadium.vulkan.resources
 
-import github.businessdirt.axite.vanadium.core.utils.createHandle
-import github.businessdirt.axite.vanadium.core.utils.findMemoryTypeIndex
+import github.businessdirt.axite.vanadium.Vanadium
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import github.businessdirt.axite.vanadium.core.utils.vkCheck
 import github.businessdirt.axite.vanadium.vulkan.Handle
 import github.businessdirt.axite.vanadium.vulkan.device.PhysicalDevice
+import org.lwjgl.util.vma.Vma.*
+import org.lwjgl.util.vma.VmaAllocationCreateInfo
+import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK13.*
-import org.lwjgl.vulkan.VkDevice
-import org.lwjgl.vulkan.VkImageCreateInfo
-import org.lwjgl.vulkan.VkMemoryAllocateInfo
-import org.lwjgl.vulkan.VkMemoryRequirements
 
 class Image(
     private val device: VkDevice,
-    physicalDevice: PhysicalDevice,
+    private val physicalDevice: PhysicalDevice,
     existingHandle: Long? = null,
     block: Data.() -> Unit
 ) : Handle<Long>() {
@@ -23,6 +21,8 @@ class Image(
 
     val format: Int = data.format
     val mipLevels: Int = data.mipLevels
+
+    private var allocation: Long = 0
 
     override var handle: Long = existingHandle ?: memoryStack { stack ->
 
@@ -38,36 +38,24 @@ class Image(
             .tiling(VK_IMAGE_TILING_OPTIMAL)
             .usage(data.usage)
 
-        stack.createHandle({ "Failed to create image" }) {
-            vkCreateImage(device, imageCreateInfo, null, it)
+        val allocInfo = VmaAllocationCreateInfo.calloc(stack)
+            .usage(VMA_MEMORY_USAGE_AUTO)
+            .requiredFlags(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+
+        val pImage = stack.mallocLong(1)
+        val pAllocation = stack.mallocPointer(1)
+
+        vkCheck(vmaCreateImage(Vanadium.context.memoryAllocator.handle, imageCreateInfo, allocInfo, pImage, pAllocation, null)) {
+            "Failed to create VMA image"
         }
+
+        allocation = pAllocation[0]
+        pImage[0]
     }
 
-    val memoryHandle: Long? = if (existingHandle == null) memoryStack { stack ->
-        // Get memory requirements for this object
-        val memoryRequirements = VkMemoryRequirements.calloc(stack)
-        vkGetImageMemoryRequirements(device, handle, memoryRequirements)
-
-        // Select memory size and type
-        val memoryAllocationInfo = VkMemoryAllocateInfo.calloc(stack).`sType$Default`()
-            .allocationSize(memoryRequirements.size())
-            .findMemoryTypeIndex(physicalDevice, memoryRequirements.memoryTypeBits(), VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-
-
-        // Allocate and bind memory
-        stack.createHandle({ "Failed to allocate memory" }) {
-            vkAllocateMemory(device, memoryAllocationInfo, null, it)
-        }.also {
-            vkCheck(vkBindImageMemory(device, handle, it, 0)) {
-                "Failed to bind image memory"
-            }
-        }
-    } else null
-
     override fun destroy() {
-        if (memoryHandle != null) {
-            vkDestroyImage(device, handle, null);
-            vkFreeMemory(device, memoryHandle, null);
+        if (allocation != 0L) {
+            vmaDestroyImage(Vanadium.context.memoryAllocator.handle, handle, allocation)
         }
     }
 
@@ -75,6 +63,7 @@ class Image(
         var width: Int = 0,
         var height: Int = 0,
         var usage: Int = 0,
+        var memoryUsage: Int = 0,
         var format: Int = VK_FORMAT_R8G8B8A8_SRGB,
         var mipLevels: Int = 1,
         var sampleCount: Int = VK_SAMPLE_COUNT_1_BIT,

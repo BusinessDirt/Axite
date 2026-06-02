@@ -56,7 +56,8 @@ object Vanadium {
                 initCoreSystems()
 
                 window = Window(config).also { it.initialize() }
-                context = Context(config).also { it.initialize(window) }
+                context = Context(config)
+                context.initialize(window)
                 renderer = Renderer(context).also { it.initialize() }
                 assets = AssetManager(engineScope).configure {
                     registerLoader<Shader>(ShaderSerializer())

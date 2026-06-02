@@ -65,16 +65,16 @@ class Context(private val config: VanadiumConfig) {
         graphicsQueue = scope.use(GraphicsQueue(device.handle, physicalDevice))
         presentQueue = scope.use(PresentQueue(device.handle, physicalDevice, surface))
 
+        memoryAllocator = scope.use(MemoryAllocator(instance, physicalDevice, device))
+
         val requestedImages = surface.surfaceCaps.coerceRequestedImageCount(config.requestedImages)
         swapchain = scope.use(Swapchain(device, physicalDevice, window, surface, requestedImages, config.vsync))
-
-        pipelineCache = scope.use(PipelineCache(device.handle))
 
         // Determine max frames in flight. Standard is 2, but we must not exceed (imageCount - 1)
         // to avoid stalling on image acquisition.
         maxFramesInFlight = min(2, swapchain.imageCount - 1)
 
-        memoryAllocator = scope.use(MemoryAllocator(instance, physicalDevice, device))
+        pipelineCache = scope.use(PipelineCache(device.handle))
 
         // Initialize frames in flight
         frameData = Array(maxFramesInFlight) {

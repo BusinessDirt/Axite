@@ -2,11 +2,12 @@ package github.businessdirt.axite.vanadium.vulkan.resources
 
 import github.businessdirt.axite.vanadium.vulkan.Handle
 import github.businessdirt.axite.vanadium.vulkan.device.PhysicalDevice
+import org.lwjgl.util.vma.Vma.VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT
 import org.lwjgl.vulkan.VK13.*
 import org.lwjgl.vulkan.VkDevice
 
 class Attachment(
-    private val device: VkDevice,
+    device: VkDevice,
     physicalDevice: PhysicalDevice,
     val width: Int,
     val height: Int,
@@ -25,6 +26,7 @@ class Attachment(
         this.height = this@Attachment.height
         this.format = this@Attachment.format
         this.usage = this@Attachment.usage or VK_IMAGE_USAGE_SAMPLED_BIT
+        this.memoryUsage = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT
     }
 
     override val handle: Long get() = image.handle
