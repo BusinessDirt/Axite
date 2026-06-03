@@ -37,6 +37,14 @@ data class LayoutBinding(
 )
 
 @Serializable
+data class SpecializationConstant(
+    val id: Int,
+    val constantId: Int,
+    val name: String,
+    val type: Int // SpvcBasetype
+)
+
+@Serializable
 data class ShaderMetadata(
     override val uuid: String = UUID.randomUUID().toString(),
     override val version: Int = 1,
@@ -47,5 +55,6 @@ data class ShaderMetadata(
     val vertexInputBindings: List<VertexInputBinding> = emptyList(),
     val vertexInputAttributes: List<VertexInputAttribute> = emptyList(),
     val pushConstantRanges: List<PushConstantRange> = emptyList(),
-    val layoutBindings: List<LayoutBinding> = emptyList()
+    val layoutBindings: List<LayoutBinding> = emptyList(),
+    val specializationConstants: List<SpecializationConstant> = emptyList()
 ) : AssetMetadata()

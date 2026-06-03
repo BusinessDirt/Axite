@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 import org.gradle.api.plugins.JavaPluginExtension
 
 plugins {
-    val kotlinVersion = "2.3.0"
+    val kotlinVersion = "2.3.20"
 
     kotlin("jvm") version kotlinVersion apply false
     id("com.google.devtools.ksp") version "2.3.3" apply false

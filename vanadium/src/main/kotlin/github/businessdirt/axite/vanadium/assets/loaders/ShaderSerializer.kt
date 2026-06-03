@@ -1,11 +1,7 @@
 package github.businessdirt.axite.vanadium.assets.loaders
 
 import github.businessdirt.axite.vanadium.Vanadium
-import github.businessdirt.axite.vanadium.assets.metadata.LayoutBinding
-import github.businessdirt.axite.vanadium.assets.metadata.PushConstantRange
-import github.businessdirt.axite.vanadium.assets.metadata.ShaderMetadata
-import github.businessdirt.axite.vanadium.assets.metadata.VertexInputAttribute
-import github.businessdirt.axite.vanadium.assets.metadata.VertexInputBinding
+import github.businessdirt.axite.vanadium.assets.metadata.*
 import github.businessdirt.axite.vanadium.assets.types.Shader
 import github.businessdirt.axite.vanadium.assets.types.ShaderStage
 import github.businessdirt.axite.vanadium.core.utils.getPointer
@@ -14,20 +10,16 @@ import github.businessdirt.axite.vanadium.vulkan.resources.ShaderModule
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.serializer
-import org.lwjgl.system.MemoryStack
+import org.lwjgl.system.MemoryUtil
 import org.lwjgl.util.shaderc.Shaderc
-import org.lwjgl.util.spvc.Spv.SpvDecorationBinding
-import org.lwjgl.util.spvc.Spv.SpvDecorationDescriptorSet
-import org.lwjgl.util.spvc.Spv.SpvDecorationLocation
+import org.lwjgl.util.spvc.Spv.*
 import org.lwjgl.util.spvc.Spvc.*
 import org.lwjgl.util.spvc.SpvcReflectedResource
+import org.lwjgl.util.spvc.SpvcSpecializationConstant
 import org.lwjgl.vulkan.VK13.*
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.nio.channels.FileChannel
-import java.nio.file.StandardOpenOption
 import java.security.MessageDigest
 
 /**
@@ -43,12 +35,12 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
         val glslFile = File(path)
         val spvFile = File("$path.spv")
 
-        val currentHash = calculateHash(glslFile)
+        val currentHash = glslFile.calculateHash()
         var metadata = loadMetadata(path)
 
         val pCode = if (spvFile.exists() && metadata != null && metadata.hash == currentHash) {
             logger.debug("Loading cached SPV: [{}]", spvFile.path)
-            loadCachedSpv(spvFile)
+            spvFile.loadCachedSpv()
         } else {
             val finalMetadata = metadata?.copy(
                 hash = currentHash,
@@ -59,51 +51,35 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
                 stage = stage,
                 compilationTime = System.currentTimeMillis()
             )
-            
-            val (pCode, reflectedMetadata) = compileAndCache(glslFile, spvFile, stage, finalMetadata)
+
+            val (compiledCode, reflectedMetadata) = compileAndCache(glslFile, spvFile, stage, finalMetadata)
             metadata = reflectedMetadata
-            pCode
+            compiledCode
         }
 
         val module = ShaderModule(Vanadium.context.device.handle, stage.vulkan, pCode)
         Shader(path, metadata.uuid, metadata, stage, module)
     }
 
-    private fun calculateHash(file: File): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        file.inputStream().use { input ->
-            val buffer = ByteArray(8192)
-            var read = input.read(buffer)
-            while (read != -1) {
-                digest.update(buffer, 0, read)
-                read = input.read(buffer)
-            }
-        }
-        return digest.digest().joinToString("") { "%02x".format(it) }
-    }
-
-    private fun loadCachedSpv(spvFile: File): ByteBuffer {
-        return FileChannel.open(spvFile.toPath(), StandardOpenOption.READ).use { channel ->
-            channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size())
-        }
-    }
-
-    private fun compileAndCache(glslFile: File, spvFile: File, stage: ShaderStage, metadata: ShaderMetadata): Pair<ByteBuffer, ShaderMetadata> {
+    private fun compileAndCache(
+        glslFile: File,
+        spvFile: File,
+        stage: ShaderStage,
+        metadata: ShaderMetadata
+    ): Pair<ByteBuffer, ShaderMetadata> {
         logger.debug("Compiling shader: [{}]", glslFile.path)
 
         val shaderCode = glslFile.readText()
         val compiledBytes = compileShader(shaderCode, stage.shaderc, glslFile.name)
 
-        // Return a Direct ByteBuffer for Vulkan
-        val pCode = ByteBuffer.allocateDirect(compiledBytes.size)
+        val pCode = MemoryUtil.memAlloc(compiledBytes.size)
             .order(ByteOrder.nativeOrder())
             .put(compiledBytes)
-            .flip()
+            .flip() as ByteBuffer
 
-        // Reflect shader
         val reflectedMetadata = reflectShader(pCode, metadata)
 
-        // Cache to disk in the background using the engine scope
+        // Offload IO operations asynchronously to engine scope safely
         Vanadium.engineScope.launch(Dispatchers.IO) {
             try {
                 spvFile.writeBytes(compiledBytes)
@@ -136,71 +112,149 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
             val pushConstants = mutableListOf<PushConstantRange>()
             val vertexAttributes = mutableListOf<VertexInputAttribute>()
             val vertexInputBindings = mutableListOf<VertexInputBinding>()
+            val specializationConstants = mutableListOf<SpecializationConstant>()
 
-            // Reflect Uniform Buffers
-            reflectResourceType(compiler, resources, SPVC_RESOURCE_TYPE_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, metadata.stage.vulkan, layoutBindings)
-            // Reflect Storage Buffers
-            reflectResourceType(compiler, resources, SPVC_RESOURCE_TYPE_STORAGE_BUFFER, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, metadata.stage.vulkan, layoutBindings)
-            // Reflect Sampled Images (Combined Image Sampler)
-            reflectResourceType(compiler, resources, SPVC_RESOURCE_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, metadata.stage.vulkan, layoutBindings)
-            // Reflect Storage Images
-            reflectResourceType(compiler, resources, SPVC_RESOURCE_TYPE_STORAGE_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, metadata.stage.vulkan, layoutBindings)
+            // Bulk gather descriptor sets layout properties
+            reflectDescriptors(compiler, resources, metadata.stage.vulkan, layoutBindings)
 
             // Reflect Push Constants
-            val pushConstantListPtr = stack.mallocPointer(1)
-            val pushConstantCount = stack.getPointer { pushConstantCountPtr ->
-                spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_PUSH_CONSTANT, pushConstantListPtr, pushConstantCountPtr)
-            }.toInt()
-            val pcList = SpvcReflectedResource.create(pushConstantListPtr[0], pushConstantCount)
+            reflectPushConstants(compiler, resources, metadata.stage.vulkan, pushConstants)
 
-            for (i in 0 until pushConstantCount) {
-                val resource = pcList[i]
-                val type = spvc_compiler_get_type_handle(compiler, resource.type_id())
-                val size = stack.getPointer { sizePtr -> spvc_compiler_get_declared_struct_size(compiler, type, sizePtr) }
-
-                pushConstants.add(PushConstantRange(metadata.stage.vulkan, 0, size.toInt()))
-            }
-
-            // Reflect Vertex Inputs (only for vertex stage)
+            // Reflect Vertex Input Layout properties
             if (metadata.stage == ShaderStage.VERTEX) {
-                val inputListPtr = stack.mallocPointer(1)
-                val inputCount = stack.getPointer { inputCountPtr ->
-                    spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_STAGE_INPUT, inputListPtr, inputCountPtr)
-                }.toInt()
-                val inputList = SpvcReflectedResource.create(inputListPtr[0], inputCount)
-
-                val reflectedInputs = (0 until inputCount).map {
-                    val resource = inputList[it]
-                    val location = spvc_compiler_get_decoration(compiler, resource.id(), SpvDecorationLocation)
-                    val format = getVulkanFormat(compiler, resource.type_id())
-                    val binding = if (spvc_compiler_has_decoration(compiler, resource.id(), SpvDecorationBinding)) {
-                        spvc_compiler_get_decoration(compiler, resource.id(), SpvDecorationBinding)
-                    } else 0
-                    Triple(location, format, binding)
-                }.sortedBy { it.first }
-
-                var currentOffset = 0
-                for ((location, format, binding) in reflectedInputs) {
-                    vertexAttributes.add(VertexInputAttribute(location, binding, format, currentOffset))
-                    currentOffset += getFormatSize(format)
-                }
-
-                if (vertexAttributes.isNotEmpty()) {
-                    vertexInputBindings.add(VertexInputBinding(0, currentOffset, VK_VERTEX_INPUT_RATE_VERTEX))
-                }
+                reflectVertexInput(compiler, resources, vertexAttributes, vertexInputBindings)
             }
+
+            // Reflect Specialization Constants
+            reflectSpecializationConstants(compiler, specializationConstants)
 
             metadata.copy(
                 pushConstantRanges = pushConstants,
                 layoutBindings = layoutBindings,
                 vertexInputAttributes = vertexAttributes,
-                vertexInputBindings = vertexInputBindings
+                vertexInputBindings = vertexInputBindings,
+                specializationConstants = specializationConstants
             )
         } catch (e: Exception) {
-            logger.error("Failed to reflect shader [{}]: {}", metadata.hash, e.message ?: "Unknown error")
+            logger.error("Failed to reflect shader structural attributes [{}]: {}", metadata.hash, e.message ?: "Unknown native runtime error")
             metadata
         } finally {
             spvc_context_destroy(context)
+        }
+    }
+
+    private fun reflectDescriptors(compiler: Long, resources: Long, stageFlags: Int, results: MutableList<LayoutBinding>) {
+        reflectResourceType(compiler, resources, SPVC_RESOURCE_TYPE_UNIFORM_BUFFER, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, stageFlags, results)
+        reflectResourceType(compiler, resources, SPVC_RESOURCE_TYPE_STORAGE_BUFFER, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, stageFlags, results)
+        reflectResourceType(compiler, resources, SPVC_RESOURCE_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, stageFlags, results)
+        reflectResourceType(compiler, resources, SPVC_RESOURCE_TYPE_STORAGE_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, stageFlags, results)
+    }
+
+    private fun reflectPushConstants(compiler: Long, resources: Long, stageFlags: Int, results: MutableList<PushConstantRange>) = memoryStack { stack ->
+        val listPtr = stack.mallocPointer(1)
+        val count = stack.getPointer { countPtr ->
+            spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_PUSH_CONSTANT, listPtr, countPtr)
+        }.toInt()
+
+        if (count > 0) {
+            val pcList = SpvcReflectedResource.create(listPtr[0], count)
+            for (i in 0 until count) {
+                val resource = pcList[i]
+                val type = spvc_compiler_get_type_handle(compiler, resource.type_id())
+                val size = stack.getPointer { sizePtr -> spvc_compiler_get_declared_struct_size(compiler, type, sizePtr) }
+                results.add(PushConstantRange(stageFlags, 0, size.toInt()))
+            }
+        }
+    }
+
+    private fun reflectVertexInput(
+        compiler: Long,
+        resources: Long,
+        attributes: MutableList<VertexInputAttribute>,
+        bindings: MutableList<VertexInputBinding>
+    ) = memoryStack { stack ->
+        val inputListPtr = stack.mallocPointer(1)
+        val inputCount = stack.getPointer { countPtr ->
+            spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_STAGE_INPUT, inputListPtr, countPtr)
+        }.toInt()
+
+        if (inputCount > 0) {
+            val inputList = SpvcReflectedResource.create(inputListPtr[0], inputCount)
+            val reflectedInputs = ArrayList<VertexAttributeTemp>(inputCount)
+
+            for (i in 0 until inputCount) {
+                val resource = inputList[i]
+                val location = spvc_compiler_get_decoration(compiler, resource.id(), SpvDecorationLocation)
+                val format = getVulkanFormat(compiler, resource.type_id())
+                val binding = if (spvc_compiler_has_decoration(compiler, resource.id(), SpvDecorationBinding)) {
+                    spvc_compiler_get_decoration(compiler, resource.id(), SpvDecorationBinding)
+                } else 0
+                reflectedInputs.add(VertexAttributeTemp(location, format, binding))
+            }
+
+            reflectedInputs.sortBy { it.location }
+
+            var strideOffset = 0
+            for (attr in reflectedInputs) {
+                attributes.add(VertexInputAttribute(attr.location, attr.binding, attr.format, strideOffset))
+                strideOffset += getFormatSize(attr.format)
+            }
+
+            if (attributes.isNotEmpty()) {
+                bindings.add(VertexInputBinding(0, strideOffset, VK_VERTEX_INPUT_RATE_VERTEX))
+            }
+        }
+    }
+
+    private fun reflectSpecializationConstants(compiler: Long, results: MutableList<SpecializationConstant>) = memoryStack { stack ->
+        val constantsPtr = stack.mallocPointer(1)
+        val numConstantsPtr = stack.mallocPointer(1)
+
+        val result = spvc_compiler_get_specialization_constants(compiler, constantsPtr, numConstantsPtr)
+        if (result != SPVC_SUCCESS) return@memoryStack
+
+        val numConstants = numConstantsPtr[0].toInt()
+        if (numConstants == 0) return@memoryStack
+
+        val constants = SpvcSpecializationConstant.create(constantsPtr[0], numConstants)
+        for (i in 0 until numConstants) {
+            val constant = constants[i]
+            val name = spvc_compiler_get_name(compiler, constant.id()) ?: ""
+            val typeHandle = spvc_compiler_get_type_handle(compiler, constant.id())
+            val type = spvc_type_get_basetype(typeHandle)
+
+            results.add(SpecializationConstant(constant.id(), constant.constant_id(), name, type))
+        }
+    }
+
+    private fun reflectResourceType(
+        compiler: Long,
+        resources: Long,
+        spvcType: Int,
+        vkType: Int,
+        stageFlags: Int,
+        results: MutableList<LayoutBinding>
+    ) = memoryStack { stack ->
+        val listPtr = stack.mallocPointer(1)
+        val count = stack.getPointer { countPtr ->
+            spvc_resources_get_resource_list_for_type(resources, spvcType, listPtr, countPtr)
+        }.toInt()
+
+        if (count == 0) return@memoryStack
+
+        val list = SpvcReflectedResource.create(listPtr[0], count)
+        for (i in 0 until count) {
+            val resource = list[i]
+            val set = spvc_compiler_get_decoration(compiler, resource.id(), SpvDecorationDescriptorSet)
+            val binding = spvc_compiler_get_decoration(compiler, resource.id(), SpvDecorationBinding)
+            val name = spvc_compiler_get_name(compiler, resource.id()) ?: ""
+
+            val type = spvc_compiler_get_type_handle(compiler, resource.type_id())
+            val arraySize = if (spvc_type_get_num_array_dimensions(type) > 0) {
+                spvc_type_get_array_dimension(type, 0)
+            } else 1
+
+            results.add(LayoutBinding(set, binding, vkType, arraySize, stageFlags, name))
         }
     }
 
@@ -212,45 +266,11 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
         else -> 0
     }
 
-    private fun reflectResourceType(
-        compiler: Long,
-        resources: Long,
-        spvcType: Int,
-        vkType: Int,
-        stageFlags: Int,
-        results: MutableList<LayoutBinding>
-    ) {
-        MemoryStack.stackPush().use { stack ->
-            val listPtr = stack.mallocPointer(1)
-            val count = stack.getPointer { countPtr ->
-                spvc_resources_get_resource_list_for_type(resources, spvcType, listPtr, countPtr)
-            }.toInt()
-
-            if (count == 0) return
-
-            val list = SpvcReflectedResource.create(listPtr[0], count)
-
-            for (i in 0 until count) {
-                val resource = list[i]
-                val set = spvc_compiler_get_decoration(compiler, resource.id(), SpvDecorationDescriptorSet)
-                val binding = spvc_compiler_get_decoration(compiler, resource.id(), SpvDecorationBinding)
-                val name = spvc_compiler_get_name(compiler, resource.id()) ?: ""
-
-                val type = spvc_compiler_get_type_handle(compiler, resource.type_id())
-                val arraySize = if (spvc_type_get_num_array_dimensions(type) > 0) {
-                    spvc_type_get_array_dimension(type, 0)
-                } else 1
-
-                results.add(LayoutBinding(set, binding, vkType, arraySize, stageFlags, name))
-            }
-        }
-    }
-
     private fun getVulkanFormat(compiler: Long, typeId: Int): Int {
         val type = spvc_compiler_get_type_handle(compiler, typeId)
         val baseType = spvc_type_get_basetype(type)
         val vecSize = spvc_type_get_vector_size(type)
-        
+
         return when (baseType) {
             SPVC_BASETYPE_FP32 -> when (vecSize) {
                 1 -> VK_FORMAT_R32_SFLOAT
@@ -277,24 +297,23 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
         }
     }
 
-    /**
-     * Compiles GLSL source code into SPIR-V bytes using Shaderc.
-     */
     private fun compileShader(shaderCode: String, shaderType: Int, fileName: String = "shader.glsl"): ByteArray {
         val compiler = Shaderc.shaderc_compiler_initialize()
+        if (compiler == 0L) throw RuntimeException("Failed to initialize Shaderc context compiler")
+
         val options = Shaderc.shaderc_compile_options_initialize()
+        if (options == 0L) {
+            Shaderc.shaderc_compiler_release(compiler)
+            throw RuntimeException("Failed to initialize Shaderc compiler build options configuration")
+        }
 
         try {
             Shaderc.shaderc_compile_options_set_generate_debug_info(options)
             Shaderc.shaderc_compile_options_set_optimization_level(options, Shaderc.shaderc_optimization_level_zero)
             Shaderc.shaderc_compile_options_set_source_language(options, Shaderc.shaderc_source_language_glsl)
 
-            val result = Shaderc.shaderc_compile_into_spv(
-                compiler, shaderCode, shaderType,
-                fileName, "main", options
-            )
-
-            if (result == 0L) throw RuntimeException("Shaderc returned null result pointer for $fileName")
+            val result = Shaderc.shaderc_compile_into_spv(compiler, shaderCode, shaderType, fileName, "main", options)
+            if (result == 0L) throw RuntimeException("Shaderc returned an invalid structural result pointer address for: $fileName")
 
             try {
                 if (Shaderc.shaderc_result_get_compilation_status(result) != Shaderc.shaderc_compilation_status_success) {
@@ -303,7 +322,7 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
                 }
 
                 val buffer = Shaderc.shaderc_result_get_bytes(result)
-                    ?: throw RuntimeException("Shaderc returned null buffer for $fileName")
+                    ?: throw RuntimeException("Shaderc compilation data buffer returned null pointer for: $fileName")
 
                 return ByteArray(buffer.remaining()).also { buffer.get(it) }
             } finally {
@@ -314,4 +333,28 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
             Shaderc.shaderc_compiler_release(compiler)
         }
     }
+
+    private data class VertexAttributeTemp(val location: Int, val format: Int, val binding: Int)
+}
+
+private fun File.calculateHash(): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+    val buffer = ByteArray(8192)
+
+    this.inputStream().use { input ->
+        var read: Int
+        while (input.read(buffer).also { read = it } != -1) {
+            digest.update(buffer, 0, read)
+        }
+    }
+
+    return digest.digest().joinToString("") { "%02x".format(it) }
+}
+
+private fun File.loadCachedSpv(): ByteBuffer {
+    val bytes = this.readBytes()
+    val buffer = MemoryUtil.memAlloc(bytes.size)
+        .order(ByteOrder.nativeOrder())
+        .put(bytes)
+    return buffer.flip() as ByteBuffer
 }
