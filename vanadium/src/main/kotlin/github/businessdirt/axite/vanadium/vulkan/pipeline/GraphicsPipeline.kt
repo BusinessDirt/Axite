@@ -53,6 +53,8 @@ class GraphicsPipeline(
 
     constructor(device: VkDevice, block: GraphicsPipelineConfiguration.() -> Unit) : this(device, GraphicsPipelineConfiguration().apply(block))
 
+    constructor(block: GraphicsPipelineConfiguration.() -> Unit) : this(Vanadium.context.device.handle, block)
+
     private fun MemoryStack.renderingCreateInfo(): VkPipelineRenderingCreateInfo {
         val info = VkPipelineRenderingCreateInfo.calloc(this).`sType$Default`()
             .colorAttachmentCount(1)

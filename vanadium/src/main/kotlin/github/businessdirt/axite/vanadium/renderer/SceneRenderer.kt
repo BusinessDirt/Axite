@@ -51,7 +51,7 @@ class SceneRenderer(val context: Context) {
         textures.clear()
         textures.add(whiteTexture)
 
-        graphicsPipeline = GraphicsPipeline(context.device.handle) {
+        graphicsPipeline = GraphicsPipeline {
             vertexShader(vertexShader)
             fragmentShader(fragmentShader)
             enableBlend = true
