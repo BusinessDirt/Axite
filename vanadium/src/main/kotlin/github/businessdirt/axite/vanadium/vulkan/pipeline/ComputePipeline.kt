@@ -14,7 +14,8 @@ import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo
 
 class ComputePipeline(
     device: VkDevice,
-    shader: Shader
+    shader: Shader,
+    val specializationConstants: Map<String, Any> = emptyMap()
 ) : Pipeline(device) {
 
     override val layout: PipelineLayout = PipelineLayout(
@@ -42,6 +43,7 @@ class ComputePipeline(
             .stage(VK_SHADER_STAGE_COMPUTE_BIT)
             .module(shader.module.handle)
             .pName(this.UTF8("main"))
+            .pSpecializationInfo(specializationInfo(shader, specializationConstants))
 
     override fun bind(commandBuffer: CommandBuffer) =
         vkCmdBindPipeline(commandBuffer.handle, VK_PIPELINE_BIND_POINT_COMPUTE, handle)

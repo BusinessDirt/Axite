@@ -28,12 +28,18 @@ class GraphicsPipelineConfiguration {
     var depthWriteEnable: Boolean = true
     var depthCompareOp: Int = VK_COMPARE_OP_LESS_OR_EQUAL
 
+    val specializationConstants = mutableMapOf<String, Any>()
+
     fun vertexShader(shader: Shader) {
         this.vertexShader = shader
     }
 
     fun fragmentShader(shader: Shader) {
         this.fragmentShader = shader
+    }
+
+    fun specializationConstant(name: String, value: Any) {
+        this.specializationConstants[name] = value
     }
 }
 
@@ -59,9 +65,17 @@ class GraphicsPipeline(
         val stages = VkPipelineShaderStageCreateInfo.calloc(2, this)
         val mainName = this.UTF8("main")
 
-        stages[0].`sType$Default`().stage(vertexShader.stage.vulkan).module(vertexShader.module.handle).pName(mainName)
-        stages[1].`sType$Default`().stage(fragmentShader.stage.vulkan).module(fragmentShader.module.handle)
+        stages[0].`sType$Default`()
+            .stage(vertexShader.stage.vulkan)
+            .module(vertexShader.module.handle)
             .pName(mainName)
+            .pSpecializationInfo(specializationInfo(vertexShader, configuration.specializationConstants))
+
+        stages[1].`sType$Default`()
+            .stage(fragmentShader.stage.vulkan)
+            .module(fragmentShader.module.handle)
+            .pName(mainName)
+            .pSpecializationInfo(specializationInfo(fragmentShader, configuration.specializationConstants))
 
         return stages
     }
