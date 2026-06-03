@@ -33,7 +33,7 @@ class PostProcessingRenderer(val context: Context) {
 
     private var lastInputViews: LongArray? = null
 
-    var effectType: Int = 1
+    var effectType: Int = 0
         set(value) {
             if (field != value) {
                 field = value

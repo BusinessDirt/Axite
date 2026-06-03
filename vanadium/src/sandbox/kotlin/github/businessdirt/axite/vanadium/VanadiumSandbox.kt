@@ -81,7 +81,7 @@ class VanadiumSandbox : VanadiumAdapter {
                 SCENE_COLOR,
                 backBuffer.width,
                 backBuffer.height,
-                VK_FORMAT_R16G16B16A16_SFLOAT,
+                Vanadium.context.surface.surfaceFormat.imageFormat,
                 VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT or VK_IMAGE_USAGE_SAMPLED_BIT
             )
         }
