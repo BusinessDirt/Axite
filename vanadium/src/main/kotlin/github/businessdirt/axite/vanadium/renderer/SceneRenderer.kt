@@ -38,17 +38,19 @@ class SceneRenderer(val context: Context) {
 
     private var graphicsPipeline: GraphicsPipeline? = null
     private var descriptorPool: DescriptorPool? = null
-    private var projSet: DescriptorSet? = null
-    private var viewSet: DescriptorSet? = null
-    private var materialSet: DescriptorSet? = null
-    private var textureSet: DescriptorSet? = null
+    
+    private var projSets: Array<DescriptorSet>? = null
+    private var viewSets: Array<DescriptorSet>? = null
+    private var materialSets: Array<DescriptorSet>? = null
+    private var textureSets: Array<DescriptorSet>? = null
 
-    private var projBuffer: Buffer? = null
-    private var viewBuffer: Buffer? = null
-    private var materialBuffer: Buffer? = null
+    private var projBuffers: Array<Buffer>? = null
+    private var viewBuffers: Array<Buffer>? = null
+    private var materialBuffers: Array<Buffer>? = null
 
     private val textures = mutableListOf<Texture>()
     private lateinit var whiteTexture: Texture
+    private var lastTextureHandles: LongArray? = null
 
     suspend fun initialize() = Profiler.profile("SceneRenderer Initialization") {
         val vertexShader = Vanadium.assets.load<Shader>(VERTEX_SHADER_PATH)
@@ -66,47 +68,65 @@ class SceneRenderer(val context: Context) {
             enableBlend = true
         }
 
+        val frames = context.maxFramesInFlight
         descriptorPool = DescriptorPool(
-            context.device.handle, 4, listOf(
-                DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 2),
-                DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1),
-                DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_TEXTURES)
+            context.device.handle, frames * 4, listOf(
+                DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, frames * 2),
+                DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, frames),
+                DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, frames * MAX_TEXTURES)
             )
         )
 
-        projBuffer = Buffer(context.device.handle, context.physicalDevice, 64, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
-        viewBuffer = Buffer(context.device.handle, context.physicalDevice, 64, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+        projBuffers = Array(frames) { Buffer(context.device.handle, context.physicalDevice, 64, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) }
+        viewBuffers = Array(frames) { Buffer(context.device.handle, context.physicalDevice, 64, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) }
 
         val materialBufferSize = MAX_MATERIALS * 32L
-        materialBuffer = Buffer(context.device.handle, context.physicalDevice, materialBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+        materialBuffers = Array(frames) { Buffer(context.device.handle, context.physicalDevice, materialBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) }
 
         graphicsPipeline?.layout?.descriptorSetLayouts?.let { layouts ->
-            projSet = DescriptorSet(context.device.handle, descriptorPool!!, layouts[0])
-            projSet?.updateBuffer(0, projBuffer!!.handle, 64)
+            projSets = Array(frames) { i ->
+                DescriptorSet(context.device.handle, descriptorPool!!, layouts[0]).also { set ->
+                    set.updateBuffer(0, projBuffers!![i].handle, 64)
+                }
+            }
 
-            viewSet = DescriptorSet(context.device.handle, descriptorPool!!, layouts[1])
-            viewSet?.updateBuffer(0, viewBuffer!!.handle, 64)
+            viewSets = Array(frames) { i ->
+                DescriptorSet(context.device.handle, descriptorPool!!, layouts[1]).also { set ->
+                    set.updateBuffer(0, viewBuffers!![i].handle, 64)
+                }
+            }
 
-            materialSet = DescriptorSet(context.device.handle, descriptorPool!!, layouts[2])
-            materialSet?.updateBuffer(0, materialBuffer!!.handle, materialBufferSize, type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+            materialSets = Array(frames) { i ->
+                DescriptorSet(context.device.handle, descriptorPool!!, layouts[2]).also { set ->
+                    set.updateBuffer(0, materialBuffers!![i].handle, materialBufferSize, type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+                }
+            }
 
-            textureSet = DescriptorSet(context.device.handle, descriptorPool!!, layouts[3])
-            updateTextureSet()
+            textureSets = Array(frames) { DescriptorSet(context.device.handle, descriptorPool!!, layouts[3]) }
+            lastTextureHandles = LongArray(frames) { 0L }
+            
+            for (i in 0 until frames) {
+                updateTextureSet(i)
+            }
         }
     }
 
-    private fun updateTextureSet() {
+    private fun updateTextureSet(frameIndex: Int) {
         val views = LongArray(MAX_TEXTURES) { whiteTexture.view.handle }
         val samplers = LongArray(MAX_TEXTURES) { whiteTexture.sampler.handle }
         textures.take(MAX_TEXTURES).forEachIndexed { i, tex ->
             views[i] = tex.view.handle
             samplers[i] = tex.sampler.handle
         }
-        textureSet?.updateImages(0, views, samplers)
+        textureSets!![frameIndex].updateImages(0, views, samplers)
+        
+        // Track the "hash" of textures in this set to avoid redundant updates
+        lastTextureHandles!![frameIndex] = textures.fold(0L) { acc, tex -> acc xor tex.view.handle }
     }
 
     fun render(commandBuffer: CommandBuffer, scene: Scene) {
         val pipeline = graphicsPipeline ?: return
+        val frameIndex = context.currentFrameIndex
 
         // Update texture list from scene
         var textureUpdateNeeded = false
@@ -122,11 +142,18 @@ class SceneRenderer(val context: Context) {
                 }
             }
         }
-        if (textureUpdateNeeded) updateTextureSet()
+        
+        // If texture list changed, we eventually need to update all per-frame sets.
+        // For the current frame, we check if it matches our last update.
+        val currentTexturesHash = textures.fold(0L) { acc, tex -> acc xor tex.view.handle }
+        if (lastTextureHandles!![frameIndex] != currentTexturesHash) {
+            updateTextureSet(frameIndex)
+        }
 
         // Populate material buffer
         val materialBufferSize = MAX_MATERIALS * 32L
-        val matMap = materialBuffer!!.map()
+        val matBufferObj = materialBuffers!![frameIndex]
+        val matMap = matBufferObj.map()
         val matBuffer = MemoryUtil.memByteBuffer(matMap, materialBufferSize.toInt())
         var matOffset = 0
         
@@ -151,26 +178,28 @@ class SceneRenderer(val context: Context) {
                 }
             }
         }
-        materialBuffer!!.unmap()
+        matBufferObj.unmap()
 
         pipeline.bind(commandBuffer)
 
         val sets = longArrayOf(
-            projSet?.handle ?: 0L,
-            viewSet?.handle ?: 0L,
-            materialSet?.handle ?: 0L,
-            textureSet?.handle ?: 0L
+            projSets!![frameIndex].handle,
+            viewSets!![frameIndex].handle,
+            materialSets!![frameIndex].handle,
+            textureSets!![frameIndex].handle
         )
         commandBuffer.bindDescriptorSets(pipeline.layout.handle, sets)
 
         scene.forEachCamera { _: TransformComponent, cameraComp: CameraComponent ->
-            val projMap = projBuffer!!.map()
+            val projBuf = projBuffers!![frameIndex]
+            val projMap = projBuf.map()
             cameraComp.projectionMatrix.get(0, MemoryUtil.memByteBuffer(projMap, 64))
-            projBuffer!!.unmap()
+            projBuf.unmap()
 
-            val viewMap = viewBuffer!!.map()
+            val viewBuf = viewBuffers!![frameIndex]
+            val viewMap = viewBuf.map()
             cameraComp.viewMatrix.get(0, MemoryUtil.memByteBuffer(viewMap, 64))
-            viewBuffer!!.unmap()
+            viewBuf.unmap()
         }
 
         fun renderMesh(transform: TransformComponent, mesh: Mesh, modelMaterials: List<github.businessdirt.axite.vanadium.assets.types.Material>) {
@@ -215,15 +244,15 @@ class SceneRenderer(val context: Context) {
     }
 
     fun shutdown() {
-        projSet?.close()
-        viewSet?.close()
-        materialSet?.close()
-        textureSet?.close()
+        projSets?.forEach { it.close() }
+        viewSets?.forEach { it.close() }
+        materialSets?.forEach { it.close() }
+        textureSets?.forEach { it.close() }
         descriptorPool?.close()
 
-        projBuffer?.close()
-        viewBuffer?.close()
-        materialBuffer?.close()
+        projBuffers?.forEach { it.close() }
+        viewBuffers?.forEach { it.close() }
+        materialBuffers?.forEach { it.close() }
 
         graphicsPipeline?.close()
 

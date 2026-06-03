@@ -28,30 +28,35 @@ sealed class Pipeline(
 
     protected fun MemoryStack.specializationInfo(shader: Shader, values: Map<String, Any>): VkSpecializationInfo? {
         val constants = shader.metadata.specializationConstants
-        val relevantConstants = constants.filter { it.name in values }
-        if (relevantConstants.isEmpty()) return null
+        if (constants.isEmpty()) return null
 
-        val mapEntries = VkSpecializationMapEntry.calloc(relevantConstants.size, this)
+        val mapEntries = VkSpecializationMapEntry.calloc(constants.size, this)
+
         var totalSize = 0
-        for (const in relevantConstants) {
+        for (const in constants) {
             totalSize += getBasetypeSize(const.type)
         }
 
         val pData = this.malloc(totalSize)
         var offset = 0
-        relevantConstants.forEachIndexed { i, const ->
-            val size = getBasetypeSize(const.type)
-            mapEntries[i].constantID(const.constantId).offset(offset).size(size.toLong())
 
-            val value = values[const.name]!!
+        constants.forEachIndexed { i, const ->
+            val size = getBasetypeSize(const.type)
+
+            mapEntries[i]
+                .constantID(const.constantId)
+                .offset(offset)
+                .size(size.toLong())
+
+            val value = values[const.name] ?: 0
             putValue(pData, offset, value, const.type)
 
             offset += size
         }
 
         return VkSpecializationInfo.calloc(this)
-            .pMapEntries(mapEntries)
-            .pData(pData)
+            .pMapEntries(mapEntries) // LWJGL auto-sets mapEntryCount from this
+            .pData(pData)            // LWJGL auto-sets dataSize from pData.remaining()
     }
 
     private fun getBasetypeSize(type: Int): Int = when (type) {
@@ -63,7 +68,7 @@ sealed class Pipeline(
     private fun putValue(data: ByteBuffer, offset: Int, value: Any, type: Int) {
         when (type) {
             SPVC_BASETYPE_BOOLEAN -> data.putInt(offset, if (value as Boolean) 1 else 0)
-            SPVC_BASETYPE_INT32 -> data.putInt(offset, value as Int)
+            SPVC_BASETYPE_INT32 -> data.putInt(offset, (value as Number).toInt())
             SPVC_BASETYPE_UINT32 -> data.putInt(offset, (value as Number).toInt())
             SPVC_BASETYPE_FP32 -> data.putFloat(offset, (value as Number).toFloat())
             SPVC_BASETYPE_INT64 -> data.putLong(offset, (value as Number).toLong())

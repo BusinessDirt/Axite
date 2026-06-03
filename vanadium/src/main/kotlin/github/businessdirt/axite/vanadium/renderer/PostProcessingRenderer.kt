@@ -26,12 +26,14 @@ class PostProcessingRenderer(val context: Context) {
 
     private var graphicsPipeline: GraphicsPipeline? = null
     private var descriptorPool: DescriptorPool? = null
-    private var imageSet: DescriptorSet? = null
-    private var screenSizeSet: DescriptorSet? = null
+    private var imageSets: Array<DescriptorSet>? = null
+    private var screenSizeSets: Array<DescriptorSet>? = null
     private var sampler: Sampler? = null
-    private var screenSizeBuffer: Buffer? = null
+    private var screenSizeBuffers: Array<Buffer>? = null
 
-    var effectType: Int = 0
+    private var lastInputViews: LongArray? = null
+
+    var effectType: Int = 1
         set(value) {
             if (field != value) {
                 field = value
@@ -39,7 +41,7 @@ class PostProcessingRenderer(val context: Context) {
             }
         }
 
-    var useFxaa: Boolean = false
+    var useFxaa: Boolean = true
         set(value) {
             if (field != value) {
                 field = value
@@ -59,19 +61,23 @@ class PostProcessingRenderer(val context: Context) {
         }
 
         descriptorPool = DescriptorPool(
-            context.device.handle, 2, listOf(
-                DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1),
-                DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1)
+            context.device.handle, context.maxFramesInFlight * 2, listOf(
+                DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, context.maxFramesInFlight),
+                DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, context.maxFramesInFlight)
             )
         )
 
-        screenSizeBuffer = Buffer(
-            context.device.handle,
-            context.physicalDevice,
-            8, // vec2 (float, float)
-            VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-        )
+        screenSizeBuffers = Array(context.maxFramesInFlight) {
+            Buffer(
+                context.device.handle,
+                context.physicalDevice,
+                8, // vec2 (float, float)
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+            )
+        }
+
+        lastInputViews = LongArray(context.maxFramesInFlight) { 0L }
 
         recreatePipeline(vertexShader, fragmentShader)
     }
@@ -91,30 +97,44 @@ class PostProcessingRenderer(val context: Context) {
 
         // Recreate descriptor sets as they are tied to the pipeline layout
         if (descriptorPool != null) {
-            imageSet?.close()
-            screenSizeSet?.close()
+            imageSets?.forEach { it.close() }
+            screenSizeSets?.forEach { it.close() }
 
             graphicsPipeline?.layout?.descriptorSetLayouts?.let { layouts ->
-                imageSet = DescriptorSet(context.device.handle, descriptorPool!!, layouts[0])
-                screenSizeSet = DescriptorSet(context.device.handle, descriptorPool!!, layouts[1])
-                screenSizeSet?.updateBuffer(0, screenSizeBuffer!!.handle, 8)
+                imageSets = Array(context.maxFramesInFlight) { i ->
+                    DescriptorSet(context.device.handle, descriptorPool!!, layouts[0])
+                }
+                screenSizeSets = Array(context.maxFramesInFlight) { i ->
+                    DescriptorSet(context.device.handle, descriptorPool!!, layouts[1]).also { set ->
+                        set.updateBuffer(0, screenSizeBuffers!![i].handle, 8)
+                    }
+                }
             }
+
+            // Reset view tracking
+            lastInputViews?.fill(0L)
         }
     }
 
     fun render(commandBuffer: CommandBuffer, input: Attachment) {
         val pipeline = graphicsPipeline ?: return
-        val imgSet = imageSet ?: return
-        val sizeSet = screenSizeSet ?: return
+        val frameIndex = context.currentFrameIndex
+        val imgSet = imageSets?.get(frameIndex) ?: return
+        val sizeSet = screenSizeSets?.get(frameIndex) ?: return
+        val sizeBuffer = screenSizeBuffers?.get(frameIndex) ?: return
 
         // Update screen size
-        val map = screenSizeBuffer!!.map()
+        val map = sizeBuffer.map()
         val buffer = MemoryUtil.memByteBuffer(map, 8)
         buffer.putFloat(input.width.toFloat())
         buffer.putFloat(input.height.toFloat())
-        screenSizeBuffer!!.unmap()
+        sizeBuffer.unmap()
 
-        imgSet.updateImage(0, input.imageView.handle, sampler!!.handle)
+        // Only update if view changed
+        if (lastInputViews!![frameIndex] != input.imageView.handle) {
+            imgSet.updateImage(0, input.imageView.handle, sampler!!.handle)
+            lastInputViews!![frameIndex] = input.imageView.handle
+        }
 
         pipeline.bind(commandBuffer)
         commandBuffer.bindDescriptorSets(pipeline.layout.handle, longArrayOf(imgSet.handle, sizeSet.handle))
@@ -122,11 +142,11 @@ class PostProcessingRenderer(val context: Context) {
     }
 
     fun shutdown() {
-        imageSet?.close()
-        screenSizeSet?.close()
+        imageSets?.forEach { it.close() }
+        screenSizeSets?.forEach { it.close() }
         descriptorPool?.close()
         sampler?.close()
-        screenSizeBuffer?.close()
+        screenSizeBuffers?.forEach { it.close() }
         graphicsPipeline?.close()
 
         Vanadium.assets.unload(VERTEX_SHADER_PATH)

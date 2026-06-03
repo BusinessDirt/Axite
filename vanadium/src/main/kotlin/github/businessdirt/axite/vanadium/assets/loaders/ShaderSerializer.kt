@@ -127,11 +127,11 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
                 reflectVertexInput(compiler, resources, vertexAttributes, vertexInputBindings)
             }
 
-            // Reflect Specialization Constants with extra safety
+            // Reflect Specialization Constants with extra safety and full trace
             try {
                 reflectSpecializationConstants(compiler, specializationConstants)
             } catch (e: Throwable) {
-                logger.warn("Specialization constant reflection failed: {}", e.message)
+                logger.warn("Specialization constant reflection failed for [{}]:", metadata.hash, e)
             }
 
             metadata.copy(
@@ -157,8 +157,8 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
     }
 
     private fun reflectPushConstants(compiler: Long, resources: Long, stageFlags: Int, results: MutableList<PushConstantRange>) = memoryStack { stack ->
-        val listPtr = stack.mallocPointer(1)
-        val countPtr = stack.mallocPointer(1)
+        val listPtr = stack.callocPointer(1)
+        val countPtr = stack.callocPointer(1)
         val res = spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_PUSH_CONSTANT, listPtr, countPtr)
         
         if (res == SPVC_SUCCESS) {
@@ -168,7 +168,7 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
                 for (i in 0 until count) {
                     val resource = pcList[i]
                     val type = spvc_compiler_get_type_handle(compiler, resource.type_id())
-                    val sizePtr = stack.mallocPointer(1)
+                    val sizePtr = stack.callocPointer(1)
                     if (spvc_compiler_get_declared_struct_size(compiler, type, sizePtr) == SPVC_SUCCESS) {
                         results.add(PushConstantRange(stageFlags, 0, sizePtr[0].toInt()))
                     }
@@ -183,8 +183,8 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
         attributes: MutableList<VertexInputAttribute>,
         bindings: MutableList<VertexInputBinding>
     ) = memoryStack { stack ->
-        val inputListPtr = stack.mallocPointer(1)
-        val countPtr = stack.mallocPointer(1)
+        val inputListPtr = stack.callocPointer(1)
+        val countPtr = stack.callocPointer(1)
         val res = spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_STAGE_INPUT, inputListPtr, countPtr)
 
         if (res == SPVC_SUCCESS) {
@@ -219,23 +219,42 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
     }
 
     private fun reflectSpecializationConstants(compiler: Long, results: MutableList<SpecializationConstant>) = memoryStack { stack ->
-        val constantsPtr = stack.mallocPointer(1)
-        val numConstantsPtr = stack.mallocPointer(1)
+        val constantsPtr = stack.callocPointer(1)
+        val numConstantsPtr = stack.callocPointer(1)
 
         val result = spvc_compiler_get_specialization_constants(compiler, constantsPtr, numConstantsPtr)
-        if (result != SPVC_SUCCESS) return@memoryStack
+        if (result != SPVC_SUCCESS) {
+            logger.warn("spvc_compiler_get_specialization_constants failed with code: {}", result)
+            return@memoryStack
+        }
 
-        val numConstants = numConstantsPtr[0].toInt()
-        if (numConstants <= 0 || constantsPtr[0] == 0L) return@memoryStack
+        val numConstants = numConstantsPtr.get(0).toInt()
+        if (numConstants <= 0) return@memoryStack
 
-        val constants = SpvcSpecializationConstant.create(constantsPtr[0], numConstants)
+        val constantsAddr = constantsPtr.get(0)
+        if (constantsAddr == 0L) return@memoryStack
+
+        val constants = SpvcSpecializationConstant.create(constantsAddr, numConstants)
         for (i in 0 until numConstants) {
-            val constant = constants[i]
-            val name = spvc_compiler_get_name(compiler, constant.id()) ?: ""
-            val typeHandle = spvc_compiler_get_type_handle(compiler, constant.id())
-            val type = spvc_type_get_basetype(typeHandle)
+            val constant = constants.get(i)
+            val id = constant.id()
+            val constantId = constant.constant_id()
+            val name = spvc_compiler_get_name(compiler, id)?.takeIf { it.isNotEmpty() } ?: "spec_const_$constantId"
+            val constantHandle = spvc_compiler_get_constant_handle(compiler, id)
 
-            results.add(SpecializationConstant(constant.id(), constant.constant_id(), name, type))
+            val type = if (constantHandle != 0L) {
+                val typeId = spvc_constant_get_type(constantHandle)
+                if (typeId != 0) {
+                    val nativeTypeHandle = spvc_compiler_get_type_handle(compiler, typeId)
+                    if (nativeTypeHandle != 0L) spvc_type_get_basetype(nativeTypeHandle) else {
+                        logger.warn("Could not resolve native type handle for type ID: $typeId")
+                        SPVC_BASETYPE_INT32
+                    }
+                } else SPVC_BASETYPE_INT32
+            } else SPVC_BASETYPE_INT32
+
+            logger.debug("Reflected Spec Constant: [name: {}, id: {}, constant_id: {}, type: {}]", name, id, constantId, type)
+            results.add(SpecializationConstant(id, constantId, name, type))
         }
     }
 
@@ -247,8 +266,8 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
         stageFlags: Int,
         results: MutableList<LayoutBinding>
     ) = memoryStack { stack ->
-        val listPtr = stack.mallocPointer(1)
-        val countPtr = stack.mallocPointer(1)
+        val listPtr = stack.callocPointer(1)
+        val countPtr = stack.callocPointer(1)
         val res = spvc_resources_get_resource_list_for_type(resources, spvcType, listPtr, countPtr)
 
         if (res != SPVC_SUCCESS) return@memoryStack
