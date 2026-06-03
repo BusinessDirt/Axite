@@ -28,6 +28,14 @@ class SceneRenderer(val context: Context) {
         const val WHITE_TEXTURE_PATH = "src/main/resources/textures/white.png"
     }
 
+    var colorFormat: Int = VK_FORMAT_R16G16B16A16_SFLOAT
+        set(value) {
+            if (field != value) {
+                field = value
+                // In a real engine, we'd recreate the pipeline here or use a dynamic state if possible
+            }
+        }
+
     private var graphicsPipeline: GraphicsPipeline? = null
     private var descriptorPool: DescriptorPool? = null
     private var projSet: DescriptorSet? = null
@@ -54,6 +62,7 @@ class SceneRenderer(val context: Context) {
         graphicsPipeline = GraphicsPipeline {
             vertexShader(vertexShader)
             fragmentShader(fragmentShader)
+            this.colorFormat = this@SceneRenderer.colorFormat
             enableBlend = true
         }
 

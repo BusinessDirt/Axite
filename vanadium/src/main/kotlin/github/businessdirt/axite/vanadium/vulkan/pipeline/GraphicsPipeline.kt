@@ -28,6 +28,9 @@ class GraphicsPipelineConfiguration {
     var depthWriteEnable: Boolean = true
     var depthCompareOp: Int = VK_COMPARE_OP_LESS_OR_EQUAL
 
+    var colorFormat: Int = Vanadium.context.surface.surfaceFormat.imageFormat
+    var depthFormat: Int = Vanadium.context.surface.depthFormat
+
     val specializationConstants = mutableMapOf<String, Any>()
 
     fun vertexShader(shader: Shader) {
@@ -58,8 +61,8 @@ class GraphicsPipeline(
     private fun MemoryStack.renderingCreateInfo(): VkPipelineRenderingCreateInfo {
         val info = VkPipelineRenderingCreateInfo.calloc(this).`sType$Default`()
             .colorAttachmentCount(1)
-            .pColorAttachmentFormats(this.ints(Vanadium.context.surface.surfaceFormat.imageFormat))
-        if (Vanadium.context.surface.depthFormat != VK_FORMAT_UNDEFINED) info.depthAttachmentFormat(Vanadium.context.surface.depthFormat)
+            .pColorAttachmentFormats(this.ints(configuration.colorFormat))
+        if (configuration.depthFormat != VK_FORMAT_UNDEFINED) info.depthAttachmentFormat(configuration.depthFormat)
         return info
     }
 

@@ -8,7 +8,7 @@ const float SPAN_MAX = 8.0;
 const float REDUCE_MIN = 1.0/128.0;
 const float REDUCE_MUL = 1.0/32.0;
 
-layout (binding = 0, set = 0) sampler2D inputTexture;
+layout (binding = 0, set = 0) uniform sampler2D inputTexture;
 layout (binding = 0, set = 1) uniform ScreenSize {
     vec2 size;
 } screenSize;

@@ -106,6 +106,8 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
                 spvc_context_create_compiler(context, SPVC_BACKEND_NONE, ir, SPVC_CAPTURE_MODE_TAKE_OWNERSHIP, compilerPtr)
             }
 
+            if (compiler == 0L) throw RuntimeException("Failed to create SPVC compiler")
+
             val resources = stack.getPointer { spvc_compiler_create_shader_resources(compiler, it) }
 
             val layoutBindings = mutableListOf<LayoutBinding>()
@@ -125,8 +127,12 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
                 reflectVertexInput(compiler, resources, vertexAttributes, vertexInputBindings)
             }
 
-            // Reflect Specialization Constants
-            reflectSpecializationConstants(compiler, specializationConstants)
+            // Reflect Specialization Constants with extra safety
+            try {
+                reflectSpecializationConstants(compiler, specializationConstants)
+            } catch (e: Throwable) {
+                logger.warn("Specialization constant reflection failed: {}", e.message)
+            }
 
             metadata.copy(
                 pushConstantRanges = pushConstants,
@@ -152,17 +158,21 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
 
     private fun reflectPushConstants(compiler: Long, resources: Long, stageFlags: Int, results: MutableList<PushConstantRange>) = memoryStack { stack ->
         val listPtr = stack.mallocPointer(1)
-        val count = stack.getPointer { countPtr ->
-            spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_PUSH_CONSTANT, listPtr, countPtr)
-        }.toInt()
-
-        if (count > 0) {
-            val pcList = SpvcReflectedResource.create(listPtr[0], count)
-            for (i in 0 until count) {
-                val resource = pcList[i]
-                val type = spvc_compiler_get_type_handle(compiler, resource.type_id())
-                val size = stack.getPointer { sizePtr -> spvc_compiler_get_declared_struct_size(compiler, type, sizePtr) }
-                results.add(PushConstantRange(stageFlags, 0, size.toInt()))
+        val countPtr = stack.mallocPointer(1)
+        val res = spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_PUSH_CONSTANT, listPtr, countPtr)
+        
+        if (res == SPVC_SUCCESS) {
+            val count = countPtr[0].toInt()
+            if (count > 0) {
+                val pcList = SpvcReflectedResource.create(listPtr[0], count)
+                for (i in 0 until count) {
+                    val resource = pcList[i]
+                    val type = spvc_compiler_get_type_handle(compiler, resource.type_id())
+                    val sizePtr = stack.mallocPointer(1)
+                    if (spvc_compiler_get_declared_struct_size(compiler, type, sizePtr) == SPVC_SUCCESS) {
+                        results.add(PushConstantRange(stageFlags, 0, sizePtr[0].toInt()))
+                    }
+                }
             }
         }
     }
@@ -174,34 +184,36 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
         bindings: MutableList<VertexInputBinding>
     ) = memoryStack { stack ->
         val inputListPtr = stack.mallocPointer(1)
-        val inputCount = stack.getPointer { countPtr ->
-            spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_STAGE_INPUT, inputListPtr, countPtr)
-        }.toInt()
+        val countPtr = stack.mallocPointer(1)
+        val res = spvc_resources_get_resource_list_for_type(resources, SPVC_RESOURCE_TYPE_STAGE_INPUT, inputListPtr, countPtr)
 
-        if (inputCount > 0) {
-            val inputList = SpvcReflectedResource.create(inputListPtr[0], inputCount)
-            val reflectedInputs = ArrayList<VertexAttributeTemp>(inputCount)
+        if (res == SPVC_SUCCESS) {
+            val inputCount = countPtr[0].toInt()
+            if (inputCount > 0) {
+                val inputList = SpvcReflectedResource.create(inputListPtr[0], inputCount)
+                val reflectedInputs = ArrayList<VertexAttributeTemp>(inputCount)
 
-            for (i in 0 until inputCount) {
-                val resource = inputList[i]
-                val location = spvc_compiler_get_decoration(compiler, resource.id(), SpvDecorationLocation)
-                val format = getVulkanFormat(compiler, resource.type_id())
-                val binding = if (spvc_compiler_has_decoration(compiler, resource.id(), SpvDecorationBinding)) {
-                    spvc_compiler_get_decoration(compiler, resource.id(), SpvDecorationBinding)
-                } else 0
-                reflectedInputs.add(VertexAttributeTemp(location, format, binding))
-            }
+                for (i in 0 until inputCount) {
+                    val resource = inputList[i]
+                    val location = spvc_compiler_get_decoration(compiler, resource.id(), SpvDecorationLocation)
+                    val format = getVulkanFormat(compiler, resource.type_id())
+                    val binding = if (spvc_compiler_has_decoration(compiler, resource.id(), SpvDecorationBinding)) {
+                        spvc_compiler_get_decoration(compiler, resource.id(), SpvDecorationBinding)
+                    } else 0
+                    reflectedInputs.add(VertexAttributeTemp(location, format, binding))
+                }
 
-            reflectedInputs.sortBy { it.location }
+                reflectedInputs.sortBy { it.location }
 
-            var strideOffset = 0
-            for (attr in reflectedInputs) {
-                attributes.add(VertexInputAttribute(attr.location, attr.binding, attr.format, strideOffset))
-                strideOffset += getFormatSize(attr.format)
-            }
+                var strideOffset = 0
+                for (attr in reflectedInputs) {
+                    attributes.add(VertexInputAttribute(attr.location, attr.binding, attr.format, strideOffset))
+                    strideOffset += getFormatSize(attr.format)
+                }
 
-            if (attributes.isNotEmpty()) {
-                bindings.add(VertexInputBinding(0, strideOffset, VK_VERTEX_INPUT_RATE_VERTEX))
+                if (attributes.isNotEmpty()) {
+                    bindings.add(VertexInputBinding(0, strideOffset, VK_VERTEX_INPUT_RATE_VERTEX))
+                }
             }
         }
     }
@@ -214,7 +226,7 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
         if (result != SPVC_SUCCESS) return@memoryStack
 
         val numConstants = numConstantsPtr[0].toInt()
-        if (numConstants == 0) return@memoryStack
+        if (numConstants <= 0 || constantsPtr[0] == 0L) return@memoryStack
 
         val constants = SpvcSpecializationConstant.create(constantsPtr[0], numConstants)
         for (i in 0 until numConstants) {
@@ -236,10 +248,12 @@ class ShaderSerializer : AssetSerializer<Shader, ShaderMetadata>(
         results: MutableList<LayoutBinding>
     ) = memoryStack { stack ->
         val listPtr = stack.mallocPointer(1)
-        val count = stack.getPointer { countPtr ->
-            spvc_resources_get_resource_list_for_type(resources, spvcType, listPtr, countPtr)
-        }.toInt()
+        val countPtr = stack.mallocPointer(1)
+        val res = spvc_resources_get_resource_list_for_type(resources, spvcType, listPtr, countPtr)
 
+        if (res != SPVC_SUCCESS) return@memoryStack
+
+        val count = countPtr[0].toInt()
         if (count == 0) return@memoryStack
 
         val list = SpvcReflectedResource.create(listPtr[0], count)

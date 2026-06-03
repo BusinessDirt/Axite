@@ -58,8 +58,6 @@ class PostProcessingRenderer(val context: Context) {
             addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
         }
 
-        recreatePipeline(vertexShader, fragmentShader)
-
         descriptorPool = DescriptorPool(
             context.device.handle, 2, listOf(
                 DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1),
@@ -75,11 +73,7 @@ class PostProcessingRenderer(val context: Context) {
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
         )
 
-        graphicsPipeline?.layout?.descriptorSetLayouts?.let { layouts ->
-            imageSet = DescriptorSet(context.device.handle, descriptorPool!!, layouts[0])
-            screenSizeSet = DescriptorSet(context.device.handle, descriptorPool!!, layouts[1])
-            screenSizeSet?.updateBuffer(0, screenSizeBuffer!!.handle, 8)
-        }
+        recreatePipeline(vertexShader, fragmentShader)
     }
 
     private fun recreatePipeline(
@@ -94,6 +88,18 @@ class PostProcessingRenderer(val context: Context) {
             specializationConstant("USE_FXAA", if (useFxaa) 1 else 0)
         }
         oldPipeline?.close()
+
+        // Recreate descriptor sets as they are tied to the pipeline layout
+        if (descriptorPool != null) {
+            imageSet?.close()
+            screenSizeSet?.close()
+
+            graphicsPipeline?.layout?.descriptorSetLayouts?.let { layouts ->
+                imageSet = DescriptorSet(context.device.handle, descriptorPool!!, layouts[0])
+                screenSizeSet = DescriptorSet(context.device.handle, descriptorPool!!, layouts[1])
+                screenSizeSet?.updateBuffer(0, screenSizeBuffer!!.handle, 8)
+            }
+        }
     }
 
     fun render(commandBuffer: CommandBuffer, input: Attachment) {
