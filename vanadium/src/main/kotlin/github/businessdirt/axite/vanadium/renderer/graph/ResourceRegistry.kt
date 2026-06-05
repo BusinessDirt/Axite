@@ -23,9 +23,57 @@ class ResourceRegistry(val context: Context) {
         frameResources[name] = attachment
     }
 
-    fun createResource(name: String, width: Int, height: Int, format: Int, usage: Int) {
+    fun forceRecreateResource(name: String, width: Int, height: Int, format: Int, usage: Int) {
         persistentAttachments[name]?.close()
         persistentAttachments[name] = Attachment(context.device.handle, context.physicalDevice, width, height, format, usage)
+    }
+
+    fun ensureResource(name: String, width: Int, height: Int, format: Int, usage: Int) {
+        if (!persistentAttachments.containsKey(name)) {
+            persistentAttachments[name] = Attachment(context.device.handle, context.physicalDevice, width, height, format, usage)
+        }
+    }
+
+    fun ensureResourceMatches(
+        name: String,
+        width: Int,
+        height: Int,
+        format: Int,
+        usage: Int,
+        shouldRecreate: (Attachment) -> Boolean = { old ->
+            old.width != width || old.height != height || old.format != format || old.usage != usage
+        }
+    ) {
+        val existing = persistentAttachments[name]
+        if (existing == null || shouldRecreate(existing)) {
+            existing?.close()
+            persistentAttachments[name] = Attachment(context.device.handle, context.physicalDevice, width, height, format, usage)
+        }
+    }
+
+    fun ensureResourceMatchesBackbuffer(
+        name: String,
+        usage: Int,
+        shouldRecreate: (Attachment, Attachment) -> Boolean = { oldResource, currentBackbuffer ->
+            oldResource.width != currentBackbuffer.width ||
+                    oldResource.height != currentBackbuffer.height ||
+                    oldResource.format != currentBackbuffer.format
+        }
+    ) {
+        val existing = persistentAttachments[name]
+        val backbuffer = frameResources[RenderResourceNames.BACK_BUFFER] ?: error("Backbuffer does not exist")
+
+        if (existing == null || shouldRecreate(existing, backbuffer)) {
+            existing?.close()
+            persistentAttachments[name] = Attachment(
+                context.device.handle,
+                context.physicalDevice,
+                backbuffer.width,
+                backbuffer.height,
+                backbuffer.format,
+                usage
+            )
+        }
     }
 
     /**

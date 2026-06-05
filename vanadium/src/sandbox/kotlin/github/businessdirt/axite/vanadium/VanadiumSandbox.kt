@@ -4,7 +4,6 @@ import github.businessdirt.axite.vanadium.assets.types.Model
 import github.businessdirt.axite.vanadium.core.events.Event
 import github.businessdirt.axite.vanadium.renderer.passes.GeometryPass
 import github.businessdirt.axite.vanadium.renderer.passes.PostProcessPass
-import github.businessdirt.axite.vanadium.renderer.graph.ClearColorValue
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
 import github.businessdirt.axite.vanadium.renderer.graph.RenderResourceNames
 import github.businessdirt.axite.vanadium.scene.Scene
@@ -68,22 +67,11 @@ class VanadiumSandbox : VanadiumAdapter {
     }
 
     override fun onRecord(graph: RenderGraph, geometryPass: GeometryPass, commandBuffer: CommandBuffer, interpolation: Double) = graph.build {
-        val backBuffer = graph.registry[RenderResourceNames.BACK_BUFFER]
-
-        // Ensure intermediate buffer exists and matches backbuffer size
-        try {
-            val intermediate = graph.registry[SCENE_COLOR]
-            if (intermediate.width != backBuffer.width || intermediate.height != backBuffer.height) {
-                throw Exception()
-            }
-        } catch (e: Exception) {
-            graph.registry.createResource(
-                SCENE_COLOR,
-                backBuffer.width,
-                backBuffer.height,
-                Vanadium.context.surface.surfaceFormat.imageFormat,
-                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT or VK_IMAGE_USAGE_SAMPLED_BIT
-            )
+        graph.registry.ensureResourceMatchesBackbuffer(
+            SCENE_COLOR,
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT or VK_IMAGE_USAGE_SAMPLED_BIT
+        ) { old, backbuffer ->
+            old.width != backbuffer.width || old.height != backbuffer.height
         }
 
         val sceneColor = geometryPass.record(this, scene, SCENE_COLOR)
