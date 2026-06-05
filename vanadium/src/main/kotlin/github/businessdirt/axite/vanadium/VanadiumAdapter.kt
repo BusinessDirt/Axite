@@ -2,9 +2,10 @@ package github.businessdirt.axite.vanadium
 
 import github.businessdirt.axite.vanadium.core.events.Event
 import github.businessdirt.axite.vanadium.core.math.Resolution
-import github.businessdirt.axite.vanadium.renderer.SceneRenderer
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
+import github.businessdirt.axite.vanadium.renderer.passes.GeometryPass
 import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
+
 import kotlinx.coroutines.CoroutineScope
 
 data class VanadiumConfig(
@@ -31,11 +32,11 @@ interface VanadiumAdapter {
     /**
      * Instead of raw rendering, the adapter populates the RenderGraph.
      * @param graph The graph to add RenderPassNodes to.
-     * @param sceneRenderer The scene renderer that can render a scene.
+     * @param geometryPass The geometry pass that can render a scene.
      * @param commandBuffer The command buffer of the current frame.
      * @param interpolation The alpha value for jitter-free rendering.
      */
-    fun onRecord(graph: RenderGraph, sceneRenderer: SceneRenderer, commandBuffer: CommandBuffer, interpolation: Double)
+    fun onRecord(graph: RenderGraph, geometryPass: GeometryPass, commandBuffer: CommandBuffer, interpolation: Double)
 
     fun onEvent(event: Event)
     fun shutdown() {}

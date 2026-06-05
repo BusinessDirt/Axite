@@ -2,17 +2,17 @@ package github.businessdirt.axite.vanadium.renderer.graph
 
 import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
 
-class RenderGraphBuilder(private val graph: RenderGraph) {
+class RenderGraphBuilder(val graph: RenderGraph) {
 
     fun pass(name: String, block: PassBuilder.() -> Unit) {
-        val builder = PassBuilder(name)
+        val builder = PassBuilder(name, graph.registry)
         builder.block()
 
         val node = RenderPassNode(
             name = builder.name,
             readResources = builder.reads,
             writeResources = builder.writes,
-            action = builder.action ?: { _ -> }
+            action = { commandBuffer -> builder.action?.invoke(commandBuffer, graph.registry) }
         ).apply {
             data.clearColorValue = builder.clearColor
             data.clearDepthValue = builder.clearDepth
@@ -22,14 +22,14 @@ class RenderGraphBuilder(private val graph: RenderGraph) {
     }
 }
 
-class PassBuilder(val name: String) {
+class PassBuilder(val name: String, val registry: ResourceRegistry) {
     val reads = mutableSetOf<String>()
     val writes = mutableSetOf<String>()
 
     var clearColor: ClearColorValue? = null
     var clearDepth: Float? = null
 
-    internal var action: ((CommandBuffer) -> Unit)? = null
+    internal var action: ((CommandBuffer, ResourceRegistry) -> Unit)? = null
 
     fun read(vararg resourceNames: String) = reads.addAll(resourceNames)
     fun writes(vararg resourceNames: String) = writes.addAll(resourceNames)
@@ -42,7 +42,7 @@ class PassBuilder(val name: String) {
         clearDepth = depth
     }
 
-    fun pipeline(block: (CommandBuffer) -> Unit) {
+    fun pipeline(block: (CommandBuffer, ResourceRegistry) -> Unit) {
         this.action = block
     }
 }

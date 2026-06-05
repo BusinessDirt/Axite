@@ -2,8 +2,8 @@ package github.businessdirt.axite.vanadium
 
 import github.businessdirt.axite.vanadium.assets.types.Model
 import github.businessdirt.axite.vanadium.core.events.Event
-import github.businessdirt.axite.vanadium.renderer.PostProcessingRenderer
-import github.businessdirt.axite.vanadium.renderer.SceneRenderer
+import github.businessdirt.axite.vanadium.renderer.passes.GeometryPass
+import github.businessdirt.axite.vanadium.renderer.passes.PostProcessPass
 import github.businessdirt.axite.vanadium.renderer.graph.ClearColorValue
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
 import github.businessdirt.axite.vanadium.renderer.graph.RenderResourceNames
@@ -22,7 +22,7 @@ class VanadiumSandbox : VanadiumAdapter {
     }
 
     private val scene = Scene()
-    private lateinit var postRenderer: PostProcessingRenderer
+    private lateinit var postPass: PostProcessPass
 
     override suspend fun initialize(scope: CoroutineScope) {
         val model = Vanadium.assets.load<Model>(MODEL_FILE)
@@ -51,14 +51,14 @@ class VanadiumSandbox : VanadiumAdapter {
             }
         }
 
-        postRenderer = PostProcessingRenderer(Vanadium.context).also {
+        postPass = PostProcessPass(Vanadium.context).also {
             it.initialize()
-            it.useFxaa = true
+            it.useFXAA = true
         }
     }
 
     override fun shutdown() {
-        postRenderer.shutdown()
+        postPass.shutdown()
         scene.close()
         Vanadium.assets.unload(MODEL_FILE)
     }
@@ -67,7 +67,7 @@ class VanadiumSandbox : VanadiumAdapter {
         scene.update(frameInfo.deltaTime.toFloat())
     }
 
-    override fun onRecord(graph: RenderGraph, sceneRenderer: SceneRenderer, commandBuffer: CommandBuffer, interpolation: Double) = graph.build {
+    override fun onRecord(graph: RenderGraph, geometryPass: GeometryPass, commandBuffer: CommandBuffer, interpolation: Double) = graph.build {
         val backBuffer = graph.registry[RenderResourceNames.BACK_BUFFER]
 
         // Ensure intermediate buffer exists and matches backbuffer size
@@ -86,25 +86,8 @@ class VanadiumSandbox : VanadiumAdapter {
             )
         }
 
-        pass("MainScenePass") {
-            writes(SCENE_COLOR, RenderResourceNames.DEPTH_BUFFER)
-
-            clearColor = ClearColorValue(0.4f, 0.6f, 0.9f, 1.0f)
-            clearDepth = 1.0f
-
-            pipeline { commandBuffer ->
-                sceneRenderer.render(commandBuffer, scene)
-            }
-        }
-
-        pass("PostProcessPass") {
-            read(SCENE_COLOR)
-            writes(RenderResourceNames.BACK_BUFFER)
-
-            pipeline { commandBuffer ->
-                postRenderer.render(commandBuffer, graph.registry[SCENE_COLOR])
-            }
-        }
+        val sceneColor = geometryPass.record(this, scene, SCENE_COLOR)
+        postPass.record(this, sceneColor, RenderResourceNames.BACK_BUFFER)
     }
 
     override fun onEvent(event: Event) { }
