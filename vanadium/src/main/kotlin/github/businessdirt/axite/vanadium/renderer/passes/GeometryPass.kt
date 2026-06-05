@@ -21,16 +21,14 @@ import github.businessdirt.axite.vanadium.vulkan.resources.Buffer
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.vulkan.VK13.*
 
-class GeometryPass(context: Context) : RenderPass(context) {
+object GeometryPass : RenderPass() {
 
-    companion object {
-        const val MAX_TEXTURES = 128
-        const val MAX_MATERIALS = 1024
+    const val MAX_TEXTURES = 128
+    const val MAX_MATERIALS = 1024
 
-        const val VERTEX_SHADER_PATH = "src/main/resources/shaders/scene.vert.glsl"
-        const val FRAGMENT_SHADER_PATH = "src/main/resources/shaders/scene.frag.glsl"
-        const val WHITE_TEXTURE_PATH = "src/main/resources/textures/white.png"
-    }
+    const val VERTEX_SHADER_PATH = "src/main/resources/shaders/scene.vert.glsl"
+    const val FRAGMENT_SHADER_PATH = "src/main/resources/shaders/scene.frag.glsl"
+    const val WHITE_TEXTURE_PATH = "src/main/resources/textures/white.png"
 
     private var graphicsPipeline: GraphicsPipeline? = null
     private var descriptorPool: DescriptorPool? = null
@@ -48,7 +46,7 @@ class GeometryPass(context: Context) : RenderPass(context) {
     private lateinit var whiteTexture: Texture
     private var lastTextureHandles: LongArray? = null
 
-    override suspend fun initialize() {
+    override suspend fun onInitialize() {
         Profiler.profile("GeometryPass Initialization") {
             val vertexShader = Vanadium.assets.load<Shader>(VERTEX_SHADER_PATH)
             val fragmentShader = Vanadium.assets.load<Shader>(FRAGMENT_SHADER_PATH)
@@ -122,7 +120,7 @@ class GeometryPass(context: Context) : RenderPass(context) {
         lastTextureHandles!![frameIndex] = textures.fold(0L) { acc, tex -> acc xor tex.view.handle }
     }
 
-    fun record(builder: RenderGraphBuilder, scene: Scene, colorOutput: String = "scene_color", depthOutput: String = RenderResourceNames.DEPTH_BUFFER): String {
+    fun record(builder: RenderGraphBuilder, scene: Scene, colorOutput: String = RenderResourceNames.BACK_BUFFER, depthOutput: String = RenderResourceNames.DEPTH_BUFFER): String {
         builder.pass("GeometryPass") {
             if (colorOutput != RenderResourceNames.BACK_BUFFER) {
                 registry.ensureResourceMatchesBackbuffer(
@@ -271,7 +269,7 @@ class GeometryPass(context: Context) : RenderPass(context) {
         }
     }
 
-    override fun shutdown() {
+    override fun onShutdown() {
         projSets?.forEach { it.close() }
         viewSets?.forEach { it.close() }
         materialSets?.forEach { it.close() }

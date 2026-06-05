@@ -6,6 +6,8 @@ import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
 import github.businessdirt.axite.vanadium.renderer.graph.RenderResourceNames
 import github.businessdirt.axite.vanadium.renderer.passes.GeometryPass
+import github.businessdirt.axite.vanadium.renderer.passes.PostProcessPass
+import github.businessdirt.axite.vanadium.renderer.passes.RenderPass
 import github.businessdirt.axite.vanadium.vulkan.Context
 import github.businessdirt.axite.vanadium.vulkan.commands.transitionLayout
 import org.lwjgl.vulkan.KHRSwapchain.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
@@ -16,16 +18,14 @@ import org.lwjgl.vulkan.VkSemaphoreSubmitInfo
 
 class Renderer(val context: Context) {
 
-    private val renderGraph = RenderGraph(context)
-    private val geometryPass = GeometryPass(context)
+    private lateinit var renderGraph: RenderGraph
     private var resize = false
 
     suspend fun initialize() = Profiler.profile("Renderer Initialization") {
-        geometryPass.initialize()
+        renderGraph = RenderGraph(context)
     }
 
     fun shutdown() = Profiler.profile("Renderer Shutdown") {
-        geometryPass.shutdown()
         renderGraph.clear()
     }
 
@@ -46,7 +46,7 @@ class Renderer(val context: Context) {
         // Record/Build the frame
         currentFrameData.commandBuffer.record {
             renderGraph.use(this) { rg ->
-                adapter.onRecord(rg, geometryPass, this, interpolation)
+                adapter.onRecord(rg, this, interpolation)
             }
 
             val swapchainAttachment = renderGraph.registry[RenderResourceNames.BACK_BUFFER]

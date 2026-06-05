@@ -17,11 +17,9 @@ class VanadiumSandbox : VanadiumAdapter {
 
     companion object {
         const val MODEL_FILE: String = "src/sandbox/resources/models/sponza/Sponza.gltf"
-        const val SCENE_COLOR: String = "scene_color"
     }
 
     private val scene = Scene()
-    private lateinit var postPass: PostProcessPass
 
     override suspend fun initialize(scope: CoroutineScope) {
         val model = Vanadium.assets.load<Model>(MODEL_FILE)
@@ -50,14 +48,14 @@ class VanadiumSandbox : VanadiumAdapter {
             }
         }
 
-        postPass = PostProcessPass(Vanadium.context).also {
-            it.initialize()
-            it.useFXAA = true
+        GeometryPass.initialize()
+        PostProcessPass.apply {
+            initialize()
+            useFXAA = true
         }
     }
 
     override fun shutdown() {
-        postPass.shutdown()
         scene.close()
         Vanadium.assets.unload(MODEL_FILE)
     }
@@ -66,9 +64,9 @@ class VanadiumSandbox : VanadiumAdapter {
         scene.update(frameInfo.deltaTime.toFloat())
     }
 
-    override fun onRecord(graph: RenderGraph, geometryPass: GeometryPass, commandBuffer: CommandBuffer, interpolation: Double) = graph.build {
-        val sceneColor = geometryPass.record(this, scene, SCENE_COLOR)
-        postPass.record(this, sceneColor, RenderResourceNames.BACK_BUFFER)
+    override fun onRecord(graph: RenderGraph, commandBuffer: CommandBuffer, interpolation: Double) = graph.build {
+        val sceneColor = GeometryPass.record(this, scene, "scene_color")
+        PostProcessPass.record(this, sceneColor)
     }
 
     override fun onEvent(event: Event) { }

@@ -19,12 +19,10 @@ import github.businessdirt.axite.vanadium.vulkan.resources.Sampler
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.vulkan.VK13.*
 
-class PostProcessPass(context: Context) : RenderPass(context) {
+object PostProcessPass : RenderPass() {
 
-    companion object {
-        const val VERTEX_SHADER_PATH = "src/main/resources/shaders/post.vert.glsl"
-        const val FRAGMENT_SHADER_PATH = "src/main/resources/shaders/post.frag.glsl"
-    }
+    const val VERTEX_SHADER_PATH = "src/main/resources/shaders/post.vert.glsl"
+    const val FRAGMENT_SHADER_PATH = "src/main/resources/shaders/post.frag.glsl"
 
     private var graphicsPipeline: GraphicsPipeline? = null
     private var descriptorPool: DescriptorPool? = null
@@ -51,7 +49,7 @@ class PostProcessPass(context: Context) : RenderPass(context) {
             }
         }
 
-    override suspend fun initialize() {
+    override suspend fun onInitialize() {
         Profiler.profile("PostProcessPass Initialization") {
             val vertexShader = Vanadium.assets.load<Shader>(VERTEX_SHADER_PATH)
             val fragmentShader = Vanadium.assets.load<Shader>(FRAGMENT_SHADER_PATH)
@@ -168,7 +166,7 @@ class PostProcessPass(context: Context) : RenderPass(context) {
         commandBuffer.draw(3)
     }
 
-    override fun shutdown() {
+    override fun onShutdown() {
         imageSets?.forEach { it.close() }
         screenSizeSets?.forEach { it.close() }
         descriptorPool?.close()
