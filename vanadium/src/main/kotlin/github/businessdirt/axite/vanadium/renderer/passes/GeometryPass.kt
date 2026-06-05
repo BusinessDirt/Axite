@@ -124,6 +124,24 @@ class GeometryPass(context: Context) : RenderPass(context) {
 
     fun record(builder: RenderGraphBuilder, scene: Scene, colorOutput: String = "scene_color", depthOutput: String = RenderResourceNames.DEPTH_BUFFER): String {
         builder.pass("GeometryPass") {
+            if (colorOutput != RenderResourceNames.BACK_BUFFER) {
+                registry.ensureResourceMatchesBackbuffer(
+                    colorOutput,
+                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT or VK_IMAGE_USAGE_SAMPLED_BIT
+                )
+            }
+            
+            if (depthOutput != RenderResourceNames.DEPTH_BUFFER) {
+                val backbuffer = registry[RenderResourceNames.BACK_BUFFER]
+                registry.ensureResourceMatches(
+                    depthOutput,
+                    backbuffer.width,
+                    backbuffer.height,
+                    context.surface.depthFormat,
+                    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT or VK_IMAGE_USAGE_SAMPLED_BIT
+                )
+            }
+
             writes(colorOutput, depthOutput)
             clearColor = ClearColorValue(0.4f, 0.6f, 0.9f, 1.0f)
             clearDepth = 1.0f

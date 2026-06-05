@@ -122,6 +122,13 @@ class PostProcessPass(context: Context) : RenderPass(context) {
 
     fun record(builder: RenderGraphBuilder, input: String, output: String = RenderResourceNames.BACK_BUFFER): String {
         builder.pass("PostProcessPass") {
+            if (output != RenderResourceNames.BACK_BUFFER) {
+                registry.ensureResourceMatchesBackbuffer(
+                    output,
+                    VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT or VK_IMAGE_USAGE_SAMPLED_BIT
+                )
+            }
+
             read(input)
             writes(output)
             pipeline { commandBuffer, registry ->

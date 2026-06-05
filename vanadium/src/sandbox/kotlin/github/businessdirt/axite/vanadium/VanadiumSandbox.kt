@@ -67,13 +67,6 @@ class VanadiumSandbox : VanadiumAdapter {
     }
 
     override fun onRecord(graph: RenderGraph, geometryPass: GeometryPass, commandBuffer: CommandBuffer, interpolation: Double) = graph.build {
-        graph.registry.ensureResourceMatchesBackbuffer(
-            SCENE_COLOR,
-            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT or VK_IMAGE_USAGE_SAMPLED_BIT
-        ) { old, backbuffer ->
-            old.width != backbuffer.width || old.height != backbuffer.height
-        }
-
         val sceneColor = geometryPass.record(this, scene, SCENE_COLOR)
         postPass.record(this, sceneColor, RenderResourceNames.BACK_BUFFER)
     }
