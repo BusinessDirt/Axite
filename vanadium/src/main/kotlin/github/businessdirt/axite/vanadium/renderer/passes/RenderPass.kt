@@ -15,6 +15,8 @@ abstract class RenderPass {
 
         onInitialize()
         isInitialized = true
+
+        Vanadium.renderer.passes.add(this)
     }
 
     fun shutdown() {

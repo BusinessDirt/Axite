@@ -2,6 +2,7 @@ package github.businessdirt.axite.vanadium
 
 import github.businessdirt.axite.vanadium.assets.types.Model
 import github.businessdirt.axite.vanadium.core.events.Event
+import github.businessdirt.axite.vanadium.core.utils.ImGuiUtils.renderPasses
 import github.businessdirt.axite.vanadium.core.utils.ImGuiUtils.window
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
 import github.businessdirt.axite.vanadium.renderer.passes.GeometryPass
@@ -71,20 +72,7 @@ class VanadiumSandbox : VanadiumAdapter {
         val postColor = PostProcessPass.record(this, sceneColor)
 
         ImGuiPass.record(this, postColor) {
-            window("Vanadium Sandbox") {
-                ImGui.text("FPS: ${ImGui.getIO().framerate}")
-                if (ImGui.collapsingHeader("Post Processing")) {
-                    if (ImGui.checkbox("FXAA", PostProcessPass.useFXAA)) {
-                        PostProcessPass.useFXAA = !PostProcessPass.useFXAA
-                    }
-
-                    val currentEffect = imgui.type.ImInt(PostProcessPass.effectType)
-                    val effects = arrayOf("None", "Grayscale", "Invert", "Pixelate")
-                    if (ImGui.combo("Effect", currentEffect, effects)) {
-                        PostProcessPass.effectType = currentEffect.get()
-                    }
-                }
-            }
+            renderPasses()
         }
     }
 

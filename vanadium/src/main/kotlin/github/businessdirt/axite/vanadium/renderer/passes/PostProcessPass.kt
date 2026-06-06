@@ -16,6 +16,7 @@ import github.businessdirt.axite.vanadium.vulkan.pipeline.GraphicsPipeline
 import github.businessdirt.axite.vanadium.vulkan.resources.Attachment
 import github.businessdirt.axite.vanadium.vulkan.resources.Buffer
 import github.businessdirt.axite.vanadium.vulkan.resources.Sampler
+import imgui.ImGui
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.vulkan.VK13.*
 
@@ -180,6 +181,14 @@ object PostProcessPass : RenderPass() {
     }
 
     override fun onImGuiRender() {
+        if (ImGui.checkbox("FXAA", useFXAA)) {
+            useFXAA = !useFXAA
+        }
 
+        val currentEffect = imgui.type.ImInt(effectType)
+        val effects = arrayOf("None", "Grayscale", "Invert", "Pixelate")
+        if (ImGui.combo("Effect", currentEffect, effects)) {
+            effectType = currentEffect.get()
+        }
     }
 }

@@ -1,5 +1,7 @@
 package github.businessdirt.axite.vanadium.core.utils
 
+import github.businessdirt.axite.vanadium.Vanadium
+import github.businessdirt.axite.vanadium.renderer.passes.PostProcessPass
 import imgui.ImGui
 import imgui.flag.ImGuiWindowFlags
 
@@ -74,6 +76,12 @@ object ImGuiUtils {
             } finally {
                 ImGui.treePop()
             }
+        }
+    }
+
+    fun renderPasses(flags: Int = ImGuiWindowFlags.None) = window("Render Passes", flags) {
+        Vanadium.renderer.passes.filter{ it.isInitialized }.forEach { pass ->
+            if (ImGui.collapsingHeader(pass.javaClass.simpleName)) pass.renderImGui()
         }
     }
 }

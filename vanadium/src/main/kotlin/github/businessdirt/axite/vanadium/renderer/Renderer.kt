@@ -22,14 +22,15 @@ class Renderer(val context: Context) {
     private lateinit var renderGraph: RenderGraph
     private var resize = false
 
+    val passes = mutableListOf<RenderPass>()
+
     fun initialize() = Profiler.profile("Renderer Initialization") {
         renderGraph = RenderGraph(context)
     }
 
     fun shutdown() = Profiler.profile("Renderer Shutdown") {
-        GeometryPass.shutdown()
-        PostProcessPass.shutdown()
-        ImGuiPass.shutdown()
+        passes.forEach { it.shutdown() }
+        passes.clear()
 
         renderGraph.clear()
     }
