@@ -42,7 +42,9 @@ class RenderGraph(
                 commandBuffer.transitionLayout(attachment, targetLayout)
             }
 
-            passNode.readResources.forEach { res ->
+            // Only transition to SHADER_READ_ONLY_OPTIMAL if the resource is NOT being written to in this pass.
+            // If it is being written to, it must stay in COLOR_ATTACHMENT_OPTIMAL (or DEPTH_STENCIL_ATTACHMENT_OPTIMAL).
+            passNode.readResources.filter { it !in passNode.writeResources }.forEach { res ->
                 val attachment = registry[res]
                 commandBuffer.transitionLayout(attachment, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
             }

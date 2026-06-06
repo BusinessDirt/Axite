@@ -69,7 +69,7 @@ class Swapchain(
                 .imageColorSpace(surfaceFormat.colorSpace)
                 .imageExtent(extent)
                 .imageArrayLayers(1)
-                .imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+                .imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT or VK_IMAGE_USAGE_SAMPLED_BIT)
                 .preTransform(surfaceCaps.currentTransform())
                 .compositeAlpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
                 .clipped(true)
@@ -114,7 +114,7 @@ class Swapchain(
                 device.handle, physicalDevice,
                 extent.width(), extent.height(),
                 surface.surfaceFormat.imageFormat,
-                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT or VK_IMAGE_USAGE_SAMPLED_BIT,
                 image
             )
         }

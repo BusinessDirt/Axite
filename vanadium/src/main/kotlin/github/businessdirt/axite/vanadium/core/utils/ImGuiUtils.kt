@@ -6,6 +6,8 @@ import github.businessdirt.axite.vanadium.renderer.graph.RenderPassNode
 import github.businessdirt.axite.vanadium.renderer.passes.PostProcessPass
 import imgui.ImGui
 import imgui.flag.ImGuiCol
+import imgui.flag.ImGuiDockNodeFlags
+import imgui.flag.ImGuiStyleVar
 import imgui.flag.ImGuiTreeNodeFlags
 import imgui.flag.ImGuiWindowFlags
 import kotlin.math.atan2
@@ -84,6 +86,34 @@ object ImGuiUtils {
                 ImGui.treePop()
             }
         }
+    }
+
+    /**
+     * Creates a dockspace that covers the entire viewport.
+     * This allows other windows to be docked into the background of the application.
+     * Uses a transparent window to allow the scene to be visible.
+     */
+    fun dockspace(flags: Int = ImGuiDockNodeFlags.PassthruCentralNode) {
+        val viewport = ImGui.getMainViewport()
+        ImGui.setNextWindowPos(viewport.posX, viewport.posY)
+        ImGui.setNextWindowSize(viewport.sizeX, viewport.sizeY)
+        ImGui.setNextWindowViewport(viewport.id)
+
+        val windowFlags = ImGuiWindowFlags.NoDocking or ImGuiWindowFlags.NoTitleBar or
+                ImGuiWindowFlags.NoCollapse or ImGuiWindowFlags.NoResize or
+                ImGuiWindowFlags.NoMove or ImGuiWindowFlags.NoBringToFrontOnFocus or
+                ImGuiWindowFlags.NoNavFocus or ImGuiWindowFlags.NoBackground
+
+        ImGui.pushStyleVar(ImGuiStyleVar.WindowRounding, 0.0f)
+        ImGui.pushStyleVar(ImGuiStyleVar.WindowBorderSize, 0.0f)
+        ImGui.pushStyleVar(ImGuiStyleVar.WindowPadding, 0f, 0f)
+
+        ImGui.begin("###DockSpaceWindow", windowFlags)
+        ImGui.popStyleVar(3)
+
+        val dockspaceId = ImGui.getID("MainDockSpace")
+        ImGui.dockSpace(dockspaceId, 0.0f, 0.0f, flags)
+        ImGui.end()
     }
 
     private fun drawArrow(drawList: imgui.ImDrawList, startX: Float, startY: Float, endX: Float, endY: Float, color: Int) {

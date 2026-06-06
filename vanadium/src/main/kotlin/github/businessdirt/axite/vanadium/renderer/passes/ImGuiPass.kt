@@ -22,6 +22,7 @@ import github.businessdirt.axite.vanadium.vulkan.resources.ImageView
 import github.businessdirt.axite.vanadium.vulkan.resources.Sampler
 import imgui.ImGui
 import imgui.ImVec4
+import imgui.flag.ImGuiConfigFlags
 import imgui.flag.ImGuiKey
 import imgui.type.ImInt
 import org.lwjgl.glfw.GLFW.*
@@ -78,7 +79,8 @@ object ImGuiPass : RenderPass() {
         ImGui.createContext()
 
         val io = ImGui.getIO()
-        io.iniFilename = null
+        io.configFlags = io.configFlags or ImGuiConfigFlags.DockingEnable
+        
         val window = Vanadium.window
         io.setDisplaySize(window.data.width.toFloat(), window.data.height.toFloat())
         io.setDisplayFramebufferScale(window.data.contentScale, window.data.contentScale)

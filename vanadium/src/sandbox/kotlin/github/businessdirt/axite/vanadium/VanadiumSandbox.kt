@@ -2,6 +2,7 @@ package github.businessdirt.axite.vanadium
 
 import github.businessdirt.axite.vanadium.assets.types.Model
 import github.businessdirt.axite.vanadium.core.events.Event
+import github.businessdirt.axite.vanadium.core.utils.ImGuiUtils.dockspace
 import github.businessdirt.axite.vanadium.core.utils.ImGuiUtils.renderPasses
 import github.businessdirt.axite.vanadium.core.utils.ImGuiUtils.window
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
@@ -72,6 +73,7 @@ class VanadiumSandbox : VanadiumAdapter {
         val postColor = PostProcessPass.record(this, sceneColor)
 
         ImGuiPass.record(this, postColor) {
+            dockspace()
             renderPasses()
         }
     }
