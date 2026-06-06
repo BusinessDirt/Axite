@@ -8,6 +8,9 @@ import imgui.ImGui
 import imgui.flag.ImGuiCol
 import imgui.flag.ImGuiTreeNodeFlags
 import imgui.flag.ImGuiWindowFlags
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
 
 object ImGuiUtils {
 
@@ -83,6 +86,21 @@ object ImGuiUtils {
         }
     }
 
+    private fun drawArrow(drawList: imgui.ImDrawList, startX: Float, startY: Float, endX: Float, endY: Float, color: Int) {
+        val thickness = 2f
+        drawList.addLine(startX, startY, endX, endY, color, thickness)
+
+        val angle = atan2((endY - startY).toDouble(), (endX - startX).toDouble()).toFloat()
+        val arrowSize = 8f
+
+        val x1 = endX - arrowSize * cos((angle - Math.PI / 6)).toFloat()
+        val y1 = endY - arrowSize * sin((angle - Math.PI / 6)).toFloat()
+        val x2 = endX - arrowSize * cos((angle + Math.PI / 6)).toFloat()
+        val y2 = endY - arrowSize * sin((angle + Math.PI / 6)).toFloat()
+
+        drawList.addTriangleFilled(endX, endY, x1, y1, x2, y2, color)
+    }
+
     fun drawRenderGraph() {
         val rg = Vanadium.renderer.renderGraph
         if (rg.layers.isEmpty()) {
@@ -94,65 +112,123 @@ object ImGuiUtils {
         val startCursorX = ImGui.getCursorScreenPosX()
         val startCursorY = ImGui.getCursorScreenPosY()
 
-        val nodeWidth = 150f
-        val nodeHeight = 50f
-        val horizontalSpacing = 50f
+        val passWidth = 150f
+        val passHeight = 40f
+        val resWidth = 120f
+        val resHeight = 30f
+        val horizontalSpacing = 60f
         val verticalSpacing = 20f
 
-        val nodePositions = mutableMapOf<Node<*>, Pair<Float, Float>>()
+        // Track positions for arrows: Any -> (X, Y)
+        // Passes are RenderPassNode, Resources are Pair<String, Int> (Name, Column)
+        val nodePositions = mutableMapOf<Any, Pair<Float, Float>>()
 
-        rg.layers.forEachIndexed { layerIdx, layer ->
-            layer.forEachIndexed { nodeIdx, node ->
-                val x = startCursorX + layerIdx * (nodeWidth + horizontalSpacing)
-                val y = startCursorY + nodeIdx * (nodeHeight + verticalSpacing)
-                nodePositions[node] = x to y
+        // Columns: Alternating Pass Layers and Resource Layers
+        // We'll build a virtual layout first
+        val columns = mutableListOf<List<Any>>()
+
+        // Initial inputs (resources read but not yet written)
+        val initialInputs = rg.nodes.flatMap { (it as? RenderPassNode)?.readResources ?: emptySet() }
+            .filter { res -> rg.nodes.none { (it as? RenderPassNode)?.writeResources?.contains(res) == true } }
+            .toSet()
+
+        if (initialInputs.isNotEmpty()) {
+            columns.add(initialInputs.toList())
+        }
+
+        rg.layers.forEach { layer ->
+            // Add Pass Layer
+            columns.add(layer)
+            
+            // Add Resource Layer (written by this pass layer)
+            val writtenInLayer = layer.flatMap { (it as? RenderPassNode)?.writeResources ?: emptySet() }.toSet()
+            if (writtenInLayer.isNotEmpty()) {
+                columns.add(writtenInLayer.toList())
             }
         }
 
-        rg.layers.forEachIndexed { layerIdx, layer ->
-            layer.forEachIndexed { nodeIdx, node ->
-                val pos = nodePositions[node]!!
+        // Calculate positions
+        var currentX = startCursorX
+        columns.forEachIndexed { colIdx, colNodes ->
+            val isPassCol = colNodes.firstOrNull() is RenderPassNode
+            val colWidth = if (isPassCol) passWidth else resWidth
+            
+            colNodes.forEachIndexed { rowIdx, node ->
+                val x = currentX
+                val y = startCursorY + rowIdx * (passHeight.coerceAtLeast(resHeight) + verticalSpacing)
+                
+                val key = if (node is String) node to colIdx else node
+                nodePositions[key] = x to y
+            }
+            currentX += colWidth + horizontalSpacing
+        }
+
+        // Draw edges (arrows)
+        columns.forEachIndexed { colIdx, colNodes ->
+            colNodes.forEach { node ->
+                val pos = nodePositions[if (node is String) node to colIdx else node]!!
                 val x = pos.first
                 val y = pos.second
 
-                val name = (node as? RenderPassNode)?.name ?: "Unknown"
-
-                // Draw dependencies (lines first so they are under nodes)
-                node.dependencies.forEach { dep ->
-                    val depPos = nodePositions[dep]
-                    if (depPos != null) {
-                        val startX = depPos.first + nodeWidth
-                        val startY = depPos.second + nodeHeight / 2f
-                        val endX = x
-                        val endY = y + nodeHeight / 2f
-                        drawList.addLine(startX, startY, endX, endY, ImGui.getColorU32(ImGuiCol.PlotLines), 2f)
+                if (node is RenderPassNode) {
+                    val centerY = y + passHeight / 2f
+                    
+                    // Reads: from previous resource version to this pass
+                    node.readResources.forEach { resName ->
+                        // Find the "latest" version of this resource in previous columns
+                        for (prevCol in colIdx - 1 downTo 0) {
+                            val resKey = resName to prevCol
+                            val resPos = nodePositions[resKey]
+                            if (resPos != null) {
+                                drawArrow(drawList, resPos.first + resWidth, resPos.second + resHeight / 2f, x, centerY, ImGui.getColorU32(ImGuiCol.PlotLines))
+                                break
+                            }
+                        }
                     }
-                }
 
-                // Draw node box
-                drawList.addRectFilled(x, y, x + nodeWidth, y + nodeHeight, ImGui.getColorU32(ImGuiCol.Button))
-                drawList.addRect(x, y, x + nodeWidth, y + nodeHeight, ImGui.getColorU32(ImGuiCol.Border))
-
-                // Draw node name
-                val textSize = ImGui.calcTextSize(name)
-                drawList.addText(x + (nodeWidth - textSize.x) / 2f, y + (nodeHeight - textSize.y) / 2f, ImGui.getColorU32(ImGuiCol.Text), name)
-
-                // Tooltip for resources
-                if (ImGui.isMouseHoveringRect(x, y, x + nodeWidth, y + nodeHeight)) {
-                    ImGui.beginTooltip()
-                    ImGui.text("Pass: $name")
-                    ImGui.separator()
-                    ImGui.text("Reads: ${(node as? RenderPassNode)?.readResources?.joinToString() ?: "None"}")
-                    ImGui.text("Writes: ${(node as? RenderPassNode)?.writeResources?.joinToString() ?: "None"}")
-                    ImGui.endTooltip()
+                    // Writes: from this pass to the resource in the NEXT column
+                    node.writeResources.forEach { resName ->
+                        val nextCol = colIdx + 1
+                        val resKey = resName to nextCol
+                        val resPos = nodePositions[resKey]
+                        if (resPos != null) {
+                            drawArrow(drawList, x + passWidth, centerY, resPos.first, resPos.second + resHeight / 2f, ImGui.getColorU32(ImGuiCol.PlotLines))
+                        }
+                    }
                 }
             }
         }
 
-        // Advance cursor to reserve space
-        val totalWidth = rg.layers.size * (nodeWidth + horizontalSpacing)
-        val maxHeight = rg.layers.maxOfOrNull { it.size } ?: 0
-        val totalHeight = maxHeight * (nodeHeight + verticalSpacing)
+        // Draw nodes
+        columns.forEachIndexed { colIdx, colNodes ->
+            colNodes.forEach { node ->
+                val key = if (node is String) node to colIdx else node
+                val pos = nodePositions[key]!!
+                val x = pos.first
+                val y = pos.second
+
+                if (node is RenderPassNode) {
+                    drawList.addRectFilled(x, y, x + passWidth, y + passHeight, ImGui.getColorU32(ImGuiCol.Button))
+                    drawList.addRect(x, y, x + passWidth, y + passHeight, ImGui.getColorU32(ImGuiCol.Border), 5f)
+                    
+                    val textSize = ImGui.calcTextSize(node.name)
+                    drawList.addText(x + (passWidth - textSize.x) / 2f, y + (passHeight - textSize.y) / 2f, ImGui.getColorU32(ImGuiCol.Text), node.name)
+                } else if (node is String) {
+                    // Resource Node (Pill shape)
+                    val color = if (node.contains("depth", ignoreCase = true)) 0xFF888844.toInt() else 0xFF448888.toInt()
+                    drawList.addRectFilled(x, y, x + resWidth, y + resHeight, color, 15f)
+                    drawList.addRect(x, y, x + resWidth, y + resHeight, ImGui.getColorU32(ImGuiCol.Border), 15f)
+                    
+                    val textSize = ImGui.calcTextSize(node)
+                    drawList.addText(x + (resWidth - textSize.x) / 2f, y + (resHeight - textSize.y) / 2f, ImGui.getColorU32(ImGuiCol.Text), node)
+                }
+            }
+        }
+
+        // Advance cursor
+        val totalWidth = currentX - startCursorX
+        val maxHeight = columns.maxOfOrNull { it.size } ?: 0
+        val totalHeight = maxHeight * (passHeight.coerceAtLeast(resHeight) + verticalSpacing)
         ImGui.dummy(totalWidth, totalHeight)
     }
 
