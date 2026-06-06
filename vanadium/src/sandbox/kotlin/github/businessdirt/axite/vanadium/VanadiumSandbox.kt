@@ -2,9 +2,8 @@ package github.businessdirt.axite.vanadium
 
 import github.businessdirt.axite.vanadium.assets.types.Model
 import github.businessdirt.axite.vanadium.core.events.Event
-import github.businessdirt.axite.vanadium.core.utils.ImGuiUtils.dockspace
-import github.businessdirt.axite.vanadium.core.utils.ImGuiUtils.renderPasses
-import github.businessdirt.axite.vanadium.core.utils.ImGuiUtils.window
+import github.businessdirt.axite.vanadium.core.imgui.ImGuiUtils.dockspace
+import github.businessdirt.axite.vanadium.core.imgui.panels.RenderPassesPanel
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
 import github.businessdirt.axite.vanadium.renderer.passes.GeometryPass
 import github.businessdirt.axite.vanadium.renderer.passes.ImGuiPass
@@ -12,7 +11,6 @@ import github.businessdirt.axite.vanadium.renderer.passes.PostProcessPass
 import github.businessdirt.axite.vanadium.scene.Scene
 import github.businessdirt.axite.vanadium.scene.components.*
 import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
-import imgui.ImGui
 import kotlinx.coroutines.CoroutineScope
 import org.joml.Vector3f
 
@@ -74,7 +72,7 @@ class VanadiumSandbox : VanadiumAdapter {
 
         ImGuiPass.record(this, postColor) {
             dockspace()
-            renderPasses()
+            RenderPassesPanel.draw()
         }
     }
 
