@@ -5,6 +5,7 @@ import github.businessdirt.axite.vanadium.assets.metadata.TextureMetadata
 import github.businessdirt.axite.vanadium.assets.types.Texture
 import github.businessdirt.axite.vanadium.core.utils.imageBarrier
 import github.businessdirt.axite.vanadium.core.utils.memoryStack
+import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
 import github.businessdirt.axite.vanadium.vulkan.resources.Buffer
 import github.businessdirt.axite.vanadium.vulkan.resources.Image
 import github.businessdirt.axite.vanadium.vulkan.resources.ImageView
@@ -18,6 +19,7 @@ import org.lwjgl.system.MemoryUtil
 import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK13.*
 import java.io.File
+import java.nio.ByteBuffer
 import kotlin.math.floor
 import kotlin.math.log2
 import kotlin.math.min
@@ -43,19 +45,7 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
 
             val width = pWidth[0]
             val height = pHeight[0]
-            val imageSize = (width * height * 4).toLong()
-
-            val stagingBuffer = Buffer(
-                Vanadium.context.device.handle,
-                Vanadium.context.physicalDevice,
-                imageSize,
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-            )
-
-            val pStaging = stagingBuffer.map()
-            MemoryUtil.memCopy(MemoryUtil.memAddress(pixels), pStaging, imageSize)
-            stagingBuffer.unmap()
+            val stagingBuffer = pixels.createStagingBuffer(width, height)
 
             val format = if (metadata.format == 0) VK_FORMAT_R8G8B8A8_SRGB else metadata.format
             val image = Image(Vanadium.context.device.handle, Vanadium.context.physicalDevice) {
@@ -77,19 +67,9 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
                         VK_IMAGE_ASPECT_COLOR_BIT
                     )
 
-                    val copyRegion = VkBufferImageCopy2.calloc(1, stack).`sType$Default`()
-                        .imageSubresource { it.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).mipLevel(0).baseArrayLayer(0).layerCount(1) }
-                        .imageExtent { it.set(width, height, 1) }
 
-                    val copyInfo = VkCopyBufferToImageInfo2.calloc(stack).`sType$Default`()
-                        .srcBuffer(stagingBuffer.handle)
-                        .dstImage(image.handle)
-                        .dstImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-                        .pRegions(copyRegion)
-
-                    vkCmdCopyBufferToImage2(handle, copyInfo)
-
-                    handle.generateMipMaps(stack, width, height, image)
+                    this.copyImage(stack, width, height, stagingBuffer, image)
+                    this.generateMipMaps(stack, width, height, image)
                 }
             }
 
@@ -126,7 +106,7 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
         }
     }
 
-    private fun VkCommandBuffer.generateMipMaps(
+    private fun CommandBuffer.generateMipMaps(
         stack: MemoryStack,
         width: Int, height: Int,
         image: Image,
@@ -160,7 +140,7 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
                 .srcAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT.toLong())
                 .dstAccessMask(VK_ACCESS_TRANSFER_READ_BIT.toLong())
 
-            vkCmdPipelineBarrier2(this, depInfo)
+            vkCmdPipelineBarrier2(handle, depInfo)
 
             val srcOffset0 = VkOffset3D.calloc(stack).x(0).y(0).z(0)
             val srcOffset1 = VkOffset3D.calloc(stack).x(mipWidth).y(mipHeight).z(1)
@@ -187,7 +167,7 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
                 }
 
             vkCmdBlitImage(
-                this,
+                handle,
                 image.handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                 image.handle, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                 blit, VK_FILTER_LINEAR
@@ -201,7 +181,7 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
             barrier.srcStageMask(VK_PIPELINE_STAGE_TRANSFER_BIT.toLong())
                 .dstStageMask(VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT.toLong())
 
-            vkCmdPipelineBarrier2(this, depInfo)
+            vkCmdPipelineBarrier2(handle, depInfo)
 
             if (mipWidth > 1) mipWidth /= 2
             if (mipHeight > 1) mipHeight /= 2
@@ -215,8 +195,48 @@ class TextureSerializer : AssetSerializer<Texture, TextureMetadata>(
             .srcAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT.toLong())
             .dstAccessMask(VK_ACCESS_SHADER_READ_BIT.toLong())
 
-        vkCmdPipelineBarrier2(this, depInfo)
+        vkCmdPipelineBarrier2(handle, depInfo)
     }
 
     private fun Int.clampMip() = if (this > 1) this / 2 else 1
+}
+
+fun ByteBuffer.createStagingBuffer(
+    width: Int,
+    height: Int
+): Buffer {
+    val imageSize = (width * height * 4).toLong()
+
+    val stagingBuffer = Buffer(
+        Vanadium.context.device.handle,
+        Vanadium.context.physicalDevice,
+        imageSize,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+    )
+
+    val pStaging = stagingBuffer.map()
+    MemoryUtil.memCopy(MemoryUtil.memAddress(this), pStaging, imageSize)
+    stagingBuffer.unmap()
+    return stagingBuffer
+}
+
+fun CommandBuffer.copyImage(
+    stack: MemoryStack,
+    width: Int,
+    height: Int,
+    stagingBuffer: Buffer,
+    image: Image
+) {
+    val copyRegion = VkBufferImageCopy2.calloc(1, stack).`sType$Default`()
+        .imageSubresource { it.aspectMask(VK_IMAGE_ASPECT_COLOR_BIT).mipLevel(0).baseArrayLayer(0).layerCount(1) }
+        .imageExtent { it.set(width, height, 1) }
+
+    val copyInfo = VkCopyBufferToImageInfo2.calloc(stack).`sType$Default`()
+        .srcBuffer(stagingBuffer.handle)
+        .dstImage(image.handle)
+        .dstImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+        .pRegions(copyRegion)
+
+    vkCmdCopyBufferToImage2(this.handle, copyInfo)
 }

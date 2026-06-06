@@ -1,6 +1,7 @@
 package github.businessdirt.axite.vanadium.renderer.passes
 
 import github.businessdirt.axite.vanadium.Vanadium
+import github.businessdirt.axite.vanadium.assets.types.Material
 import github.businessdirt.axite.vanadium.assets.types.Shader
 import github.businessdirt.axite.vanadium.assets.types.Texture
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
@@ -182,7 +183,7 @@ object GeometryPass : RenderPass() {
         var matOffset = 0
         
         // We need a stable mapping of material to index for this frame
-        val materialToIndex = mutableMapOf<github.businessdirt.axite.vanadium.assets.types.Material, Int>()
+        val materialToIndex = mutableMapOf<Material, Int>()
         var nextMatIdx = 0
 
         scene.forEachModel { _: TransformComponent, modelComp: ModelComponent ->
@@ -226,7 +227,7 @@ object GeometryPass : RenderPass() {
             viewBuf.unmap()
         }
 
-        fun renderMesh(transform: TransformComponent, mesh: Mesh, modelMaterials: List<github.businessdirt.axite.vanadium.assets.types.Material>) {
+        fun renderMesh(transform: TransformComponent, mesh: Mesh, modelMaterials: List<Material>) {
             val material = modelMaterials.getOrNull(mesh.materialIndex) ?: return
             val globalMatIdx = materialToIndex[material] ?: 0
 

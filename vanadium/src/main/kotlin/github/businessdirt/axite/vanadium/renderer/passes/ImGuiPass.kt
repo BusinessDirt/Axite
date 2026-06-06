@@ -1,27 +1,152 @@
 package github.businessdirt.axite.vanadium.renderer.passes
 
+import github.businessdirt.axite.vanadium.Vanadium
+import github.businessdirt.axite.vanadium.assets.loaders.copyImage
+import github.businessdirt.axite.vanadium.assets.loaders.createStagingBuffer
+import github.businessdirt.axite.vanadium.assets.metadata.TextureMetadata
+import github.businessdirt.axite.vanadium.assets.types.Shader
+import github.businessdirt.axite.vanadium.assets.types.Texture
 import github.businessdirt.axite.vanadium.core.events.*
 import github.businessdirt.axite.vanadium.core.profiling.Profiler
+import github.businessdirt.axite.vanadium.core.utils.imageBarrier
+import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraphBuilder
 import github.businessdirt.axite.vanadium.renderer.graph.RenderResourceNames
-import github.businessdirt.axite.vanadium.vulkan.commands.CommandBuffer
+import github.businessdirt.axite.vanadium.vulkan.commands.*
+import github.businessdirt.axite.vanadium.vulkan.descriptors.DescriptorPool
+import github.businessdirt.axite.vanadium.vulkan.descriptors.DescriptorSet
+import github.businessdirt.axite.vanadium.vulkan.pipeline.GraphicsPipeline
+import github.businessdirt.axite.vanadium.vulkan.resources.Buffer
+import github.businessdirt.axite.vanadium.vulkan.resources.Image
+import github.businessdirt.axite.vanadium.vulkan.resources.ImageView
+import github.businessdirt.axite.vanadium.vulkan.resources.Sampler
 import imgui.ImGui
+import imgui.ImVec4
 import imgui.flag.ImGuiKey
+import imgui.type.ImInt
 import org.lwjgl.glfw.GLFW.*
+import org.lwjgl.system.MemoryUtil
+import org.lwjgl.vulkan.VK13.*
+import org.lwjgl.vulkan.VkRect2D
+import org.lwjgl.vulkan.VkViewport
 
 object ImGuiPass : RenderPass() {
 
-    const val DESC_ID_TEXT = "IM_GUI_DESC_ID_TEXT"
     const val VERTEX_SHADER_PATH = "src/main/resources/shaders/imgui.vert.glsl"
     const val FRAGMENT_SHADER_PATH = "src/main/resources/shaders/imgui.frag.glsl"
 
+    private var graphicsPipeline: GraphicsPipeline? = null
+    private var descriptorPool: DescriptorPool? = null
+
+    private var vertexBuffers = mutableListOf<Buffer>()
+    private var indexBuffers = mutableListOf<Buffer>()
+
+    private var fontTexture: Texture? = null
+    private var fontDescriptorSet: DescriptorSet? = null
+
+    private val guiTexturesMap = mutableMapOf<Long, Long>()
+
     override suspend fun onInitialize(): Unit = Profiler.profile("ImGuiPass Initialization") {
+        val vertexShader = Vanadium.assets.load<Shader>(VERTEX_SHADER_PATH)
+        val fragmentShader = Vanadium.assets.load<Shader>(FRAGMENT_SHADER_PATH)
 
+        graphicsPipeline = GraphicsPipeline {
+            vertexShader(vertexShader)
+            fragmentShader(fragmentShader)
+            this.colorFormat = Vanadium.context.surface.surfaceFormat.imageFormat
+            this.depthFormat = VK_FORMAT_UNDEFINED
+            this.enableBlend = true
+        }
+
+        val frames = Vanadium.context.maxFramesInFlight
+        descriptorPool = DescriptorPool(Vanadium.context.device.handle, frames * 10, listOf(
+            DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, frames * 10)
+        ))
+
+        vertexBuffers = MutableList(frames) {
+            Buffer(Vanadium.context.device.handle, Vanadium.context.physicalDevice, 1024, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+        }
+
+        indexBuffers = MutableList(frames) {
+            Buffer(Vanadium.context.device.handle, Vanadium.context.physicalDevice, 1024, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+        }
+
+        initImGui()
     }
 
-    fun newFrame() {
-        ImGui.newFrame()
+    private fun initImGui() {
+        ImGui.createContext()
+
+        val io = ImGui.getIO()
+        io.iniFilename = null
+        val extent = Vanadium.context.swapchain.extent
+        io.setDisplaySize(extent.width().toFloat(), extent.height().toFloat())
+        io.setDisplayFramebufferScale(1f, 1f)
+
+        val fontTextureWidth = ImInt()
+        val fontTextureHeight = ImInt()
+        val fontTextureBuffer = io.fonts.getTexDataAsRGBA32(fontTextureWidth, fontTextureHeight)
+
+        val width = fontTextureWidth.get()
+        val height = fontTextureHeight.get()
+        val stagingBuffer = fontTextureBuffer.createStagingBuffer(width, height)
+
+        val image = Image(Vanadium.context.device.handle, Vanadium.context.physicalDevice) {
+            this.width = width
+            this.height = height
+            this.format = VK_FORMAT_R8G8B8A8_SRGB
+            this.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT or VK_IMAGE_USAGE_SAMPLED_BIT
+            this.mipLevels = 1
+        }
+
+        Vanadium.context.graphicsQueue.execute {
+            memoryStack { stack ->
+                stack.imageBarrier(
+                    this.handle, image.handle,
+                    VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+                    0, VK_ACCESS_2_TRANSFER_WRITE_BIT,
+                    VK_IMAGE_ASPECT_COLOR_BIT
+                )
+
+                this.copyImage(stack, width, height, stagingBuffer, image)
+
+                stack.imageBarrier(
+                    this.handle, image.handle,
+                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+                    VK_ACCESS_2_TRANSFER_WRITE_BIT, VK_ACCESS_2_SHADER_READ_BIT,
+                    VK_IMAGE_ASPECT_COLOR_BIT
+                )
+            }
+        }
+
+        stagingBuffer.close()
+
+        val view = ImageView(Vanadium.context.device.handle, image.handle) {
+            this.format = VK_FORMAT_R8G8B8A8_SRGB
+            this.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT
+        }
+
+        val sampler = Sampler(Vanadium.context.device.handle) {
+            this.magFilter = VK_FILTER_LINEAR
+            this.minFilter = VK_FILTER_LINEAR
+            this.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT
+            this.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT
+            this.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT
+        }
+
+        fontTexture = Texture("ImGuiFont", "imgui-font-uuid", TextureMetadata(), image, view, sampler)
+        
+        val layout = graphicsPipeline!!.layout.descriptorSetLayouts[0]
+        fontDescriptorSet = DescriptorSet(Vanadium.context.device.handle, descriptorPool!!, layout).apply {
+            updateImage(0, view.handle, sampler.handle)
+        }
+
+        io.fonts.setTexID(fontDescriptorSet!!.handle)
     }
+
+    fun newFrame() = ImGui.newFrame()
 
     fun onEvent(event: Event) {
         if (!isInitialized) return
@@ -78,11 +203,120 @@ object ImGuiPass : RenderPass() {
     }
 
     private fun render(commandBuffer: CommandBuffer) {
+        val drawData = ImGui.getDrawData() ?: return
+        if (drawData.ptr == 0L) return
 
+        val frameIndex = Vanadium.context.currentFrameIndex
+        updateBuffers(drawData, frameIndex)
+
+        val pipeline = graphicsPipeline ?: return
+        pipeline.bind(commandBuffer)
+
+        val extent = Vanadium.context.swapchain.extent
+        val width = extent.width()
+        val height = extent.height()
+
+        memoryStack { stack ->
+            val viewport = VkViewport.calloc(1, stack)
+                .x(0f).y(0f)
+                .width(width.toFloat()).height(height.toFloat())
+                .minDepth(0f).maxDepth(1f)
+            vkCmdSetViewport(commandBuffer.handle, 0, viewport)
+
+            val scissor = VkRect2D.calloc(1, stack)
+            scissor.offset { it.x(0).y(0) }
+            scissor.extent { it.width(width).height(height) }
+            vkCmdSetScissor(commandBuffer.handle, 0, scissor)
+
+            commandBuffer.bindVertexBuffer(vertexBuffers[frameIndex].handle)
+            commandBuffer.bindIndexBuffer(indexBuffers[frameIndex].handle, indexType = VK_INDEX_TYPE_UINT16)
+
+            val io = ImGui.getIO()
+            val pushConstants = stack.malloc(8)
+            pushConstants.putFloat(0, 2.0f / io.displaySizeX)
+            pushConstants.putFloat(4, -2.0f / io.displaySizeY)
+            commandBuffer.pushConstants(pipeline.layout.handle, VK_SHADER_STAGE_VERTEX_BIT, pushConstants)
+
+            val imVec4 = ImVec4()
+            var offsetIdx = 0
+            var offsetVtx = 0
+            
+            for (i in 0 until drawData.cmdListsCount) {
+                for (j in 0 until drawData.getCmdListCmdBufferSize(i)) {
+                    val texID = drawData.getCmdListCmdBufferTextureId(i, j)
+                    val descriptorSet = guiTexturesMap[texID] ?: texID
+                    
+                    commandBuffer.bindDescriptorSets(pipeline.layout.handle, longArrayOf(descriptorSet))
+
+                    drawData.getCmdListCmdBufferClipRect(imVec4, i, j)
+                    scissor.offset { it.x(imVec4.x.toInt().coerceAtLeast(0)).y(imVec4.y.toInt().coerceAtLeast(0)) }
+                    scissor.extent { 
+                        it.width((imVec4.z - imVec4.x).toInt())
+                        it.height((imVec4.w - imVec4.y).toInt())
+                    }
+                    vkCmdSetScissor(commandBuffer.handle, 0, scissor)
+
+                    val count = drawData.getCmdListCmdBufferElemCount(i, j)
+                    vkCmdDrawIndexed(
+                        commandBuffer.handle, count, 1,
+                        offsetIdx + drawData.getCmdListCmdBufferIdxOffset(i, j),
+                        offsetVtx + drawData.getCmdListCmdBufferVtxOffset(i, j), 0
+                    )
+                }
+                offsetIdx += drawData.getCmdListIdxBufferSize(i)
+                offsetVtx += drawData.getCmdListVtxBufferSize(i)
+            }
+        }
+    }
+
+    private fun updateBuffers(drawData: imgui.ImDrawData, frameIndex: Int) {
+        val totalVtxSize = drawData.totalVtxCount * 20L // ImDrawVert size: pos(8) + uv(8) + col(4)
+        val totalIdxSize = drawData.totalIdxCount * 2L // ImDrawIdx size: 2 bytes (ushort)
+
+        if (totalVtxSize == 0L || totalIdxSize == 0L) return
+
+        if (vertexBuffers[frameIndex].size < totalVtxSize) {
+            vertexBuffers[frameIndex].close()
+            vertexBuffers[frameIndex] = Buffer(Vanadium.context.device.handle, Vanadium.context.physicalDevice, totalVtxSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+        }
+
+        if (indexBuffers[frameIndex].size < totalIdxSize) {
+            indexBuffers[frameIndex].close()
+            indexBuffers[frameIndex] = Buffer(Vanadium.context.device.handle, Vanadium.context.physicalDevice, totalIdxSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)
+        }
+
+        val vtxPtr = vertexBuffers[frameIndex].map()
+        val idxPtr = indexBuffers[frameIndex].map()
+
+        val vtxBuffer = MemoryUtil.memByteBuffer(vtxPtr, totalVtxSize.toInt())
+        val idxBuffer = MemoryUtil.memByteBuffer(idxPtr, totalIdxSize.toInt())
+
+        for (i in 0 until drawData.cmdListsCount) {
+            vtxBuffer.put(drawData.getCmdListVtxBufferData(i))
+            idxBuffer.put(drawData.getCmdListIdxBufferData(i))
+        }
+
+        vertexBuffers[frameIndex].unmap()
+        indexBuffers[frameIndex].unmap()
     }
 
     override fun onShutdown() = Profiler.profile("ImGuiPass Shutdown") {
+        Vanadium.assets.unload(VERTEX_SHADER_PATH)
+        Vanadium.assets.unload(FRAGMENT_SHADER_PATH)
 
+        fontTexture?.close()
+        fontDescriptorSet?.close()
+
+        indexBuffers.forEach { it.close() }
+        vertexBuffers.forEach { it.close() }
+
+        descriptorPool?.close()
+        descriptorPool = null
+
+        graphicsPipeline?.close()
+        graphicsPipeline = null
+
+        ImGui.destroyContext()
     }
 }
 
