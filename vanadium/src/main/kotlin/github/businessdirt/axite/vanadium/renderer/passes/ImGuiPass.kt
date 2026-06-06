@@ -198,14 +198,16 @@ object ImGuiPass : RenderPass() {
     }
 
     fun record(builder: RenderGraphBuilder, colorOutput: String = RenderResourceNames.BACK_BUFFER, block: () -> Unit) {
-        block()
-        ImGui.render()
         builder.pass("ImGuiPass") {
+            read(colorOutput)
             writes(colorOutput)
             pipeline { commandBuffer, _ ->
                 render(commandBuffer)
             }
         }
+
+        block()
+        ImGui.render()
     }
 
     private fun render(commandBuffer: CommandBuffer) {

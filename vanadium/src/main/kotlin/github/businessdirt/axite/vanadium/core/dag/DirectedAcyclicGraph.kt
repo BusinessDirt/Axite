@@ -21,13 +21,50 @@ open class DirectedAcyclicGraph<T> {
      * Compiles the graph by performing topological sorting, layer calculation (barriers),
      * and resource lifetime analysis.
      */
-    fun compile() {
+    open fun compile() {
         sortedNodes = sortTopologically()
         groupIntoLayers()
         analyzeResourceLifetimes()
 
         // TODO: add like a keybind to do this once or something
         //if (LoggingConfigurator.isDebugMode) logger.debug(toJson())
+    }
+
+    /**
+     * Automatically resolves dependencies between nodes based on resource usage.
+     * If a node reads a resource, it will depend on the last node that wrote to it.
+     */
+    protected fun resolveDependencies() {
+        val lastWriters = mutableMapOf<String, Node<T>>()
+
+        nodes.forEach { node ->
+            node.dependencies.clear()
+            val resourceUser = node as? ResourceUser ?: node.data as? ResourceUser
+            if (resourceUser != null) {
+                // Track nodes we already depend on to avoid duplicates
+                val currentDependencies = mutableSetOf<Node<T>>()
+
+                // For each resource read, add dependency to the last writer
+                resourceUser.readResources.forEach { res ->
+                    lastWriters[res]?.let { writer ->
+                        if (writer != node && currentDependencies.add(writer)) {
+                            node.dependencies.add(writer)
+                        }
+                    }
+                }
+
+                // Update last writers for resources written by this node
+                // If a resource is already written by another node, we depend on it to ensure correct ordering (in-place writes)
+                resourceUser.writeResources.forEach { res ->
+                    lastWriters[res]?.let { writer ->
+                        if (writer != node && currentDependencies.add(writer)) {
+                            node.dependencies.add(writer)
+                        }
+                    }
+                    lastWriters[res] = node
+                }
+            }
+        }
     }
 
     /**

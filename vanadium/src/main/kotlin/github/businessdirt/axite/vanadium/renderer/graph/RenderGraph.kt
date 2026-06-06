@@ -20,6 +20,11 @@ class RenderGraph(
         builder.action()
     }
 
+    override fun compile() {
+        resolveDependencies()
+        super.compile()
+    }
+
     fun execute(commandBuffer: CommandBuffer) {
         frameContext.reset()
 
@@ -110,7 +115,6 @@ class RenderGraph(
 
     fun use(commandBuffer: CommandBuffer, action: (RenderGraph) -> Unit) {
         nodes.clear()
-        layers.clear()
         resourceLifetimes.clear()
 
         action(this)

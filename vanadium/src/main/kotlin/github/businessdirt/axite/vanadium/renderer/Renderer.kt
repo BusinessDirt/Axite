@@ -19,7 +19,7 @@ import org.lwjgl.vulkan.VkSemaphoreSubmitInfo
 
 class Renderer(val context: Context) {
 
-    private lateinit var renderGraph: RenderGraph
+    lateinit var renderGraph: RenderGraph
     private var resize = false
 
     val passes = mutableListOf<RenderPass>()
