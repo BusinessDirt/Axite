@@ -1,9 +1,10 @@
 package github.businessdirt.axite.vanadium.renderer.passes
 
 import github.businessdirt.axite.vanadium.Vanadium
+import github.businessdirt.axite.vanadium.core.imgui.ImGuiDrawable
 import github.businessdirt.axite.vanadium.vulkan.Context
 
-abstract class RenderPass {
+abstract class RenderPass : ImGuiDrawable {
 
     val context: Context get() = Vanadium.context
 
@@ -26,7 +27,7 @@ abstract class RenderPass {
         isInitialized = false
     }
 
-    fun renderImGui() {
+    override fun draw() {
         if (!isInitialized) return
         onImGuiRender()
     }

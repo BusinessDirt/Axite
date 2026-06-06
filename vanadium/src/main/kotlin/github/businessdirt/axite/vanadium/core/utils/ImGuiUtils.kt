@@ -1,9 +1,7 @@
 package github.businessdirt.axite.vanadium.core.utils
 
 import github.businessdirt.axite.vanadium.Vanadium
-import github.businessdirt.axite.vanadium.core.dag.Node
 import github.businessdirt.axite.vanadium.renderer.graph.RenderPassNode
-import github.businessdirt.axite.vanadium.renderer.passes.PostProcessPass
 import imgui.ImGui
 import imgui.flag.ImGuiCol
 import imgui.flag.ImGuiDockNodeFlags
@@ -266,7 +264,7 @@ object ImGuiUtils {
         if (ImGui.collapsingHeader("Individual Passes", ImGuiTreeNodeFlags.DefaultOpen)) {
             Vanadium.renderer.passes.filter { it.isInitialized }.forEach { pass ->
                 if (ImGui.treeNode(pass.javaClass.simpleName)) {
-                    pass.renderImGui()
+                    pass.draw()
                     ImGui.treePop()
                 }
             }
