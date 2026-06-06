@@ -146,7 +146,12 @@ object ImGuiPass : RenderPass() {
         io.fonts.setTexID(fontDescriptorSet!!.handle)
     }
 
-    fun newFrame() = ImGui.newFrame()
+    fun newFrame() {
+        val io = ImGui.getIO()
+        val extent = Vanadium.context.swapchain.extent
+        io.setDisplaySize(extent.width().toFloat(), extent.height().toFloat())
+        ImGui.newFrame()
+    }
 
     fun onEvent(event: Event) {
         if (!isInitialized) return
@@ -193,8 +198,8 @@ object ImGuiPass : RenderPass() {
 
     fun record(builder: RenderGraphBuilder, colorOutput: String = RenderResourceNames.BACK_BUFFER, block: () -> Unit) {
         block()
+        ImGui.render()
         builder.pass("ImGuiPass") {
-            read(colorOutput)
             writes(colorOutput)
             pipeline { commandBuffer, _ ->
                 render(commandBuffer)
@@ -234,7 +239,7 @@ object ImGuiPass : RenderPass() {
             val io = ImGui.getIO()
             val pushConstants = stack.malloc(8)
             pushConstants.putFloat(0, 2.0f / io.displaySizeX)
-            pushConstants.putFloat(4, -2.0f / io.displaySizeY)
+            pushConstants.putFloat(4, 2.0f / io.displaySizeY)
             commandBuffer.pushConstants(pipeline.layout.handle, VK_SHADER_STAGE_VERTEX_BIT, pushConstants)
 
             val imVec4 = ImVec4()
