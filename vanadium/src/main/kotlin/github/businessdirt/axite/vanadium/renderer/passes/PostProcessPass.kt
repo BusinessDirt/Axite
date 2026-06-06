@@ -178,4 +178,8 @@ object PostProcessPass : RenderPass() {
         Vanadium.assets.unload(VERTEX_SHADER_PATH)
         Vanadium.assets.unload(FRAGMENT_SHADER_PATH)
     }
+
+    override fun onImGuiRender() {
+
+    }
 }

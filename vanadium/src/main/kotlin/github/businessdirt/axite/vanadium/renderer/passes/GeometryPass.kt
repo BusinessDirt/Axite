@@ -285,4 +285,8 @@ object GeometryPass : RenderPass() {
         Vanadium.assets.unload(FRAGMENT_SHADER_PATH)
         Vanadium.assets.unload(WHITE_TEXTURE_PATH)
     }
+
+    override fun onImGuiRender() {
+
+    }
 }

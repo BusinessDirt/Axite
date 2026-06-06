@@ -11,21 +11,28 @@ abstract class RenderPass {
         private set
 
     suspend fun initialize() {
-        if (!isInitialized) {
-            onInitialize()
-            isInitialized = true
-        }
+        if (isInitialized) return
+
+        onInitialize()
+        isInitialized = true
     }
 
     fun shutdown() {
-        if (isInitialized) {
-            onShutdown()
-            isInitialized = false
-        }
+        if (!isInitialized) return
+
+        onShutdown()
+        isInitialized = false
+    }
+
+    fun renderImGui() {
+        if (!isInitialized) return
+        onImGuiRender()
     }
 
     protected abstract suspend fun onInitialize()
 
     protected abstract fun onShutdown()
+
+    protected abstract fun onImGuiRender()
 
 }

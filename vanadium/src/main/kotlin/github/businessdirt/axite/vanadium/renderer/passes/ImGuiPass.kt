@@ -328,6 +328,10 @@ object ImGuiPass : RenderPass() {
 
         ImGui.destroyContext()
     }
+
+    override fun onImGuiRender() {
+
+    }
 }
 
 private fun getImKey(key: Int): Int = when (key) {
