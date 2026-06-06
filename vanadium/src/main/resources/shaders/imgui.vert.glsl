@@ -16,14 +16,21 @@ out gl_PerVertex
     vec4 gl_Position;
 };
 
+vec3 srgbToLinear(vec3 srgb) {
+    return pow(srgb, vec3(2.2));
+}
+
 void main()
 {
     outTextCoords = inTextCoords;
-    outColor = vec4(
+    
+    vec4 srgbColor = vec4(
         (inColor & 0xFFu) / 255.0,
         ((inColor >> 8u) & 0xFFu) / 255.0,
         ((inColor >> 16u) & 0xFFu) / 255.0,
         ((inColor >> 24u) & 0xFFu) / 255.0
     );
+    
+    outColor = vec4(srgbToLinear(srgbColor.rgb), srgbColor.a);
     gl_Position = vec4(inPos * pushConstants.scale + vec2(-1.0, -1.0), 0.0, 1.0);
 }

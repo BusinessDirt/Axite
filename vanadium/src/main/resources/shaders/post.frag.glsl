@@ -3,7 +3,6 @@
 layout (constant_id = 0) const int EFFECT_TYPE = 0;
 layout (constant_id = 1) const int USE_FXAA = 0;
 
-const float GAMMA_CONST = 0.4545;
 const float SPAN_MAX = 8.0;
 const float REDUCE_MIN = 1.0/128.0;
 const float REDUCE_MUL = 1.0/32.0;
@@ -15,10 +14,6 @@ layout (binding = 0, set = 1) uniform ScreenSize {
 
 layout (location = 0) in vec2 inUV;
 layout (location = 0) out vec4 outColor;
-
-vec4 gamma(vec4 color) {
-    return vec4(pow(color.rgb, vec3(GAMMA_CONST)), color.a);
-}
 
 // Credit: https://mini.gmshaders.com/p/gm-shaders-mini-fxaa
 vec4 fxaa(sampler2D tex, vec2 uv) {
@@ -88,5 +83,5 @@ void main() {
         color = texture(inputTexture, uv);
     }
 
-    outColor = gamma(color);
+    outColor = color;
 }
