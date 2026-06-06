@@ -77,6 +77,12 @@ class VanadiumSandbox : VanadiumAdapter {
                     if (ImGui.checkbox("FXAA", PostProcessPass.useFXAA)) {
                         PostProcessPass.useFXAA = !PostProcessPass.useFXAA
                     }
+
+                    val currentEffect = imgui.type.ImInt(PostProcessPass.effectType)
+                    val effects = arrayOf("None", "Grayscale", "Invert", "Pixelate")
+                    if (ImGui.combo("Effect", currentEffect, effects)) {
+                        PostProcessPass.effectType = currentEffect.get()
+                    }
                 }
             }
         }
