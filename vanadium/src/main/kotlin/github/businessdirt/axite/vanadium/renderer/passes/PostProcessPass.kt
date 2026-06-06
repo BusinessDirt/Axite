@@ -49,39 +49,37 @@ object PostProcessPass : RenderPass() {
             }
         }
 
-    override suspend fun onInitialize() {
-        Profiler.profile("PostProcessPass Initialization") {
-            val vertexShader = Vanadium.assets.load<Shader>(VERTEX_SHADER_PATH)
-            val fragmentShader = Vanadium.assets.load<Shader>(FRAGMENT_SHADER_PATH)
+    override suspend fun onInitialize(): Unit = Profiler.profile("PostProcessPass Initialization") {
+        val vertexShader = Vanadium.assets.load<Shader>(VERTEX_SHADER_PATH)
+        val fragmentShader = Vanadium.assets.load<Shader>(FRAGMENT_SHADER_PATH)
 
-            sampler = Sampler(context.device.handle) {
-                magFilter = VK_FILTER_LINEAR
-                minFilter = VK_FILTER_LINEAR
-                addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
-                addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
-            }
-
-            descriptorPool = DescriptorPool(
-                context.device.handle, context.maxFramesInFlight * 2, listOf(
-                    DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, context.maxFramesInFlight),
-                    DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, context.maxFramesInFlight)
-                )
-            )
-
-            screenSizeBuffers = Array(context.maxFramesInFlight) {
-                Buffer(
-                    context.device.handle,
-                    context.physicalDevice,
-                    8, // vec2 (float, float)
-                    VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-                )
-            }
-
-            lastInputViews = LongArray(context.maxFramesInFlight) { 0L }
-
-            recreatePipeline(vertexShader, fragmentShader)
+        sampler = Sampler(context.device.handle) {
+            magFilter = VK_FILTER_LINEAR
+            minFilter = VK_FILTER_LINEAR
+            addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
+            addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE
         }
+
+        descriptorPool = DescriptorPool(
+            context.device.handle, context.maxFramesInFlight * 2, listOf(
+                DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, context.maxFramesInFlight),
+                DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, context.maxFramesInFlight)
+            )
+        )
+
+        screenSizeBuffers = Array(context.maxFramesInFlight) {
+            Buffer(
+                context.device.handle,
+                context.physicalDevice,
+                8, // vec2 (float, float)
+                VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
+            )
+        }
+
+        lastInputViews = LongArray(context.maxFramesInFlight) { 0L }
+
+        recreatePipeline(vertexShader, fragmentShader)
     }
 
     private fun recreatePipeline(
@@ -133,6 +131,7 @@ object PostProcessPass : RenderPass() {
                 record(commandBuffer, registry, input, output)
             }
         }
+
         return output
     }
 
@@ -166,7 +165,7 @@ object PostProcessPass : RenderPass() {
         commandBuffer.draw(3)
     }
 
-    override fun onShutdown() {
+    override fun onShutdown() = Profiler.profile("PostProcessPass Shutdown") {
         imageSets?.forEach { it.close() }
         screenSizeSets?.forEach { it.close() }
         descriptorPool?.close()

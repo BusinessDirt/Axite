@@ -6,6 +6,7 @@ import github.businessdirt.axite.vanadium.core.utils.memoryStack
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
 import github.businessdirt.axite.vanadium.renderer.graph.RenderResourceNames
 import github.businessdirt.axite.vanadium.renderer.passes.GeometryPass
+import github.businessdirt.axite.vanadium.renderer.passes.ImGuiPass
 import github.businessdirt.axite.vanadium.renderer.passes.PostProcessPass
 import github.businessdirt.axite.vanadium.renderer.passes.RenderPass
 import github.businessdirt.axite.vanadium.vulkan.Context
@@ -21,11 +22,15 @@ class Renderer(val context: Context) {
     private lateinit var renderGraph: RenderGraph
     private var resize = false
 
-    suspend fun initialize() = Profiler.profile("Renderer Initialization") {
+    fun initialize() = Profiler.profile("Renderer Initialization") {
         renderGraph = RenderGraph(context)
     }
 
     fun shutdown() = Profiler.profile("Renderer Shutdown") {
+        GeometryPass.shutdown()
+        PostProcessPass.shutdown()
+        ImGuiPass.shutdown()
+
         renderGraph.clear()
     }
 
@@ -45,6 +50,8 @@ class Renderer(val context: Context) {
 
         // Record/Build the frame
         currentFrameData.commandBuffer.record {
+            if (ImGuiPass.isInitialized) ImGuiPass.newFrame()
+            
             renderGraph.use(this) { rg ->
                 adapter.onRecord(rg, this, interpolation)
             }

@@ -20,6 +20,7 @@ import github.businessdirt.axite.vanadium.platform.KeyboardInput
 import github.businessdirt.axite.vanadium.platform.MouseInput
 import github.businessdirt.axite.vanadium.platform.Window
 import github.businessdirt.axite.vanadium.renderer.Renderer
+import github.businessdirt.axite.vanadium.renderer.passes.ImGuiPass
 import github.businessdirt.axite.vanadium.vulkan.Context
 import kotlinx.coroutines.*
 import org.apache.logging.log4j.LogManager
@@ -108,6 +109,7 @@ object Vanadium {
 
         KeyboardInput.onEvent(event)
         MouseInput.onEvent(event)
+        ImGuiPass.onEvent(event)
 
         val dispatcher = EventDispatcher(event)
         dispatcher.dispatch<FramebufferResizedEvent> { context.resize() }

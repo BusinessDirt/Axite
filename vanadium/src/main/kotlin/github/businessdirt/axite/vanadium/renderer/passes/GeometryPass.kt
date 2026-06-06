@@ -46,63 +46,61 @@ object GeometryPass : RenderPass() {
     private lateinit var whiteTexture: Texture
     private var lastTextureHandles: LongArray? = null
 
-    override suspend fun onInitialize() {
-        Profiler.profile("GeometryPass Initialization") {
-            val vertexShader = Vanadium.assets.load<Shader>(VERTEX_SHADER_PATH)
-            val fragmentShader = Vanadium.assets.load<Shader>(FRAGMENT_SHADER_PATH)
-            whiteTexture = Vanadium.assets.load<Texture>(WHITE_TEXTURE_PATH)
+    override suspend fun onInitialize(): Unit = Profiler.profile("GeometryPass Initialization") {
+        val vertexShader = Vanadium.assets.load<Shader>(VERTEX_SHADER_PATH)
+        val fragmentShader = Vanadium.assets.load<Shader>(FRAGMENT_SHADER_PATH)
+        whiteTexture = Vanadium.assets.load<Texture>(WHITE_TEXTURE_PATH)
 
-            // Ensure white texture is always at index 0
-            textures.clear()
-            textures.add(whiteTexture)
+        // Ensure white texture is always at index 0
+        textures.clear()
+        textures.add(whiteTexture)
 
-            graphicsPipeline = GraphicsPipeline {
-                vertexShader(vertexShader)
-                fragmentShader(fragmentShader)
-                this.colorFormat = Vanadium.context.surface.surfaceFormat.imageFormat
-                enableBlend = true
+        graphicsPipeline = GraphicsPipeline {
+            vertexShader(vertexShader)
+            fragmentShader(fragmentShader)
+            this.colorFormat = Vanadium.context.surface.surfaceFormat.imageFormat
+            enableBlend = true
+        }
+
+        val frames = context.maxFramesInFlight
+        descriptorPool = DescriptorPool(
+            context.device.handle, frames * 4, listOf(
+                DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, frames * 2),
+                DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, frames),
+                DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, frames * MAX_TEXTURES)
+            )
+        )
+
+        projBuffers = Array(frames) { Buffer(context.device.handle, context.physicalDevice, 64, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) }
+        viewBuffers = Array(frames) { Buffer(context.device.handle, context.physicalDevice, 64, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) }
+
+        val materialBufferSize = MAX_MATERIALS * 32L
+        materialBuffers = Array(frames) { Buffer(context.device.handle, context.physicalDevice, materialBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) }
+
+        graphicsPipeline?.layout?.descriptorSetLayouts?.let { layouts ->
+            projSets = Array(frames) { i ->
+                DescriptorSet(context.device.handle, descriptorPool!!, layouts[0]).also { set ->
+                    set.updateBuffer(0, projBuffers!![i].handle, 64)
+                }
             }
 
-            val frames = context.maxFramesInFlight
-            descriptorPool = DescriptorPool(
-                context.device.handle, frames * 4, listOf(
-                    DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, frames * 2),
-                    DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, frames),
-                    DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, frames * MAX_TEXTURES)
-                )
-            )
-
-            projBuffers = Array(frames) { Buffer(context.device.handle, context.physicalDevice, 64, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) }
-            viewBuffers = Array(frames) { Buffer(context.device.handle, context.physicalDevice, 64, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) }
-
-            val materialBufferSize = MAX_MATERIALS * 32L
-            materialBuffers = Array(frames) { Buffer(context.device.handle, context.physicalDevice, materialBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) }
-
-            graphicsPipeline?.layout?.descriptorSetLayouts?.let { layouts ->
-                projSets = Array(frames) { i ->
-                    DescriptorSet(context.device.handle, descriptorPool!!, layouts[0]).also { set ->
-                        set.updateBuffer(0, projBuffers!![i].handle, 64)
-                    }
+            viewSets = Array(frames) { i ->
+                DescriptorSet(context.device.handle, descriptorPool!!, layouts[1]).also { set ->
+                    set.updateBuffer(0, viewBuffers!![i].handle, 64)
                 }
+            }
 
-                viewSets = Array(frames) { i ->
-                    DescriptorSet(context.device.handle, descriptorPool!!, layouts[1]).also { set ->
-                        set.updateBuffer(0, viewBuffers!![i].handle, 64)
-                    }
+            materialSets = Array(frames) { i ->
+                DescriptorSet(context.device.handle, descriptorPool!!, layouts[2]).also { set ->
+                    set.updateBuffer(0, materialBuffers!![i].handle, materialBufferSize, type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
                 }
+            }
 
-                materialSets = Array(frames) { i ->
-                    DescriptorSet(context.device.handle, descriptorPool!!, layouts[2]).also { set ->
-                        set.updateBuffer(0, materialBuffers!![i].handle, materialBufferSize, type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
-                    }
-                }
+            textureSets = Array(frames) { DescriptorSet(context.device.handle, descriptorPool!!, layouts[3]) }
+            lastTextureHandles = LongArray(frames) { 0L }
 
-                textureSets = Array(frames) { DescriptorSet(context.device.handle, descriptorPool!!, layouts[3]) }
-                lastTextureHandles = LongArray(frames) { 0L }
-
-                for (i in 0 until frames) {
-                    updateTextureSet(i)
-                }
+            for (i in 0 until frames) {
+                updateTextureSet(i)
             }
         }
     }
@@ -269,7 +267,7 @@ object GeometryPass : RenderPass() {
         }
     }
 
-    override fun onShutdown() {
+    override fun onShutdown() = Profiler.profile("GeometryPass Shutdown") {
         projSets?.forEach { it.close() }
         viewSets?.forEach { it.close() }
         materialSets?.forEach { it.close() }
