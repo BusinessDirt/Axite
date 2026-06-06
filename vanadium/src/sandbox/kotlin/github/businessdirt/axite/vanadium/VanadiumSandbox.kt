@@ -3,7 +3,7 @@ package github.businessdirt.axite.vanadium
 import github.businessdirt.axite.vanadium.assets.types.Model
 import github.businessdirt.axite.vanadium.core.events.Event
 import github.businessdirt.axite.vanadium.core.imgui.ImGuiUtils.dockspace
-import github.businessdirt.axite.vanadium.core.imgui.panels.RenderPassesPanel
+import github.businessdirt.axite.vanadium.core.imgui.panels.ImGuiPanel
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
 import github.businessdirt.axite.vanadium.renderer.passes.GeometryPass
 import github.businessdirt.axite.vanadium.renderer.passes.ImGuiPass
@@ -72,7 +72,7 @@ class VanadiumSandbox : VanadiumAdapter {
 
         ImGuiPass.record(this, postColor) {
             dockspace()
-            RenderPassesPanel.draw()
+            ImGuiPanel.drawAllEnabled()
         }
     }
 
