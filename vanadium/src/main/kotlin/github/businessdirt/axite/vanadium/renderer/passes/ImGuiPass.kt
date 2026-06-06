@@ -79,9 +79,9 @@ object ImGuiPass : RenderPass() {
 
         val io = ImGui.getIO()
         io.iniFilename = null
-        val extent = Vanadium.context.swapchain.extent
-        io.setDisplaySize(extent.width().toFloat(), extent.height().toFloat())
-        io.setDisplayFramebufferScale(1f, 1f)
+        val window = Vanadium.window
+        io.setDisplaySize(window.data.width.toFloat(), window.data.height.toFloat())
+        io.setDisplayFramebufferScale(window.data.contentScale, window.data.contentScale)
 
         val fontTextureWidth = ImInt()
         val fontTextureHeight = ImInt()
@@ -148,8 +148,9 @@ object ImGuiPass : RenderPass() {
 
     fun newFrame() {
         val io = ImGui.getIO()
-        val extent = Vanadium.context.swapchain.extent
-        io.setDisplaySize(extent.width().toFloat(), extent.height().toFloat())
+        val window = Vanadium.window
+        io.setDisplaySize(window.data.width.toFloat(), window.data.height.toFloat())
+        io.setDisplayFramebufferScale(window.data.contentScale, window.data.contentScale)
         ImGui.newFrame()
     }
 
@@ -243,6 +244,7 @@ object ImGuiPass : RenderPass() {
             commandBuffer.pushConstants(pipeline.layout.handle, VK_SHADER_STAGE_VERTEX_BIT, pushConstants)
 
             val imVec4 = ImVec4()
+            val scale = Vanadium.window.data.contentScale
             var offsetIdx = 0
             var offsetVtx = 0
             
@@ -254,10 +256,13 @@ object ImGuiPass : RenderPass() {
                     commandBuffer.bindDescriptorSets(pipeline.layout.handle, longArrayOf(descriptorSet))
 
                     drawData.getCmdListCmdBufferClipRect(imVec4, i, j)
-                    scissor.offset { it.x(imVec4.x.toInt().coerceAtLeast(0)).y(imVec4.y.toInt().coerceAtLeast(0)) }
+                    scissor.offset { 
+                        it.x((imVec4.x * scale).toInt().coerceAtLeast(0))
+                        it.y((imVec4.y * scale).toInt().coerceAtLeast(0))
+                    }
                     scissor.extent { 
-                        it.width((imVec4.z - imVec4.x).toInt())
-                        it.height((imVec4.w - imVec4.y).toInt())
+                        it.width(((imVec4.z - imVec4.x) * scale).toInt())
+                        it.height(((imVec4.w - imVec4.y) * scale).toInt())
                     }
                     vkCmdSetScissor(commandBuffer.handle, 0, scissor)
 

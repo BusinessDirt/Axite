@@ -37,6 +37,7 @@ object PostProcessPass : RenderPass() {
         set(value) {
             if (field != value) {
                 field = value
+                Vanadium.context.device.waitIdle()
                 recreatePipeline()
             }
         }
@@ -45,6 +46,7 @@ object PostProcessPass : RenderPass() {
         set(value) {
             if (field != value) {
                 field = value
+                Vanadium.context.device.waitIdle()
                 recreatePipeline()
             }
         }
