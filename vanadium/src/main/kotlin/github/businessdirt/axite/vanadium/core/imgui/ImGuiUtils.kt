@@ -12,6 +12,7 @@ import imgui.flag.ImGuiWindowFlags
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.reflect.KMutableProperty0
 
 object ImGuiUtils {
 
@@ -45,22 +46,14 @@ object ImGuiUtils {
      * Prevents ID collision bugs across separate UI components.
      */
     inline fun withId(id: String, block: () -> Unit) {
-        ImGui.pushID(id)
-
-        try {
+        safeWrap({ ImGui.pushID(id); true }, { ImGui.popID() }) {
             block()
-        } finally {
-            ImGui.popID()
         }
     }
 
     inline fun withId(id: Int, block: () -> Unit) {
-        ImGui.pushID(id)
-
-        try {
+        safeWrap({ ImGui.pushID(id); true }, { ImGui.popID() }) {
             block()
-        } finally {
-            ImGui.popID()
         }
     }
 
@@ -81,13 +74,20 @@ object ImGuiUtils {
      * Scope wrapper for tree nodes (e.g., Scene Graph Hierarchies).
      */
     inline fun treeNode(label: String, block: () -> Unit) {
-        if (!ImGui.treeNode(label)) return
-
-        try {
+        safeWrap({ ImGui.treeNode(label) }, { ImGui.treePop() }) {
             block()
-        } finally {
-            ImGui.treePop()
         }
+    }
+
+    inline fun treeNodeEx(label: String, block: () -> Unit) {
+        safeWrap({ ImGui.treeNodeEx(label) }, { ImGui.treePop() }) {
+            block()
+        }
+    }
+
+    inline fun safeWrap(pre: () -> Boolean, post: () -> Unit, block: () -> Unit) {
+        if (!pre()) return
+        try { block() } finally { post() }
     }
 
     /**
