@@ -3,11 +3,9 @@ package github.businessdirt.axite.vanadium
 import github.businessdirt.axite.vanadium.assets.types.Model
 import github.businessdirt.axite.vanadium.core.events.Event
 import github.businessdirt.axite.vanadium.core.imgui.ImGuiUtils.dockspace
-import github.businessdirt.axite.vanadium.core.imgui.panels.ImGuiPanel
-import github.businessdirt.axite.vanadium.core.imgui.panels.PropertiesPanel
-import github.businessdirt.axite.vanadium.core.imgui.panels.RenderPassesPanel
-import github.businessdirt.axite.vanadium.core.imgui.panels.SceneHierarchyPanel
+import github.businessdirt.axite.vanadium.core.imgui.panels.*
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
+import github.businessdirt.axite.vanadium.renderer.graph.RenderResourceNames
 import github.businessdirt.axite.vanadium.renderer.passes.GeometryPass
 import github.businessdirt.axite.vanadium.renderer.passes.ImGuiPass
 import github.businessdirt.axite.vanadium.renderer.passes.PostProcessPass
@@ -62,6 +60,7 @@ class VanadiumSandbox : VanadiumAdapter {
         SceneHierarchyPanel.enabled = true
         PropertiesPanel.enabled = true
         RenderPassesPanel.enabled = true
+        ViewportPanel.enabled = true
     }
 
     override fun shutdown() {
@@ -74,10 +73,12 @@ class VanadiumSandbox : VanadiumAdapter {
     }
 
     override fun onRecord(graph: RenderGraph, commandBuffer: CommandBuffer, interpolation: Double) = graph.build {
-        val sceneColor = GeometryPass.record(this, scene, "scene_color")
-        val postColor = PostProcessPass.record(this, sceneColor)
+        val sceneTarget = if (ViewportPanel.enabled) "viewport_target" else RenderResourceNames.BACK_BUFFER
 
-        ImGuiPass.record(this, postColor) {
+        val sceneColor = GeometryPass.record(this, scene, sceneTarget)
+        val postColor = PostProcessPass.record(this, sceneColor, sceneTarget)
+
+        ImGuiPass.record(this, RenderResourceNames.BACK_BUFFER) {
             dockspace()
             ImGuiPanel.drawAllEnabled()
         }

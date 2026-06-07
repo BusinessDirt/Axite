@@ -16,6 +16,7 @@ import github.businessdirt.axite.vanadium.vulkan.commands.*
 import github.businessdirt.axite.vanadium.vulkan.descriptors.DescriptorPool
 import github.businessdirt.axite.vanadium.vulkan.descriptors.DescriptorSet
 import github.businessdirt.axite.vanadium.vulkan.pipeline.GraphicsPipeline
+import github.businessdirt.axite.vanadium.vulkan.resources.Attachment
 import github.businessdirt.axite.vanadium.vulkan.resources.Buffer
 import github.businessdirt.axite.vanadium.vulkan.resources.Image
 import github.businessdirt.axite.vanadium.vulkan.resources.ImageView
@@ -44,12 +45,22 @@ object ImGuiPass : RenderPass() {
 
     private var fontTexture: Texture? = null
     private var fontDescriptorSet: DescriptorSet? = null
+    private var sampler: Sampler? = null
 
     private val guiTexturesMap = mutableMapOf<Long, Long>()
+    private val attachmentDescriptorSets = mutableMapOf<Long, DescriptorSet>()
 
     override suspend fun onInitialize(): Unit = Profiler.profile("ImGuiPass Initialization") {
         val vertexShader = Vanadium.assets.load<Shader>(VERTEX_SHADER_PATH)
         val fragmentShader = Vanadium.assets.load<Shader>(FRAGMENT_SHADER_PATH)
+
+        sampler = Sampler(Vanadium.context.device.handle) {
+            this.magFilter = VK_FILTER_LINEAR
+            this.minFilter = VK_FILTER_LINEAR
+            this.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT
+            this.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT
+            this.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT
+        }
 
         graphicsPipeline = GraphicsPipeline {
             vertexShader(vertexShader)
@@ -60,8 +71,8 @@ object ImGuiPass : RenderPass() {
         }
 
         val frames = Vanadium.context.maxFramesInFlight
-        descriptorPool = DescriptorPool(Vanadium.context.device.handle, frames * 10, listOf(
-            DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, frames * 10)
+        descriptorPool = DescriptorPool(Vanadium.context.device.handle, frames * 100, listOf(
+            DescriptorPool.PoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, frames * 100)
         ))
 
         vertexBuffers = MutableList(frames) {
@@ -130,22 +141,24 @@ object ImGuiPass : RenderPass() {
             this.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT
         }
 
-        val sampler = Sampler(Vanadium.context.device.handle) {
-            this.magFilter = VK_FILTER_LINEAR
-            this.minFilter = VK_FILTER_LINEAR
-            this.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT
-            this.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT
-            this.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT
-        }
-
-        fontTexture = Texture("ImGuiFont", "imgui-font-uuid", TextureMetadata(), image, view, sampler)
+        fontTexture = Texture("ImGuiFont", "imgui-font-uuid", TextureMetadata(), image, view, sampler!!)
         
         val layout = graphicsPipeline!!.layout.descriptorSetLayouts[0]
         fontDescriptorSet = DescriptorSet(Vanadium.context.device.handle, descriptorPool!!, layout).apply {
-            updateImage(0, view.handle, sampler.handle)
+            updateImage(0, view.handle, sampler!!.handle)
         }
 
         io.fonts.setTexID(fontDescriptorSet!!.handle)
+    }
+
+    fun getTextureId(attachment: Attachment): Long {
+        val viewHandle = attachment.imageView.handle
+        return attachmentDescriptorSets.getOrPut(viewHandle) {
+            val layout = graphicsPipeline!!.layout.descriptorSetLayouts[0]
+            DescriptorSet(Vanadium.context.device.handle, descriptorPool!!, layout).apply {
+                updateImage(0, viewHandle, sampler!!.handle)
+            }
+        }.handle
     }
 
     fun newFrame() {
@@ -203,6 +216,7 @@ object ImGuiPass : RenderPass() {
         builder.pass("ImGuiPass") {
             read(colorOutput)
             writes(colorOutput)
+            clearColor = github.businessdirt.axite.vanadium.renderer.graph.ClearColorValue(0f, 0f, 0f, 1f)
             pipeline { commandBuffer, _ ->
                 render(commandBuffer)
             }
@@ -320,6 +334,10 @@ object ImGuiPass : RenderPass() {
 
         fontTexture?.close()
         fontDescriptorSet?.close()
+        sampler?.close()
+
+        attachmentDescriptorSets.values.forEach { it.close() }
+        attachmentDescriptorSets.clear()
 
         indexBuffers.forEach { it.close() }
         vertexBuffers.forEach { it.close() }
