@@ -31,7 +31,6 @@ import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 object Vanadium {
-    private val logger: Logger = LogManager.getLogger(Vanadium::class.java)
 
     @OptIn(ExperimentalAtomicApi::class)
     private val isRunning = AtomicBoolean(false)
@@ -47,6 +46,8 @@ object Vanadium {
     lateinit var context: Context
     lateinit var renderer: Renderer
     lateinit var assets: AssetManager
+
+    val scene: github.businessdirt.axite.vanadium.scene.Scene? get() = if (::adapter.isInitialized) adapter.scene else null
 
     fun launch(adapterProvider: () -> VanadiumAdapter) {
         config = VanadiumConfig()

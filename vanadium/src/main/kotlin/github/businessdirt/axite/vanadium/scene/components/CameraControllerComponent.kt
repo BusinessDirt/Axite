@@ -2,6 +2,7 @@ package github.businessdirt.axite.vanadium.scene.components
 
 import com.github.quillraven.fleks.Component
 import com.github.quillraven.fleks.ComponentType
+import github.businessdirt.axite.vanadium.core.imgui.ImGuiDrawable
 import github.businessdirt.axite.vanadium.platform.KeyboardInput
 import github.businessdirt.axite.vanadium.platform.MouseInput
 import github.businessdirt.axite.vanadium.scene.Entity
@@ -12,12 +13,23 @@ import org.lwjgl.glfw.GLFW.*
 
 data class CameraControllerComponent(
     var settings: ControllerSettings = ControllerSettings.FirstPerson()
-) : Component<CameraControllerComponent> {
+) : Component<CameraControllerComponent>, ImGuiDrawable {
     override fun type() = CameraControllerComponent
     companion object : ComponentType<CameraControllerComponent>()
+
+    override fun draw() {
+        if (ImGui.beginCombo("Type", settings.javaClass.simpleName)) {
+            if (ImGui.selectable("First Person", settings is ControllerSettings.FirstPerson)) settings = ControllerSettings.FirstPerson()
+            if (ImGui.selectable("Third Person", settings is ControllerSettings.ThirdPerson)) settings = ControllerSettings.ThirdPerson()
+            if (ImGui.selectable("Free Fly", settings is ControllerSettings.FreeFly)) settings = ControllerSettings.FreeFly()
+            ImGui.endCombo()
+        }
+
+        settings.draw()
+    }
 }
 
-sealed class ControllerSettings {
+sealed class ControllerSettings : ImGuiDrawable {
     abstract fun update(transform: TransformComponent, deltaTime: Float)
 
     data class FirstPerson(
@@ -55,6 +67,14 @@ sealed class ControllerSettings {
                 }
             }
         }
+
+        override fun draw() {
+            val sens = floatArrayOf(sensitivity)
+            if (ImGui.dragFloat("Sensitivity", sens, 0.01f)) sensitivity = sens[0]
+
+            val spd = floatArrayOf(speed)
+            if (ImGui.dragFloat("Speed", spd, 0.1f)) speed = spd[0]
+        }
     }
 
     data class ThirdPerson(
@@ -88,6 +108,14 @@ sealed class ControllerSettings {
 
             transform.position.set(targetPos).add(offset)
             transform.rotation.set(rotation)
+        }
+
+        override fun draw() {
+            val dist = floatArrayOf(distance)
+            if (ImGui.dragFloat("Distance", dist, 0.1f)) distance = dist[0]
+
+            val speed = floatArrayOf(orbitSpeed)
+            if (ImGui.dragFloat("Orbit Speed", speed, 0.01f)) orbitSpeed = speed[0]
         }
     }
 
@@ -128,6 +156,14 @@ sealed class ControllerSettings {
                     transform.position.add(direction)
                 }
             }
+        }
+
+        override fun draw() {
+            val sens = floatArrayOf(sensitivity)
+            if (ImGui.dragFloat("Sensitivity", sens, 0.01f)) sensitivity = sens[0]
+
+            val spd = floatArrayOf(speed)
+            if (ImGui.dragFloat("Speed", spd, 0.1f)) speed = spd[0]
         }
     }
 }

@@ -4,6 +4,9 @@ import github.businessdirt.axite.vanadium.assets.types.Model
 import github.businessdirt.axite.vanadium.core.events.Event
 import github.businessdirt.axite.vanadium.core.imgui.ImGuiUtils.dockspace
 import github.businessdirt.axite.vanadium.core.imgui.panels.ImGuiPanel
+import github.businessdirt.axite.vanadium.core.imgui.panels.PropertiesPanel
+import github.businessdirt.axite.vanadium.core.imgui.panels.RenderPassesPanel
+import github.businessdirt.axite.vanadium.core.imgui.panels.SceneHierarchyPanel
 import github.businessdirt.axite.vanadium.renderer.graph.RenderGraph
 import github.businessdirt.axite.vanadium.renderer.passes.GeometryPass
 import github.businessdirt.axite.vanadium.renderer.passes.ImGuiPass
@@ -20,7 +23,7 @@ class VanadiumSandbox : VanadiumAdapter {
         const val MODEL_FILE: String = "src/sandbox/resources/models/sponza/Sponza.gltf"
     }
 
-    private val scene = Scene()
+    override val scene = Scene()
 
     override suspend fun initialize(scope: CoroutineScope) {
         val model = Vanadium.assets.load<Model>(MODEL_FILE)
@@ -55,6 +58,10 @@ class VanadiumSandbox : VanadiumAdapter {
             initialize()
             useFXAA = true
         }
+
+        SceneHierarchyPanel.enabled = true
+        PropertiesPanel.enabled = true
+        RenderPassesPanel.enabled = true
     }
 
     override fun shutdown() {

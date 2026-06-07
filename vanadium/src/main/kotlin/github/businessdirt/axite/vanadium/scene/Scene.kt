@@ -22,6 +22,9 @@ class Scene : AutoCloseable {
 
     private val modelFamily = world.family { all(TransformComponent, ModelComponent) }
     private val cameraFamily = world.family { all(TransformComponent, CameraComponent) }
+    private val hierarchyFamily = world.family { all(HierarchyComponent) }
+
+    var selectedEntity: Entity? = null
 
     fun createEntity(name: String = "Entity"): Entity {
         val entity = world.entity {
@@ -30,6 +33,15 @@ class Scene : AutoCloseable {
             it += HierarchyComponent()
         }
         return Entity(entity, world)
+    }
+
+    fun getEntity(entity: com.github.quillraven.fleks.Entity): Entity = Entity(entity, world)
+
+    fun forEachRootEntity(block: (Entity) -> Unit) = hierarchyFamily.forEach { entity ->
+        val hierarchy = entity[HierarchyComponent]
+        if (hierarchy.parent == null) {
+            block(Entity(entity, world))
+        }
     }
 
     fun update(deltaTime: Float) = world.update(deltaTime)
